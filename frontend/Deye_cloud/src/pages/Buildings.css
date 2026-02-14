@@ -8,11 +8,11 @@ font-family:Inter;
 @media (max-width: 768px) {
 
   /* PAGE PADDING */
-  .buildings-page {
+  .buildings-page{
     padding: 10px;
   }
 
-  /* HEADER */
+  /* HEADER FIX */
   .second-header {
     flex-direction: column;
     align-items: flex-start;
@@ -21,25 +21,41 @@ font-family:Inter;
     gap: 10px;
   }
 
-  .second-company {
-    font-size: 16px;
+  .second-company{
+    font-size:16px;
   }
 
-  /* SUMMARY FIX */
-  .summary {
-    flex-direction: column;
-    padding: 10px;
+  .second-sub{
+    font-size:11px;
   }
 
-  .summary-card {
+  .secondheader-right {
     width: 100%;
-    min-width: 100%;
+    align-items: flex-start;
+  }
+
+  .back-btn{
+    margin-top:8px;
+  }
+
+  /* SUMMARY FIX (IMPORTANT) */
+  .summary {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .summary-card{
+    width: 100%;
+    min-width: unset;
   }
 
   /* BUILDING GRID FIX */
   .building-grid {
     padding: 10px;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 12px;
   }
 
   .building-card {
@@ -51,12 +67,13 @@ font-family:Inter;
     padding: 10px;
   }
 
-  .graph-box {
-    width: 100%;
-    overflow-x: auto;
+  .graph-box{
+    padding:10px;
+    overflow-x:auto;
   }
 
 }
+
 
 
 
