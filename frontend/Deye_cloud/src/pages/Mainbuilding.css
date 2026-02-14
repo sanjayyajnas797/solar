@@ -3,6 +3,25 @@ margin:0;
 background:#f4f7fb;
 font-family:Segoe UI;
 }
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .main-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .campus-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+}
 
 
 /* HEADER FIXED */

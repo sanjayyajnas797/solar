@@ -4,6 +4,29 @@ body{
 margin:0;
 font-family:Inter;
 }
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+
+  .building-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .summary {
+    grid-template-columns: 1fr !important;
+  }
+
+  .second-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .secondheader-right {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+
+}
 
 
 /* PAGE */
