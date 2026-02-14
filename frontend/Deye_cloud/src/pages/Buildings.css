@@ -1,0 +1,508 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+body{
+margin:0;
+font-family:Inter;
+}
+
+
+/* PAGE */
+
+.buildings-page{
+background:#f4f7fb;
+min-height:100vh;
+}
+
+
+/* HEADER */
+
+.second-header{
+
+height:80px;
+background:linear-gradient(135deg,#021c2b,#05354a);
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+
+padding:0 40px;
+color:white;
+
+}
+
+.secondheader-left{
+display:flex;
+align-items:center;
+gap:15px;
+}
+
+.second-logo{
+height:40px;
+}
+
+.second-company{
+font-size:22px;
+font-weight:600;
+}
+
+.second-sub{
+font-size:12px;
+opacity:0.7;
+}
+
+
+.secondheader-right{
+display:flex;
+flex-direction:column;
+align-items:flex-end;
+}
+
+
+.secondlive-box{
+color:#00ff88;
+font-weight:600;
+}
+
+.live-dot{
+width:8px;
+height:8px;
+background:#00ff88;
+display:inline-block;
+border-radius:50%;
+margin-right:5px;
+}
+
+
+.second-updated{
+font-size:12px;
+opacity:0.7;
+margin-top:3px;
+}
+
+
+.back-btn{
+
+margin-top:5px;
+
+padding:6px 14px;
+
+border:none;
+
+background:linear-gradient(90deg,#00ffd5,#00a2ff);
+
+color:white;
+
+border-radius:20px;
+
+cursor:pointer;
+
+}
+
+
+
+/* SUMMARY */
+
+.summary{
+
+display:flex;
+gap:20px;
+padding:30px 40px;
+
+}
+
+.summary-card{
+
+background:white;
+
+padding:20px;
+
+border-radius:14px;
+
+box-shadow:0 4px 20px rgba(0,0,0,0.08);
+
+min-width:220px;
+
+}
+
+.summary-label{
+font-size:12px;
+color:#777777a7;
+}
+
+.summary-value{
+font-size:24px;
+font-weight:600;
+}
+
+.green{color:#00c853;}
+.blue{color:#2196f3;}
+.status{color:#00c853;}
+
+
+
+/* BUILDING GRID */
+
+.building-grid{
+
+padding:20px 40px;
+
+display:grid;
+
+grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+
+gap:25px;
+
+}
+
+
+.building-card{
+
+background:white;
+
+padding:20px;
+
+border-radius:16px;
+
+box-shadow:0 6px 25px rgba(0,0,0,0.08);
+
+transition:0.3s;
+
+cursor:pointer;
+
+}
+
+
+.building-card:hover{
+transform:translateY(-5px);
+}
+
+
+/* ACTIVE BUILDING */
+
+.building-card.active{
+
+border:2px solid #00ffd5;
+
+}
+
+
+
+/* COLORS */
+
+.color-0{border-top:4px solid #00ffd5;}
+.color-1{border-top:4px solid #ff9800;}
+.color-2{border-top:4px solid #00c853;}
+.color-3{border-top:4px solid #9c27b0;}
+.color-4{border-top:4px solid #ff5252;}
+
+
+
+/* CARD */
+
+.card-header{
+display:flex;
+justify-content:space-between;
+}
+
+.card-icon{
+width:40px;
+}
+
+.online{
+color:#00c853;
+font-size:12px;
+}
+
+
+.building-name{
+
+font-size:18px;
+font-weight:600;
+
+margin:10px 0;
+
+}
+
+
+.energy-row{
+display:flex;
+justify-content:space-between;
+}
+
+.energy-label{
+font-size:11px;
+color:#777;
+}
+
+.energy-value{
+font-size:20px;
+font-weight:600;
+}
+
+.energy-value span{
+font-size:12px;
+margin-left:5px;
+}
+
+
+.card-footer{
+
+margin-top:10px;
+font-size:12px;
+color:#777;
+
+}
+
+
+
+/* GRAPH */
+
+.graph-section{
+padding:40px;
+}
+
+.graph-title{
+font-size:18px;
+margin-bottom:10px;
+font-weight:600;
+}
+
+
+.graph-box{
+
+background:white;
+
+border-radius:14px;
+
+padding:20px;
+
+box-shadow:0 4px 20px rgba(0,0,0,0.08);
+
+}
+
+
+
+/* GRAPH BUTTONS */
+
+.graph-buttons{
+
+display:flex;
+
+gap:10px;
+
+margin-bottom:10px;
+
+}
+
+
+.graph-btn{
+
+padding:6px 14px;
+
+border:none;
+
+border-radius:20px;
+
+background:#eee;
+
+cursor:pointer;
+
+}
+
+
+.active-btn{
+
+background:linear-gradient(90deg,#00ffd5,#00a2ff);
+
+color:white;
+
+}
+
+
+/* ================= LIVE NUMBER ANIMATION ================= */
+
+.live-number{
+
+display:inline-block;
+
+animation: fadeSlide 0.6s ease;
+
+}
+
+@keyframes fadeSlide{
+
+0%{
+opacity:0;
+transform:translateY(8px);
+}
+
+100%{
+opacity:1;
+transform:translateY(0);
+}
+
+}
+
+
+/* ================= PEAK RECORD BADGE ================= */
+
+.peak-badge{
+
+display:inline-block;
+
+margin-left:8px;
+
+padding:2px 8px;
+
+font-size:10px;
+
+font-weight:600;
+
+border-radius:10px;
+
+background:linear-gradient(90deg,#FFD700,#FFA500);
+
+color:#111;
+
+animation: badgePulse 2s infinite;
+
+}
+
+@keyframes badgePulse{
+
+0%{
+box-shadow:0 0 0 rgba(255,215,0,0.6);
+}
+
+50%{
+box-shadow:0 0 10px rgba(255,215,0,0.8);
+}
+
+100%{
+box-shadow:0 0 0 rgba(255,215,0,0.6);
+}
+
+}
+
+
+/* ================= LIVE BLINK INDICATOR ================= */
+
+.online{
+
+color:#00e676;
+
+font-size:12px;
+
+display:flex;
+
+align-items:center;
+
+gap:5px;
+
+}
+
+.online::before{
+
+content:"";
+
+width:8px;
+
+height:8px;
+
+border-radius:50%;
+
+background:#00e676;
+
+animation: liveBlink 1.5s infinite;
+
+}
+
+@keyframes liveBlink{
+
+0%{
+opacity:1;
+box-shadow:0 0 5px #00e676;
+}
+
+50%{
+opacity:0.3;
+box-shadow:0 0 15px #00e676;
+}
+
+100%{
+opacity:1;
+box-shadow:0 0 5px #00e676;
+}
+
+}
+
+
+/* ================= ELITE PEAK CARD ================= */
+
+.peak-card{
+
+border:1px solid rgba(255,215,0,0.3);
+
+box-shadow:0 4px 20px rgba(255,215,0,0.15);
+
+}
+
+.peak-value{
+
+background: linear-gradient(135deg,#FFD700,#FFA500);
+
+background-clip: text;          /* add this */
+-webkit-background-clip: text;
+
+-webkit-text-fill-color: transparent;
+
+font-weight:700;
+
+}
+
+
+/* ================= CURRENT POWER ELITE ================= */
+
+.current-live{
+
+margin-top:4px;
+
+font-weight:600;
+
+color:#00e676;
+
+animation: fadeSlide 0.5s ease;
+
+}
+
+/* PERFORMANCE CARD */
+
+.performance-card{
+
+border:1px solid rgba(33,150,243,0.2);
+box-shadow:0 4px 20px rgba(33,150,243,0.12);
+
+}
+
+.perf-main{
+
+margin-top:5px;
+font-weight:600;
+display:flex;
+flex-direction:column;
+gap:3px;
+
+}
+
+.best{
+
+font-size:12px;
+color:#777;
+
+}
+
+.peak-highlight {
+  border: 2px solid gold !important;
+  box-shadow: 0 0 12px gold;
+}
+
