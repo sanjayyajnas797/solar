@@ -4,19 +4,16 @@ body{
 margin:0;
 font-family:Inter;
 }
-/* MOBILE RESPONSIVE */
+/* MOBILE RESPONSIVE FIX */
 @media (max-width: 768px) {
 
-  .building-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .summary {
-    grid-template-columns: 1fr !important;
+  .buildings-page {
+    padding: 10px;
   }
 
   .second-header {
     flex-direction: column;
+    align-items: flex-start;
     gap: 10px;
   }
 
@@ -24,6 +21,27 @@ font-family:Inter;
     width: 100%;
     display: flex;
     justify-content: space-between;
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .building-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .building-card {
+    width: 100%;
+  }
+
+  .graph-section {
+    width: 100%;
+    overflow-x: auto;
   }
 
 }

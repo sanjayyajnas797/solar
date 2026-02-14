@@ -1,0 +1,9 @@
+/* GLOBAL MOBILE FIX */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
