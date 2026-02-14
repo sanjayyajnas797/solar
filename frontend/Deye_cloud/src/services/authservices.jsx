@@ -1,8 +1,8 @@
-const API_URL = "http://localhost:5000/api";
+import API_BASE from '../pages/config'
 
 export async function login(email, password) {
 
-  const res = await fetch(`${API_URL}/login`, {
+  const res = await fetch(`${API_BASE}/login`, {
 
     method: "POST",
 
