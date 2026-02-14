@@ -2,9 +2,21 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Buildings.css";
 import PowerGraph from "../graph/graph";
-import API_BASE from "./config"
+import API_BASE from "./config";
+
 import logo from "../assets/sunlogo.png";
 import buildIcon from "../assets/tower.png";
+
+/* ✅ CAPACITY MAP (CLIENT DATA) */
+const capacityMap = {
+
+  "NLCIL LIBRARY": 50.85,
+
+  "NLCIL Education office": 23.73,
+
+  "NLCIL L&DC office (INV-2)": 145.00
+
+};
 
 export default function Buildings() {
 
@@ -12,90 +24,82 @@ export default function Buildings() {
   const [time, setTime] = useState("");
 
   const [selectedBuilding, setSelectedBuilding] = useState(null);
+
+  /* ✅ GRAPH TYPE STATE */
   const [graphType, setGraphType] = useState("today");
 
   const [currentMap, setCurrentMap] = useState({});
+
   const [peakPower, setPeakPower] = useState(0);
-  const [peakTime, setPeakTime] = useState("");
+
   const [performance, setPerformance] = useState({
     totalCurrent: 0,
     avgPower: 0,
     bestBuilding: "-"
   });
-   
-   const [userSelected, setUserSelected] = useState(false);
+
+  const [userSelected, setUserSelected] = useState(false);
 
   const navigate = useNavigate();
 
 
-  // ✅ FAST FETCH BUILDINGS (NO EXTRA API CALLS)
+  /* FETCH BUILDINGS */
+  const fetchBuildings = async () => {
 
-      const fetchBuildings = async () => {
+    try {
 
-  try {
+      const res =
+        await fetch(`${API_BASE}/sub-buildings`);
 
-    const res =
-      await fetch(
-        `${API_BASE}/sub-buildings`
-      );
+      const data = await res.json();
 
-    const data = await res.json();
+      setBuildings(data);
 
-    setBuildings(data);
+      setTime(new Date().toLocaleTimeString());
 
-    setTime(
-      new Date().toLocaleTimeString()
-    );
+      setSelectedBuilding(prev => {
 
-    // ✅ FIXED SELECTION PRESERVE
+        if (!userSelected && !prev && data.length)
+          return data[0];
 
-    setSelectedBuilding(prev => {
+        if (userSelected && prev) {
 
-  // first load only → select Library
-  if (!userSelected && !prev && data.length)
-    return data[0];
+          const updated =
+            data.find(b => b.id === prev.id);
 
-  // if user selected building → keep same
-  if (userSelected && prev) {
+          return updated || prev;
 
-    const updated =
-      data.find(
-        b => b.id === prev.id
-      );
+        }
 
-    return updated || prev;
+        return prev;
 
-  }
+      });
 
-  return prev;
+      const map = {};
 
-});
+      data.forEach(b => {
 
+        map[b.id] =
+          Number(b.currentPower || 0);
 
+      });
 
-    const map = {};
+      setCurrentMap(map);
 
-    data.forEach(b => {
+      calculatePerformance(map, data);
 
-      map[b.id] =
-        Number(b.currentPower || 0);
+    }
+    catch (err) {
 
-    });
+      console.log(err);
 
-    setCurrentMap(map);
+    }
 
-    calculatePerformance(map);
-
-  }
-  catch {}
-
-};
+  };
 
 
-
-  // ✅ CALCULATE PERFORMANCE
-
-  const calculatePerformance = (map) => {
+  /* PERFORMANCE */
+  const calculatePerformance = (map, buildingData) => {
 
     const values = Object.values(map);
 
@@ -110,7 +114,7 @@ export default function Buildings() {
     let best = "-";
     let max = 0;
 
-    buildings.forEach(b => {
+    buildingData.forEach(b => {
 
       if (map[b.id] > max) {
 
@@ -134,70 +138,51 @@ export default function Buildings() {
   };
 
 
-  // ✅ FETCH PEAK POWER
-      const fetchPeakPower = async () => {
+  /* PEAK POWER */
+  const fetchPeakPower = async () => {
 
-  if (!selectedBuilding) return;
+    if (!selectedBuilding) return;
 
-  try {
+    try {
 
-    const res =
-      await fetch(
-        `${API_BASE}/graph/today/${selectedBuilding.id}`
-      );
+      const res =
+        await fetch(
+          `${API_BASE}/graph/today/${selectedBuilding.id}`
+        );
 
-    const graph = await res.json();
+      const graph =
+        await res.json();
 
-    if (!graph.length) return;
+      if (!graph.length) return;
 
+      let max = 0;
 
-    let max = 0;
-    let maxTime = "";
+      graph.forEach(g => {
 
+        const power =
+          Number(g.power) / 1000;
 
-    graph.forEach(g => {
+        if (power > max)
+          max = power;
 
-      const power =
-        Number(g.power) / 1000;
+      });
 
-      if (power > max) {
+      setPeakPower(max.toFixed(1));
 
-        max = power;
+    }
+    catch {}
 
-        maxTime =
-          new Date(g.time)
-            .toLocaleTimeString();
+  };
 
-      }
-
-    });
-
-
-    setPeakPower(
-      max.toFixed(1)
-    );
-
-    setPeakTime(maxTime);
-
-  }
-  catch {}
-
-};
-
-  // ✅ INTERVAL FETCH
 
   useEffect(() => {
 
     fetchBuildings();
 
     const interval =
-      setInterval(
-        fetchBuildings,
-        30000   // 30 sec (FAST & SAFE)
-      );
+      setInterval(fetchBuildings, 30000);
 
-    return () =>
-      clearInterval(interval);
+    return () => clearInterval(interval);
 
   }, []);
 
@@ -216,6 +201,7 @@ export default function Buildings() {
       0
     );
 
+
   const totalYesterday =
     buildings.reduce(
       (sum, b) =>
@@ -227,6 +213,7 @@ export default function Buildings() {
   return (
 
     <div className="buildings-page">
+
 
       {/* HEADER */}
 
@@ -242,7 +229,7 @@ export default function Buildings() {
           <div>
 
             <div className="second-company">
-                Sun Industrial Automations & Solutions Private Limited
+              Sun Industrial Automations & Solutions Private Limited
             </div>
 
             <div className="second-sub">
@@ -278,6 +265,7 @@ export default function Buildings() {
       </div>
 
 
+
       {/* SUMMARY */}
 
       <div className="summary">
@@ -288,7 +276,7 @@ export default function Buildings() {
             Total Buildings
           </div>
 
-          <div className="summary-value live-number">
+          <div className="summary-value">
             {buildings.length}
           </div>
 
@@ -301,12 +289,8 @@ export default function Buildings() {
             Total Today Production
           </div>
 
-          <div className="summary-value green live-number">
-
-            {totalToday.toFixed(1)}
-
-            <span> kWh</span>
-
+          <div className="summary-value green">
+            {totalToday.toFixed(1)} kWh
           </div>
 
         </div>
@@ -318,12 +302,8 @@ export default function Buildings() {
             Total Yesterday Production
           </div>
 
-          <div className="summary-value blue live-number">
-
-            {totalYesterday.toFixed(1)}
-
-            <span> kWh</span>
-
+          <div className="summary-value blue">
+            {totalYesterday.toFixed(1)} kWh
           </div>
 
         </div>
@@ -335,22 +315,12 @@ export default function Buildings() {
             Max Unit Power
           </div>
 
-          <div className="summary-value peak-value live-number">
-
-            {peakPower}
-
-            <span> kW</span>
-
-            <span className="peak-badge">
-              RECORD
-            </span>
-
+          <div className="summary-value peak-value">
+            {peakPower} kW
           </div>
 
         </div>
 
-
-        {/* PERFORMANCE */}
 
         <div className="summary-card performance-card">
 
@@ -360,118 +330,129 @@ export default function Buildings() {
 
           <div className="perf-main">
 
-            <div>
+            Current:
+            <span className="green">
+              {performance.totalCurrent} kW
+            </span>
 
-              Current:
-
-              <span className="green">
-                {performance.totalCurrent} kW
-              </span>
-
-            </div>
-
-            <div>
-
-              Average:
-
-              <span className="blue">
-                {performance.avgPower} kW
-              </span>
-
-            </div>
-
-            <div className="best">
-              Best:
-              {" "}
-              {performance.bestBuilding}
-            </div>
+            Average:
+            <span className="blue">
+              {performance.avgPower} kW
+            </span>
 
           </div>
 
         </div>
 
-
       </div>
 
 
-      {/* BUILDINGS */}
+
+      {/* BUILDING GRID */}
 
       <div className="building-grid">
 
-        {buildings.map(
-          (b, index) => (
+        {buildings.map((b, index) => {
 
-          <div
+          const capacity =
+            capacityMap[b.name];
 
-            key={b.id}
+          return (
 
-           onClick={() => {
+            <div
 
-  setSelectedBuilding(b);
+              key={b.id}
 
-  setUserSelected(true);
+              onClick={() => {
 
-}}
+                setSelectedBuilding(b);
 
+                setUserSelected(true);
 
-            className={`building-card color-${index % 5}
-            ${
-              selectedBuilding?.id === b.id
-                ? "active"
-                : ""
-            }`}
+              }}
 
-          >
+              className={`building-card color-${index % 5}
+              ${selectedBuilding?.id === b.id ? "active" : ""}`}
 
-            <div className="card-header">
+            >
 
-              <img
-                src={buildIcon}
-                className="card-icon"
-              />
+              <div className="card-header">
 
-              <div className="online">
-                ONLINE
-              </div>
+                <img
+                  src={buildIcon}
+                  className="card-icon"
+                />
 
-            </div>
-
-
-            <div className="building-name">
-              {b.name}
-            </div>
-
-
-            <div className="energy-row">
-
-              <div>
-
-                <div className="energy-label">
-                  TODAY
-                </div>
-
-                <div className="energy-value green live-number">
-
-                  {Number(b.today).toFixed(1)}
-
-                  <span> kWh</span>
-
+                <div className="online">
+                  ONLINE
                 </div>
 
               </div>
 
 
-              <div>
+              <div className="building-name">
+                {b.name}
+              </div>
 
-                <div className="energy-label">
-                  YESTERDAY
+
+              {/* CAPACITY BADGE */}
+
+              {capacity && (
+
+                <div className="capacity-badge">
+
+                  CAPACITY
+
+                  <span>
+                    {capacity} kW
+                  </span>
+
                 </div>
 
-                <div className="energy-value blue live-number">
+              )}
 
-                  {Number(b.yesterday).toFixed(1)}
 
-                  <span> kWh</span>
+              <div className="energy-row">
+
+                <div>
+
+                  <div className="energy-label">
+                    TODAY
+                  </div>
+
+                  <div className="energy-value green">
+                    {Number(b.today).toFixed(1)} kWh
+                  </div>
+
+                </div>
+
+
+                <div>
+
+                  <div className="energy-label">
+                    YESTERDAY
+                  </div>
+
+                  <div className="energy-value blue">
+                    {Number(b.yesterday).toFixed(1)} kWh
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <div className="card-footer">
+
+                Last update: {time}
+
+                <div className="current-live">
+
+                  Current:
+
+                  {currentMap[b.id]
+                    ? ` ${Number(currentMap[b.id]).toFixed(1)} kW`
+                    : " --"}
 
                 </div>
 
@@ -479,28 +460,12 @@ export default function Buildings() {
 
             </div>
 
+          );
 
-            <div className="card-footer">
-
-              Last update: {time}
-
-              <div className="current-live">
-
-                Current:
-
-                {currentMap[b.id]
-                  ? ` ${Number(currentMap[b.id]).toFixed(1)} kW`
-                  : " --"}
-
-              </div>
-
-            </div>
-
-          </div>
-
-        ))}
+        })}
 
       </div>
+
 
 
       {/* GRAPH */}
@@ -519,14 +484,13 @@ export default function Buildings() {
 
         <div className="graph-box">
 
+
+          {/* ✅ TODAY / YESTERDAY BUTTONS */}
+
           <div className="graph-buttons">
 
             <button
-              className={`graph-btn ${
-                graphType === "today"
-                  ? "active-btn"
-                  : ""
-              }`}
+              className={`graph-btn ${graphType === "today" ? "active-btn" : ""}`}
               onClick={() =>
                 setGraphType("today")
               }
@@ -534,13 +498,8 @@ export default function Buildings() {
               Today
             </button>
 
-
             <button
-              className={`graph-btn ${
-                graphType === "yesterday"
-                  ? "active-btn"
-                  : ""
-              }`}
+              className={`graph-btn ${graphType === "yesterday" ? "active-btn" : ""}`}
               onClick={() =>
                 setGraphType("yesterday")
               }
@@ -548,13 +507,8 @@ export default function Buildings() {
               Yesterday
             </button>
 
-
             <button
-              className={`graph-btn ${
-                graphType === "monthly"
-                  ? "active-btn"
-                  : ""
-              }`}
+              className={`graph-btn ${graphType === "monthly" ? "active-btn" : ""}`}
               onClick={() =>
                 setGraphType("monthly")
               }
@@ -565,15 +519,18 @@ export default function Buildings() {
           </div>
 
 
+
+          {/* GRAPH */}
+
           {selectedBuilding && (
 
             <PowerGraph
 
-              stationId={
-                selectedBuilding.id
-              }
+              stationId={selectedBuilding.id}
 
               type={graphType}
+
+              buildingName={selectedBuilding.name}
 
             />
 

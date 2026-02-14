@@ -326,7 +326,6 @@ async function getSubBuildings() {
     return CACHE.sub;
 }
 
-
 // ================= GRAPH =================
 
 async function getGraph(stationId, type) {
@@ -345,46 +344,40 @@ async function getGraph(stationId, type) {
     const deviceSn =
         inverter.deviceSn;
 
-
     const now = new Date();
 
     let startAt;
     let endAt;
     let granularity;
 
+    function formatDateLocal(date) {
+
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+
+        return `${y}-${m}-${d}`;
+    }
 
     if (type === "today") {
 
-        startAt =
-            now.toISOString().split("T")[0];
-
-        endAt = startAt;
-
+        startAt = formatDateLocal(now);
+        endAt = formatDateLocal(now);
         granularity = 1;
 
     }
 
+    else if (type === "yesterday") {
 
-    if (type === "yesterday") {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
 
-        const yesterday =
-            new Date();
-
-        yesterday.setDate(
-            now.getDate() - 1
-        );
-
-        startAt =
-            yesterday.toISOString().split("T")[0];
-
+        startAt = formatDateLocal(yesterday);
         endAt = startAt;
-
         granularity = 1;
-
     }
 
-
-    if (type === "monthly") {
+    else {
 
         const firstDay =
             new Date(
@@ -393,14 +386,9 @@ async function getGraph(stationId, type) {
                 1
             );
 
-        startAt =
-            firstDay.toISOString().split("T")[0];
-
-        endAt =
-            now.toISOString().split("T")[0];
-
+        startAt = formatDateLocal(firstDay);
+        endAt = formatDateLocal(now);
         granularity = 2;
-
     }
 
 
@@ -408,7 +396,7 @@ async function getGraph(stationId, type) {
         await api(
             "/v1.0/device/history",
             {
-                deviceSn,
+                deviceSn: String(deviceSn),
                 startAt,
                 endAt,
                 granularity,
@@ -418,29 +406,44 @@ async function getGraph(stationId, type) {
             }
         );
 
-
     const raw =
         data?.dataList || [];
 
+    console.log("GRAPH RAW:", raw.length);
 
-    return raw.map(item => ({
+
+    return raw.map(item => {
+
+    const collectTime =
+        item?.collectTime || item?.time;
+
+    if (!collectTime)
+        return null;
+
+    const timestamp =
+        Number(collectTime);
+
+    const date =
+        new Date(timestamp * 1000);
+
+    const powerValue =
+        item?.itemList?.find(
+            i =>
+                i.key ===
+                "TotalActiveACOutputPower"
+        )?.value;
+
+    return {
 
         time:
-            item.collectTime,
+            date.toISOString(),
 
         power:
-            Number(
-                item.itemList.find(
+            Number(powerValue || 0)
 
-                    i =>
-                    i.key ===
-                    "TotalActiveACOutputPower"
+    };
 
-                )?.value || 0
-            )
-
-    }));
-
+}).filter(Boolean);
 }
 
 
