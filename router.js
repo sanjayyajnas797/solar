@@ -8,11 +8,13 @@ const {
 
     getSubBuildings,
 
-    getGraph,
+    
 
     login,
 
-    getWeather
+    getWeather,
+
+    getGraph
 
 } = require("./service");
 
@@ -77,6 +79,8 @@ router.get(
 
 // GRAPH
 
+// GRAPH
+
 router.get(
     "/graph/:type/:stationId",
     async (req, res) => {
@@ -85,8 +89,8 @@ router.get(
 
             const data =
                 await getGraph(
-                    req.params.stationId,
-                    req.params.type
+                    req.params.type,       // ✅ type first
+                    req.params.stationId  // ✅ stationId second
                 );
 
             res.json(data);
@@ -102,6 +106,7 @@ router.get(
 
     }
 );
+
 
 // WEATHER BY CAMPUS
 

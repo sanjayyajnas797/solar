@@ -414,6 +414,91 @@ async function getYesterday(stationId) {
     );
 }
 
+// ================= GET GRAPH DATA =================
+
+async function getGraph(type, stationId) {
+
+    try {
+
+        const devices =
+            await getDevices(stationId);
+
+        const inverter =
+            devices.find(
+                d => d.deviceType === "INVERTER"
+            );
+
+        if (!inverter)
+            return [];
+
+        let granularity = 5;
+
+        if (type === "today")
+            granularity = 5;   // 5 min
+
+        if (type === "yesterday")
+            granularity = 5;
+
+        if (type === "monthly")
+            granularity = 2;   // daily
+
+
+        let start = new Date();
+        let end = new Date();
+
+        if (type === "yesterday") {
+
+            start.setDate(start.getDate() - 1);
+            end.setDate(end.getDate() - 1);
+
+        }
+
+        if (type === "monthly") {
+
+            start.setDate(1);
+
+        }
+
+        const startDate =
+            start.toISOString().split("T")[0];
+
+        const endDate =
+            end.toISOString().split("T")[0];
+
+
+        const data =
+            await api(
+                "/v1.0/device/history",
+                {
+                    deviceSn: inverter.deviceSn,
+                    startAt: startDate,
+                    endAt: endDate,
+                    granularity
+                }
+            );
+
+
+        return (
+            data.deviceDataItems || []
+        ).map(item => ({
+
+            time: item.collectTime,
+
+            power:
+                item.activePower || 0
+
+        }));
+
+    }
+    catch (err) {
+
+        console.log("Graph error:", err.message);
+
+        return [];
+
+    }
+
+}
 
 // ================= EXPORT =================
 
@@ -426,6 +511,7 @@ module.exports = {
    getStations,
 getDevices,
 getLatest,
-getYesterday
+getYesterday,
+getGraph
 
 };

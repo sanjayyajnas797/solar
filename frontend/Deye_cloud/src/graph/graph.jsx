@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import API_BASE from "../pages/config";
+import API_BASE from '../pages/config'
 
 import {
   LineChart,
