@@ -418,6 +418,8 @@ async function getYesterday(stationId) {
 
 // ================= GET GRAPH DATA =================
 
+// ================= GET GRAPH DATA =================
+
 async function getGraph(type, stationId) {
 
     try {
@@ -433,14 +435,12 @@ async function getGraph(type, stationId) {
         if (!inverter)
             return [];
 
-        const deviceSn =
-            inverter.deviceSn;
-
         const now = new Date();
 
         let startAt;
         let endAt;
         let granularity;
+
 
         if (type === "today") {
 
@@ -449,24 +449,28 @@ async function getGraph(type, stationId) {
 
             endAt = startAt;
 
-            granularity = 1;
+            granularity = 1; // 5 min data
 
         }
 
+
         if (type === "yesterday") {
 
-            const y = new Date();
+            const yesterday = new Date();
 
-            y.setDate(now.getDate() - 1);
+            yesterday.setDate(
+                now.getDate() - 1
+            );
 
             startAt =
-                y.toISOString().split("T")[0];
+                yesterday.toISOString().split("T")[0];
 
             endAt = startAt;
 
             granularity = 1;
 
         }
+
 
         if (type === "monthly") {
 
@@ -483,26 +487,33 @@ async function getGraph(type, stationId) {
             endAt =
                 now.toISOString().split("T")[0];
 
-            granularity = 2;
+            granularity = 2; // daily
 
         }
+
 
         const data =
             await api(
                 "/v1.0/device/history",
                 {
-                    deviceSn,
+                    deviceSn:
+                        inverter.deviceSn,
+
                     startAt,
                     endAt,
+
                     granularity,
+
                     measurePoints: [
                         "TotalActiveACOutputPower"
                     ]
                 }
             );
 
+
         const raw =
             data?.dataList || [];
+
 
         return raw.map(item => ({
 
