@@ -1,289 +1,495 @@
+/* ============================= */
+/* GLOBAL */
+/* ============================= */
+
 body{
 margin:0;
-background:#f4f7fb;
-font-family:Segoe UI;
+font-family:Segoe UI, Arial, sans-serif;
+background-color:#f4f7fb;
+color:#012130;
+
+/* SCADA GRID BACKGROUND */
+background-image:
+linear-gradient(rgba(0,255,200,0.05) 1px, transparent 1px),
+linear-gradient(90deg, rgba(0,255,200,0.05) 1px, transparent 1px);
+
+background-size:40px 40px;
 }
-/* MOBILE RESPONSIVE */
-@media (max-width: 768px) {
 
-  .kpi-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .main-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .campus-hero {
-    flex-direction: column;
-    text-align: center;
-  }
-
+.dashboard{
+width:100%;
+min-height:100vh;
 }
 
 
-/* HEADER FIXED */
+/* ============================= */
+/* HEADER */
+/* ============================= */
 
-.main-header{
+.header{
 
-background:linear-gradient(135deg,#05354a,#0a4f63);
+position:relative;
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+
+padding:12px 25px;
 
 color:white;
 
-display:flex;
+background:linear-gradient(
+270deg,
+#063a4d,
+#0a5a73,
+#063a4d
+);
 
-align-items:center;
+background-size:400% 400%;
+animation:headerGradient 12s ease infinite;
 
-justify-content:space-between;
-
-padding:12px 30px;
-
-width:100%;
-
-box-sizing:border-box;
+box-shadow:0 4px 15px rgba(0,0,0,0.25);
 
 }
 
+/* animated gradient */
+
+@keyframes headerGradient{
+
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+
+}
 
 
 /* LEFT */
 
-.main-header-left{
-
+.header-left{
 display:flex;
-
 align-items:center;
-
 gap:12px;
-
 }
 
-
-.main-logo{
-
-width:45px;
-height:45px;
-
+.logo{
+width:50px;
+height:50px;
+object-fit:contain;
 }
 
-
-
-.main-title{
-
-font-size:18px;
+.company{
+font-size:17px;
 font-weight:600;
-
 }
 
-
-
-.main-subtitle{
-
+.subtitle{
 font-size:12px;
-opacity:.7;
-
+opacity:.8;
 }
 
 
+/* RIGHT */
 
-/* RIGHT LOCKED */
-
-.main-header-right{
-
+.header-right{
 display:flex;
-
 align-items:center;
-
-gap:35px;
-
-margin-left:auto;
-
+gap:20px;
 }
 
 
+/* LIVE STATUS */
 
-/* LIVE */
-
-.main-live{
-
+.live-container{
 display:flex;
-
 align-items:center;
-
-gap:6px;
-
-font-size:14px;
-
+gap:8px;
 }
 
+.live-dot{
 
+width:10px;
+height:10px;
 
-.main-live-dot{
-
-width:8px;
-height:8px;
 background:#00ff88;
 border-radius:50%;
-animation:pulse 1s infinite;
+
+box-shadow:
+0 0 6px #00ff88,
+0 0 12px #00ff88;
+
+animation:liveBlink 1.2s infinite;
 
 }
 
+@keyframes liveBlink{
+0%{opacity:1;}
+50%{opacity:.3;}
+100%{opacity:1;}
+}
 
-
-/* TIME */
-
-.main-time{
-
-font-size:14px;
-
+.live-text{
+font-size:13px;
+font-weight:600;
+color:#00ffc8;
 }
 
 
+/* UPDATE TIME */
 
-/* WEATHER */
-
-.main-weather{
-
+.update-container{
 display:flex;
 flex-direction:column;
+align-items:flex-end;
+}
+
+.update-label{
+font-size:10px;
+opacity:.7;
+}
+
+.update-time{
 font-size:14px;
-
+font-family:Consolas;
+color:#00ffc8;
 }
-
-.main-weather span{
-
-font-size:11px;
-opacity:.8;
-
-}
-
 
 
 /* LOGOUT */
 
-.main-logout{
+.logout{
 
-background:red;
-
+background:#ff3b3b;
 border:none;
-
 padding:6px 16px;
 
-color:white;
-
 border-radius:6px;
+color:white;
+
+font-size:13px;
+font-weight:600;
 
 cursor:pointer;
+transition:.2s;
 
+}
+
+.logout:hover{
+background:#ff1f1f;
+box-shadow:0 0 10px rgba(255,0,0,.4);
+}
+
+
+/* HEADER ENERGY FLOW */
+
+.header-energy-flow{
+
+position:absolute;
+bottom:0;
+left:0;
+
+width:100%;
+height:2px;
+
+background:linear-gradient(
+90deg,
+transparent,
+#00ffc8,
+transparent
+);
+
+animation:flowMove 2s infinite;
+
+}
+
+@keyframes flowMove{
+0%{opacity:.3}
+50%{opacity:1}
+100%{opacity:.3}
 }
 
 
 
-/* KEEP YOUR OLD CSS BELOW */
+/* ============================= */
+/* SCADA CONTAINER */
+/* ============================= */
 
-.kpi-grid{
+.scada-container{
+padding:25px;
+}
+
+
+/* EACH CAMPUS ROW */
+
+/* ============================= */
+/* SCADA ROW — DARK TOGGLE STYLE */
+/* ============================= */
+
+.scada-row{
+
 display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:20px;
-padding:20px;
-}
 
-.kpi-card{
-background:#021c2b;
-color:white;
-padding:20px;
-border-radius:10px;
-display:flex;
+grid-template-columns:
+260px 1fr 260px 1fr 260px 1fr 260px;
+
 gap:12px;
+
+align-items:center;
+
+margin-bottom:22px;
+
+padding:14px;
+
+border-radius:12px;
+
+position:relative;
+
+/* DARK SCADA BACKGROUND */
+
+background:linear-gradient(
+90deg,
+rgba(0, 40, 55, 0.95) 0%,
+rgba(0, 65, 85, 0.65) 40%,
+rgba(0, 65, 85, 0.45) 70%,
+rgba(0, 40, 55, 0.95) 100%
+);
+
+box-shadow:
+inset 0 0 20px rgba(0,255,200,0.08),
+0 4px 12px rgba(0,0,0,0.25);
+
+transition:.35s ease;
+
 }
 
-.kpi-card img{
-width:35px;
+
+/* HOVER EFFECT */
+
+.scada-row:hover{
+
+background:linear-gradient(
+90deg,
+rgba(0, 60, 80, 0.95) 0%,
+rgba(0, 120, 150, 0.75) 40%,
+rgba(0, 120, 150, 0.55) 70%,
+rgba(0, 60, 80, 0.95) 100%
+);
+
+box-shadow:
+inset 0 0 25px rgba(0,255,200,0.18),
+0 6px 16px rgba(0,0,0,0.35);
+
 }
 
-.kpi-value{
-color:#00ffc8;
-font-size:22px;
-}
 
-.red{
-color:red;
-}
+/* ============================= */
+/* PANEL */
+/* ============================= */
 
-.campus-hero{
-background:#021c2b;
+.panel{
+
+background:linear-gradient(
+145deg,
+#012130,
+#03384f
+);
+
 color:white;
-margin:20px;
-padding:25px;
+
 border-radius:10px;
+padding:18px;
+
+border:1px solid rgba(0,255,200,0.2);
+
+box-shadow:
+0 4px 12px rgba(0,0,0,0.25);
+
+transition:.25s;
+
+}
+
+.panel:hover{
+
+transform:translateY(-4px);
+
+box-shadow:
+0 8px 20px rgba(0,255,200,0.25);
+
+}
+
+
+
+/* CAMPUS CARD */
+
+.campus-card{
+
 display:flex;
-gap:15px;
+align-items:center;
+gap:12px;
+
 cursor:pointer;
+
+border-left:4px solid #00ffc8;
+padding-left:10px;
+
 }
 
-.campus-hero img{
-width:60px;
+.campus-card img{
+
+width:40px;
+
+filter:drop-shadow(0 0 6px rgba(0,255,200,0.5));
+
 }
 
-.powerflow{
-background:#021c2b;
-margin:20px;
-padding:25px;
-border-radius:10px;
+
+
+/* ============================= */
+/* TEXT */
+/* ============================= */
+
+.label{
+font-size:11px;
+opacity:.7;
+letter-spacing:.5px;
+}
+
+.value{
+font-size:20px;
+font-weight:700;
+}
+
+.green{color:#00ff88;}
+.blue{color:#4da3ff;}
+.cyan{color:#00ffc8;}
+
+
+
+/* ============================= */
+/* WEATHER */
+/* ============================= */
+
+.weather-row{
+
 display:flex;
-justify-content:center;
-gap:40px;
-color:white;
+align-items:center;
+gap:10px;
+margin-bottom:10px;
+
 }
 
-.flow-box img{
-width:50px;
-display:block;
-margin:auto;
+.icon{
+
+font-size:30px;
+
+filter:drop-shadow(0 0 6px rgba(0,255,200,0.4));
+
+}
+
+.sun{color:#FFD700;}
+.temp{color:#ff5e5e;}
+.wind{color:#4da3ff;}
+
+
+
+/* ============================= */
+/* ENERGY FLOW LINE */
+/* ============================= */
+
+.flow-line{
+
+height:3px;
+
+background:linear-gradient(
+90deg,
+transparent,
+#00ffc8,
+transparent
+);
+
+position:relative;
+overflow:hidden;
+
+}
+
+.flow-line::after{
+
+content:"";
+
+position:absolute;
+
+width:60px;
+height:3px;
+
+background:linear-gradient(
+90deg,
+transparent,
+white,
+transparent
+);
+
+animation:energyFlow 2s linear infinite;
+
+}
+
+@keyframes energyFlow{
+
+0%{left:-60px;}
+100%{left:100%;}
+
+}
+
+
+
+/* ============================= */
+/* TABLET */
+/* ============================= */
+
+@media(max-width:1200px){
+
+.scada-row{
+
+grid-template-columns:
+220px 1fr 220px 1fr 220px 1fr 220px;
+
+}
+
+}
+
+
+
+/* ============================= */
+/* MOBILE */
+/* ============================= */
+
+@media(max-width:768px){
+
+.header{
+flex-direction:column;
+align-items:flex-start;
+gap:10px;
+}
+
+.header-right{
+width:100%;
+justify-content:space-between;
+}
+
+.scada-row{
+
+grid-template-columns:1fr;
+
+gap:10px;
+
+padding:10px;
+
 }
 
 .flow-line{
-width:80px;
-height:4px;
-background:#00ffc8;
-margin-top:25px;
-animation:pulse 1s infinite;
+display:none;
 }
 
-.info-panel{
-background:white;
-margin:20px;
-padding:25px;
-border-radius:10px;
-box-shadow:0 4px 15px rgba(0,0,0,.1);
+.panel{
+width:100%;
 }
 
-.info-title{
-font-size:18px;
-font-weight:600;
-margin-bottom:15px;
-}
-
-.info-grid{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:20px;
-}
-
-.info-grid span{
-display:block;
-margin-top:5px;
-font-weight:600;
-}
-
-.green{
-color:#00c853;
-}
-
-@keyframes pulse{
-0%{opacity:1}
-50%{opacity:.3}
-100%{opacity:1}
 }

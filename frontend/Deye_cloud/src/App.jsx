@@ -4,7 +4,12 @@ import Login from "../src/pages/Login";
 import Mainbuilding from "../src/pages/mainbuilding";
 import Buildings from "../src/pages/building";
 import DeviceDashboard from "../src/pages/devicedashboard";
-import Dashboard from "./Dashboard";
+
+import Btps from "./BTPS/BTPS";
+import Nlcic from "./NLCIC/Nlcic";
+import Ntpl from "./NTPL/NTPL";
+import Nuppl from "./NUPPL/Nuppl";
+
 import ProtectedRoute from "./producted";
 
 export default function App() {
@@ -18,7 +23,7 @@ export default function App() {
         {/* PUBLIC */}
         <Route path="/" element={<Login />} />
 
-        {/* PROTECTED */}
+        {/* DASHBOARD */}
         <Route
           path="/dashboard"
           element={
@@ -28,6 +33,7 @@ export default function App() {
           }
         />
 
+        {/* NLCIL */}
         <Route
           path="/buildings"
           element={
@@ -37,6 +43,7 @@ export default function App() {
           }
         />
 
+        {/* DEVICE */}
         <Route
           path="/device/:stationId"
           element={
@@ -46,8 +53,11 @@ export default function App() {
           }
         />
 
-        <Route path="/inverters" element={<Dashboard />} />
-
+        {/* OTHER CAMPUSES */}
+        <Route path="/nlcic" element={<ProtectedRoute><Nlcic/></ProtectedRoute>} />
+        <Route path="/ntpl" element={<ProtectedRoute><Ntpl/></ProtectedRoute>} />
+        <Route path="/nuppl" element={<ProtectedRoute><Nuppl/></ProtectedRoute>} />
+        <Route path="/btps" element={<ProtectedRoute><Btps/></ProtectedRoute>} />
 
       </Routes>
 

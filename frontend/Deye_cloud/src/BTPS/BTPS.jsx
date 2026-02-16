@@ -11,68 +11,77 @@ import buildIcon from "../assets/tower.png";
 
 /* CAPACITY MAP */
 const capacityMap = {
-  "NLCIL LIBRARY": 50.85,
-  "NLCIL Education office": 23.73,
-  "NLCIL L&DC office (INV-2)": 145
+
+  "NLCBTPSOHCBUILDING": 23.73,
+  "NLCBTPSOFFICERSCLUB": 27.12,
+  "NLCBTPSTAOFFICE": 23.73
+
 };
 
 
-export default function Buildings() {
+/* NORMALIZE */
+const normalizeName = name =>
+  name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+
+export default function Btps(){
 
   const navigate = useNavigate();
 
-  const [buildings, setBuildings] = useState([]);
-  const [selectedBuilding, setSelectedBuilding] = useState(null);
+  const [buildings,setBuildings] = useState([]);
+  const [selectedBuilding,setSelectedBuilding] = useState(null);
 
-  const [graphType, setGraphType] = useState("today");
+  const [graphType,setGraphType] = useState("today");
 
-  const [time, setTime] = useState("");
+  const [time,setTime] = useState("");
 
-  const [currentMap, setCurrentMap] = useState({});
+  const [currentMap,setCurrentMap] = useState({});
 
-  const [peak, setPeak] = useState({
-    value: 0,
-    name: "--",
-    time: "--"
+  const [peak,setPeak] = useState({
+    value:0,
+    name:"--",
+    time:"--"
   });
 
 
   /* FETCH BUILDINGS */
-  const fetchBuildings = async () => {
+  const fetchBuildings = async()=>{
 
-    try {
+    try{
 
-      const res = await fetch(`${API_BASE}/sub-buildings`);
-      const data = await res.json();
+      const res =
+        await fetch(`${API_BASE}/sub-buildings`);
 
-      const filtered =
-        data.filter(
-          b => !b.name.toUpperCase().includes("BTPS")
+      const data =
+        await res.json();
+
+      const btps =
+        data.filter(b =>
+          b.name.toUpperCase().includes("BTPS")
         );
 
-      setBuildings(filtered);
+      setBuildings(btps);
 
-      setSelectedBuilding(prev => {
 
-        if (!prev && filtered.length)
-          return filtered[0];
+      setSelectedBuilding(prev=>{
+
+        if(!prev && btps.length)
+          return btps[0];
 
         const updated =
-          filtered.find(
-            b => b.id === prev?.id
-          );
+          btps.find(b=>b.id===prev?.id);
 
-        return updated || filtered[0];
+        return updated || btps[0];
 
       });
 
 
       const map = {};
 
-      filtered.forEach(b => {
+      btps.forEach(b=>{
 
         map[b.id] =
-          Number(b.currentPower || 0);
+          Number(b.currentPower||0);
 
       });
 
@@ -80,18 +89,15 @@ export default function Buildings() {
 
 
       setTime(
-        new Date().toLocaleTimeString(
-          "en-IN",
-          {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
-          }
-        )
+        new Date().toLocaleTimeString("en-IN",{
+          hour:"2-digit",
+          minute:"2-digit",
+          second:"2-digit"
+        })
       );
 
     }
-    catch (err) {
+    catch(err){
 
       console.log(err);
 
@@ -100,12 +106,12 @@ export default function Buildings() {
   };
 
 
-  /* ✅ FIXED PEAK FETCH (USES SAME GRAPH API) */
-  const fetchPeak = async () => {
+  /* FETCH PEAK FROM GRAPH */
+  const fetchPeak = async()=>{
 
-    if (!selectedBuilding) return;
+    if(!selectedBuilding) return;
 
-    try {
+    try{
 
       const res =
         await fetch(
@@ -115,118 +121,95 @@ export default function Buildings() {
       const graph =
         await res.json();
 
-      if (!graph.length) {
+      if(!graph.length){
 
         setPeak({
-          value: 0,
-          name: selectedBuilding.name,
-          time: "--"
+          value:0,
+          name:selectedBuilding.name,
+          time:"--"
         });
 
         return;
-      }
 
+      }
 
       let max = 0;
       let peakTime = "--";
 
-
-      graph.forEach(point => {
+      graph.forEach(point=>{
 
         const power =
-          Number(point.power) / 1000;
+          Number(point.power)/1000;
 
-        if (power > max) {
+        if(power > max){
 
           max = power;
 
           peakTime =
             new Date(point.time)
-              .toLocaleTimeString(
-                "en-IN",
-                {
-                  hour: "2-digit",
-                  minute: "2-digit"
-                }
-              );
+            .toLocaleTimeString("en-IN",{
+              hour:"2-digit",
+              minute:"2-digit"
+            });
 
         }
 
       });
 
-
       setPeak({
-
-        value: max,
-        name: selectedBuilding.name,
-        time: peakTime
-
+        value:max,
+        name:selectedBuilding.name,
+        time:peakTime
       });
 
     }
-    catch (err) {
+    catch(err){
 
-      console.log("Peak fetch error:", err);
+      console.log(err);
 
     }
 
   };
 
 
-  /* AUTO REFRESH BUILDINGS */
-  useEffect(() => {
+  useEffect(()=>{
 
     fetchBuildings();
 
     const interval =
-      setInterval(
-        fetchBuildings,
-        15000
-      );
+      setInterval(fetchBuildings,15000);
 
-    return () =>
-      clearInterval(interval);
+    return ()=>clearInterval(interval);
 
-  }, []);
+  },[]);
 
 
-  /* FETCH PEAK WHEN BUILDING OR TYPE CHANGE */
-  useEffect(() => {
+  useEffect(()=>{
 
-    if (selectedBuilding)
+    if(selectedBuilding)
       fetchPeak();
 
-  }, [selectedBuilding, graphType]);
+  },[selectedBuilding,graphType]);
 
 
   /* TOTALS */
 
   const totalToday =
     buildings.reduce(
-      (sum, b) =>
-        sum + Number(b.today || 0),
-      0
+      (sum,b)=>sum+Number(b.today||0),0
     );
-
 
   const totalYesterday =
     buildings.reduce(
-      (sum, b) =>
-        sum + Number(b.yesterday || 0),
-      0
+      (sum,b)=>sum+Number(b.yesterday||0),0
     );
-
 
   const totalCurrent =
     Object.values(currentMap)
-      .reduce(
-        (sum, val) =>
-          sum + val,
-        0
-      );
+    .reduce((sum,val)=>sum+val,0);
 
 
-  return (
+  return(
 
 <div className="buildings-page">
 
@@ -242,7 +225,7 @@ export default function Buildings() {
 <div>
 
 <div className="second-company">
-NLCIL Campus Monitoring
+BTPS Campus Monitoring
 </div>
 
 <div className="second-sub">
@@ -266,7 +249,7 @@ Updated: {time}
 
 <button
 className="back-btn"
-onClick={() => navigate("/dashboard")}
+onClick={()=>navigate("/dashboard")}
 >
 ← Back
 </button>
@@ -281,11 +264,8 @@ onClick={() => navigate("/dashboard")}
 
 <div className="summary">
 
-
 <div className="summary-card">
-<div className="summary-label">
-Total Buildings
-</div>
+<div className="summary-label">Total Buildings</div>
 <div className="summary-value">
 {buildings.length}
 </div>
@@ -293,9 +273,7 @@ Total Buildings
 
 
 <div className="summary-card">
-<div className="summary-label">
-Today Production
-</div>
+<div className="summary-label">Today Production</div>
 <div className="summary-value green">
 {totalToday.toFixed(1)} kWh
 </div>
@@ -303,16 +281,12 @@ Today Production
 
 
 <div className="summary-card">
-<div className="summary-label">
-Yesterday Production
-</div>
+<div className="summary-label">Yesterday Production</div>
 <div className="summary-value blue">
 {totalYesterday.toFixed(1)} kWh
 </div>
 </div>
 
-
-{/* PEAK CARD */}
 
 <div className="summary-card peak-card">
 
@@ -355,19 +329,19 @@ Total Current
 
 <div className="building-grid">
 
-{buildings.map(b => {
+{buildings.map(b=>{
+
+const normalized =
+normalizeName(b.name);
 
 const capacity =
-capacityMap[b.name];
+capacityMap[normalized];
 
 const isActive =
 selectedBuilding?.id === b.id;
 
-const isPeak =
-peak.name === b.name;
 
-
-return (
+return(
 
 <div
 key={b.id}
@@ -397,7 +371,6 @@ className={`building-card ${isActive?"active":""}`}
 }
 
 </div>
-
 
 
 <div className="energy-row">
@@ -431,7 +404,6 @@ Current: {currentMap[b.id]?.toFixed(1)} kW
 
 </div>
 
-
 );
 
 })}
@@ -442,7 +414,7 @@ Current: {currentMap[b.id]?.toFixed(1)} kW
 
 {/* GRAPH */}
 
-{selectedBuilding && (
+{selectedBuilding &&(
 
 <div className="graph-section">
 
@@ -454,24 +426,22 @@ Energy Trend - {selectedBuilding.name}
 <div className="graph-buttons">
 
 <button
-className={`graph-btn ${graphType === "today" ? "active-btn" : ""}`}
-onClick={() => setGraphType("today")}
+className={`graph-btn ${graphType==="today"?"active-btn":""}`}
+onClick={()=>setGraphType("today")}
 >
 Today
 </button>
 
-
 <button
-className={`graph-btn ${graphType === "yesterday" ? "active-btn" : ""}`}
-onClick={() => setGraphType("yesterday")}
+className={`graph-btn ${graphType==="yesterday"?"active-btn":""}`}
+onClick={()=>setGraphType("yesterday")}
 >
 Yesterday
 </button>
 
-
 <button
-className={`graph-btn ${graphType === "monthly" ? "active-btn" : ""}`}
-onClick={() => setGraphType("monthly")}
+className={`graph-btn ${graphType==="monthly"?"active-btn":""}`}
+onClick={()=>setGraphType("monthly")}
 >
 Monthly
 </button>
@@ -482,13 +452,9 @@ Monthly
 <div className="graph-box">
 
 <PowerGraph
-
 stationId={selectedBuilding.id}
-
 type={graphType}
-
 buildingName={selectedBuilding.name}
-
 />
 
 </div>
@@ -496,7 +462,6 @@ buildingName={selectedBuilding.name}
 </div>
 
 )}
-
 
 </div>
 

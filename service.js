@@ -4,12 +4,37 @@ const sha256 = require("./hash");
 const jwt = require("jsonwebtoken");
 
 
-// ================= CACHE =================
+// ================= WEATHER CACHE =================
+
+let WEATHER_CACHE = {};
+const WEATHER_CACHE_DURATION = 600000; // 10 minutes
+
+
+// ================= CAMPUS LOCATION =================
+
+const CAMPUS_LOCATION = {
+
+    // Neyveli
+    NLCIL: { lat: 11.7480, lon: 79.7714 },
+
+    // example change later if needed
+    BTPS: { lat: 27.4924, lon: 77.6737 },
+
+    NLCIC: { lat: 11.7500, lon: 79.7700 },
+
+    NTPL: { lat: 13.0827, lon: 80.2707 },
+
+    NUPPL: { lat: 11.6000, lon: 79.5000 }
+
+};
+
+
+// ================= MAIN CACHE =================
 
 let CACHE = null;
 let CACHE_TIME = 0;
 
-const CACHE_DURATION = 30000; // 30 sec
+const CACHE_DURATION = 30000;
 
 
 // ================= TOKEN CACHE =================
@@ -44,7 +69,6 @@ async function getToken() {
     );
 
     TOKEN = res.data.accessToken;
-
     TOKEN_TIME = Date.now();
 
     return TOKEN;
@@ -72,6 +96,247 @@ async function api(url, body) {
 }
 
 
+// ================= WEATHER FUNCTION =================
+
+async function getWeather(campus){
+
+try{
+
+campus = campus.toUpperCase();
+
+if(
+WEATHER_CACHE[campus] &&
+Date.now() - WEATHER_CACHE[campus].time < WEATHER_CACHE_DURATION
+){
+return WEATHER_CACHE[campus].data;
+}
+
+const location = CAMPUS_LOCATION[campus];
+
+if(!location)
+return {
+irradiance:0,
+ambientTemp:0,
+windSpeed:0
+};
+
+const res = await axios.get(
+`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current=temperature_2m,wind_speed_10m,shortwave_radiation`
+);
+
+const current = res.data.current;
+
+const weather = {
+
+irradiance:
+Math.round(current.shortwave_radiation || 0),
+
+ambientTemp:
+current.temperature_2m,
+
+windSpeed:
+current.wind_speed_10m
+
+};
+
+// cache save
+WEATHER_CACHE[campus] = {
+data:weather,
+time:Date.now()
+};
+
+return weather;
+
+}catch(err){
+
+console.log("Weather error:",err.message);
+
+return {
+irradiance:0,
+ambientTemp:0,
+windSpeed:0
+};
+
+}
+
+}
+
+
+// ================= BUILDING DATA =================
+
+async function getBuilding(station) {
+
+    const devices =
+        await getDevices(station.id);
+
+    const inverter =
+        devices.find(
+            d => d.deviceType === "INVERTER"
+        );
+
+    if (!inverter)
+        return {
+            id: station.id,
+            name: station.name,
+            today: 0,
+            yesterday: 0,
+            total: 0
+        };
+
+
+    const latest =
+        await getLatest(inverter.deviceSn);
+
+
+    const today =
+        Number(
+            latest?.dataList?.find(
+                d => d.key === "DailyActiveProduction"
+            )?.value || 0
+        );
+
+
+    const total =
+        Number(
+            latest?.dataList?.find(
+                d => d.key === "TotalActiveProduction"
+            )?.value || 0
+        );
+
+
+    const yesterday =
+        await getYesterday(station.id);
+
+
+    return {
+
+        id: station.id,
+
+        name: station.name,
+
+        today,
+
+        yesterday,
+
+        total
+
+    };
+
+}
+
+
+// ================= MAIN BUILDING =================
+
+async function getMainBuildingData() {
+
+    try {
+
+        if (
+            CACHE &&
+            Date.now() - CACHE_TIME < CACHE_DURATION
+        )
+            return CACHE.main;
+
+
+        const stations =
+            await getStations();
+
+
+        const buildings =
+            await Promise.all(
+                stations.map(getBuilding)
+            );
+
+
+        let totalToday = 0;
+        let totalYesterday = 0;
+        let totalLifetime = 0;
+
+
+        buildings.forEach(b => {
+
+            totalToday += b.today;
+            totalYesterday += b.yesterday;
+            totalLifetime += b.total;
+
+        });
+
+
+        CACHE = {
+
+            main: {
+
+                name: "NLC CAMPUS",
+
+                today:
+                    Number(totalToday.toFixed(1)),
+
+                yesterday:
+                    Number(totalYesterday.toFixed(1)),
+
+                total:
+                    Number(totalLifetime.toFixed(1))
+
+            },
+
+            sub: buildings
+
+        };
+
+
+        CACHE_TIME = Date.now();
+
+
+        return CACHE.main;
+
+    }
+    catch {
+
+        return {
+            name: "NLC CAMPUS",
+            today: 0,
+            yesterday: 0,
+            total: 0
+        };
+
+    }
+
+}
+
+
+// ================= SUB BUILDINGS =================
+
+async function getSubBuildings() {
+
+    if (
+        CACHE &&
+        Date.now() - CACHE_TIME < CACHE_DURATION
+    )
+        return CACHE.sub;
+
+    await getMainBuildingData();
+
+    return CACHE.sub;
+}
+
+
+// ================= LOGIN =================
+
+function login(email, password) {
+
+    if (
+        email === "sun@gmail.com" &&
+        password === "123456"
+    )
+        return jwt.sign(
+            { email },
+            "mysecret",
+            { expiresIn: "1d" }
+        );
+
+    throw new Error("Invalid credentials");
+
+}
 // ================= GET STATIONS =================
 
 async function getStations() {
@@ -120,7 +385,7 @@ async function getLatest(deviceSn) {
 }
 
 
-// ================= YESTERDAY ENERGY =================
+// ================= GET YESTERDAY =================
 
 async function getYesterday(stationId) {
 
@@ -150,334 +415,17 @@ async function getYesterday(stationId) {
 }
 
 
-// ================= BUILDING DATA =================
-
-async function getBuilding(station) {
-
-    const devices =
-        await getDevices(station.id);
-
-    const inverter =
-        devices.find(
-            d => d.deviceType === "INVERTER"
-        );
-
-    if (!inverter)
-        return {
-            id: station.id,
-            name: station.name,
-            today: 0,
-            yesterday: 0,
-            inverter: 0,
-            online: 0,
-            offline: 0,
-            currentPower: 0
-        };
-
-
-    const latest =
-        await getLatest(inverter.deviceSn);
-
-
-    const today =
-        Number(
-            latest?.dataList?.find(
-                d =>
-                d.key === "DailyActiveProduction"
-            )?.value || 0
-        );
-
-
-    const powerRaw =
-        Number(
-            latest?.dataList?.find(
-                d =>
-                d.key === "TotalActiveACOutputPower"
-            )?.value || 0
-        );
-
-
-    const currentPower =
-        powerRaw / 1000;
-
-
-    const yesterday =
-        await getYesterday(station.id);
-
-
-    return {
-
-        id: station.id,
-
-        name: station.name,
-
-        today,
-
-        yesterday,
-
-        inverter: 1,
-
-        online:
-            powerRaw > 0 ? 1 : 0,
-
-        offline:
-            powerRaw > 0 ? 0 : 1,
-
-        currentPower:
-            Number(
-                currentPower.toFixed(1)
-            )
-
-    };
-
-}
-
-
-// ================= MAIN BUILDING =================
-
-async function getMainBuildingData() {
-
-    if (
-        CACHE &&
-        Date.now() - CACHE_TIME < CACHE_DURATION
-    )
-        return CACHE.main;
-
-
-    const stations =
-        await getStations();
-
-
-    const buildings =
-        await Promise.all(
-            stations.map(getBuilding)
-        );
-
-
-    let totalToday = 0;
-    let totalYesterday = 0;
-    let totalInv = 0;
-    let online = 0;
-    let offline = 0;
-
-
-    buildings.forEach(b => {
-
-        totalToday += b.today;
-
-        totalYesterday += b.yesterday;
-
-        totalInv += b.inverter;
-
-        online += b.online;
-
-        offline += b.offline;
-
-    });
-
-
-    CACHE = {
-
-        main: {
-
-            name: "NLC CAMPUS",
-
-            today:
-                Number(
-                    totalToday.toFixed(1)
-                ),
-
-            yesterday:
-                Number(
-                    totalYesterday.toFixed(1)
-                ),
-
-            inverter: totalInv,
-
-            online,
-
-            offline
-
-        },
-
-        sub: buildings
-
-    };
-
-
-    CACHE_TIME = Date.now();
-
-    return CACHE.main;
-}
-
-
-// ================= SUB BUILDINGS =================
-
-async function getSubBuildings() {
-
-    if (
-        CACHE &&
-        Date.now() - CACHE_TIME < CACHE_DURATION
-    )
-        return CACHE.sub;
-
-    await getMainBuildingData();
-
-    return CACHE.sub;
-}
-
-// ================= GRAPH =================
-
-async function getGraph(stationId, type) {
-
-    const devices =
-        await getDevices(stationId);
-
-    const inverter =
-        devices.find(
-            d => d.deviceType === "INVERTER"
-        );
-
-    if (!inverter)
-        return [];
-
-    const deviceSn =
-        inverter.deviceSn;
-
-    const now = new Date();
-
-    let startAt;
-    let endAt;
-    let granularity;
-
-    function formatDateLocal(date) {
-
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, "0");
-        const d = String(date.getDate()).padStart(2, "0");
-
-        return `${y}-${m}-${d}`;
-    }
-
-    if (type === "today") {
-
-        startAt = formatDateLocal(now);
-        endAt = formatDateLocal(now);
-        granularity = 1;
-
-    }
-
-    else if (type === "yesterday") {
-
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        startAt = formatDateLocal(yesterday);
-        endAt = startAt;
-        granularity = 1;
-    }
-
-    else {
-
-        const firstDay =
-            new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                1
-            );
-
-        startAt = formatDateLocal(firstDay);
-        endAt = formatDateLocal(now);
-        granularity = 2;
-    }
-
-
-    const data =
-        await api(
-            "/v1.0/device/history",
-            {
-                deviceSn: String(deviceSn),
-                startAt,
-                endAt,
-                granularity,
-                measurePoints: [
-                    "TotalActiveACOutputPower"
-                ]
-            }
-        );
-
-    const raw =
-        data?.dataList || [];
-
-    console.log("GRAPH RAW:", raw.length);
-
-
-    return raw.map(item => {
-
-    const collectTime =
-        item?.collectTime || item?.time;
-
-    if (!collectTime)
-        return null;
-
-    const timestamp =
-        Number(collectTime);
-
-    const date =
-        new Date(timestamp * 1000);
-
-    const powerValue =
-        item?.itemList?.find(
-            i =>
-                i.key ===
-                "TotalActiveACOutputPower"
-        )?.value;
-
-    return {
-
-        time:
-            date.toISOString(),
-
-        power:
-            Number(powerValue || 0)
-
-    };
-
-}).filter(Boolean);
-}
-
-
-// ================= LOGIN =================
-
-const SECRET = "mysecret";
-
-function login(email, password) {
-
-    if (
-        email === "sun@gmail.com" &&
-        password === "123456"
-    )
-        return jwt.sign(
-            { email },
-            SECRET,
-            { expiresIn: "1d" }
-        );
-
-    throw new Error("Invalid credentials");
-
-}
-
-
 // ================= EXPORT =================
 
 module.exports = {
 
     getMainBuildingData,
-
     getSubBuildings,
-
-    getGraph,
-
-    login
+    getWeather,
+    login,
+   getStations,
+getDevices,
+getLatest,
+getYesterday
 
 };

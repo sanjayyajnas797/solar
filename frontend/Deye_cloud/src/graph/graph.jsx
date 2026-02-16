@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import API_BASE from '../pages/config'
+import API_BASE from "../pages/config";
 
 import {
   LineChart,
@@ -16,210 +16,187 @@ import {
 /* CAPACITY MAP */
 const capacityMap = {
 
-  "NLCIL LIBRARY": 50.85,
+  "NLCILLIBRARY": 50.85,
+  "NLCILEDUCATIONOFFICE": 23.73,
+  "NLCILLDCOFFICEINV2": 145,
 
-  "NLCIL Education office": 23.73,
-
-  "NLCIL L&DC office (INV-2)": 145.00
+  "NLCBTPSOHCBUILDING": 23.73,
+  "NLCBTPSOFFICERSCLUB": 27.12,
+  "NLCBTPSTAOFFICE": 23.73
 
 };
 
 
-export default function PowerGraph({ stationId, type, buildingName }) {
+/* NORMALIZE */
+const normalizeName = (name) =>
+  name
+    ?.toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+
+
+
+export default function PowerGraph({
+  stationId,
+  type,
+  buildingName
+}) {
 
   const [data, setData] = useState([]);
 
+  const normalized =
+    normalizeName(buildingName);
+
   const capacity =
-    capacityMap[buildingName] || 0;
+    capacityMap[normalized] || 0;
 
-      useEffect(() => {
 
-  fetch(`${API_BASE}/graph/${type}/${stationId}`)
-    .then(res => res.json())
-    .then(graph => {
+  /* FETCH GRAPH */
+  useEffect(() => {
 
-      if (!graph || graph.length === 0) {
-        setData([]);
-        return;
-      }
+    if (!stationId) return;
 
-      const formatted = graph.map((item) => {
+    fetch(`${API_BASE}/graph/${type}/${stationId}`)
+      .then(res => res.json())
+      .then(graph => {
 
-        let timeLabel = "";
-        let fullTime = "";
+        const formatted =
+          graph.map(item => {
 
-        if (type === "monthly") {
+            const date =
+              new Date(item.time);
 
-          const date = new Date(item.time);
+            return {
 
-          timeLabel =
-            date.toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short"
-            });
+              /* ✅ 24 HOUR FORMAT */
+              time:
+                date.toLocaleTimeString(
+                  "en-GB",
+                  {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false
+                  }
+                ),
 
-          fullTime =
-            date.toLocaleString("en-IN");
+              fullTime:
+                date.toLocaleString("en-GB"),
 
-        }
-        else {
+              power:
+                Number(item.power) / 1000
 
-          const date = new Date(item.time);
+            };
 
-          if (!isNaN(date)) {
+          });
 
-            // ✅ convert properly to Indian time
-
-            timeLabel =
-              date.toLocaleTimeString("en-IN", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-                timeZone: "Asia/Kolkata"
-              });
-
-            fullTime =
-              date.toLocaleString("en-IN", {
-                timeZone: "Asia/Kolkata"
-              });
-
-          }
-
-        }
-
-        return {
-
-          time: timeLabel,
-          fullTime: fullTime,
-          power: Number(item.power || 0) / 1000
-
-        };
+        setData(formatted);
 
       });
 
-      setData(formatted);
-
-    });
-
-}, [stationId, type, buildingName]);
+  }, [stationId, type]);
 
 
   /* CALCULATIONS */
 
-  const currentPower =
+  const current =
     data.length
       ? data[data.length - 1].power
       : 0;
 
-
-  const peakPower =
+  const peak =
     data.length
       ? Math.max(...data.map(d => d.power))
       : 0;
 
-
-  const avgPower =
+  const avg =
     data.length
-      ? data.reduce((sum, d) => sum + d.power, 0)
-        / data.length
+      ? data.reduce(
+          (sum, d) =>
+            sum + d.power,
+          0
+        ) / data.length
       : 0;
 
 
-  const lastUpdate =
-    new Date().toLocaleTimeString("en-IN", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true
-    });
-
-
-  /* Y AXIS SCALE BASED ON CAPACITY */
-
   const yMax =
     capacity
-      ? Math.ceil(capacity * 1.1)
-      : Math.ceil(peakPower * 1.2);
+      ? Math.ceil(capacity * 1.2)
+      : Math.ceil(peak * 1.2);
+
 
 
   return (
 
     <div style={{
+
       width: "100%",
-      height: "340px",
-      background: "#0b1d2c",
-      borderRadius: "12px",
-      padding: "15px"
+
+      height: "380px",
+
+      background:
+        "linear-gradient(180deg,#0b1d2c,#081824)",
+
+      borderRadius: "14px",
+
+      padding: "20px",
+
+      boxShadow:
+        "inset 0 0 40px rgba(0,255,170,0.05)"
+
     }}>
 
 
       {/* TITLE */}
 
       <h3 style={{
+
         color: "white",
-        marginBottom: "5px"
+
+        marginBottom: "8px",
+
+        fontWeight: "600"
+
       }}>
-
-        {type === "today" && "Today Power Graph"}
-        {type === "yesterday" && "Yesterday Power Graph"}
-        {type === "monthly" && "Monthly Power Graph"}
-
+        Today Power Graph
       </h3>
 
 
 
-      {/* INFO BAR */}
+      {/* INFO */}
 
       <div style={{
+
         display: "flex",
+
         gap: "25px",
-        color: "#ccc",
-        fontSize: "13px",
+
+        flexWrap: "wrap",
+
         marginBottom: "10px",
-        flexWrap: "wrap"
+
+        fontSize: "14px"
+
       }}>
 
-        <div>
-          Current:
-          <span style={{ color: "#00ffaa", marginLeft: "5px" }}>
-            {currentPower.toFixed(1)} kW
-          </span>
-        </div>
 
+        <span style={{color:"#00ffaa"}}>
+          Current: {current.toFixed(1)} kW
+        </span>
 
-        <div>
-          Peak:
-          <span style={{ color: "#4da3ff", marginLeft: "5px" }}>
-            {peakPower.toFixed(1)} kW
-          </span>
-        </div>
+        <span style={{color:"#4da3ff"}}>
+          Peak: {peak.toFixed(1)} kW
+        </span>
 
-
-        <div>
-          Average:
-          <span style={{ color: "#ffb84d", marginLeft: "5px" }}>
-            {avgPower.toFixed(1)} kW
-          </span>
-        </div>
-
+        <span style={{color:"#ffb84d"}}>
+          Average: {avg.toFixed(1)} kW
+        </span>
 
         {capacity > 0 && (
 
-          <div>
-            Capacity:
-            <span style={{ color: "#FFD700", marginLeft: "5px" }}>
-              {capacity} kW
-            </span>
-          </div>
+          <span style={{color:"#FFD700"}}>
+            Capacity: {capacity} kW
+          </span>
 
         )}
-
-
-        <div>
-          Last Update:
-          <span style={{ marginLeft: "5px" }}>
-            {lastUpdate}
-          </span>
-        </div>
 
       </div>
 
@@ -229,44 +206,75 @@ export default function PowerGraph({ stationId, type, buildingName }) {
 
       <ResponsiveContainer width="100%" height="85%">
 
-        <LineChart data={data}>
+        <LineChart
+          data={data}
+          margin={{
+            top: 10,
+            right: 25,
+            left: 0,
+            bottom: 25
+          }}
+        >
 
-          <CartesianGrid stroke="#1f3b55" />
+
+          {/* GRID */}
+
+          <CartesianGrid
+            stroke="#1f3b55"
+            strokeDasharray="3 3"
+          />
 
 
-          {/* ✅ PERFECT CLIENT TIME AXIS */}
+          {/* X AXIS */}
 
           <XAxis
+
             dataKey="time"
-            stroke="#aaa"
+
+            stroke="#ffffff"
+
+            tick={{
+              fill: "#ffffff",
+              fontSize: 12
+            }}
+
             interval="preserveStartEnd"
-            minTickGap={45}
-            angle={-35}
-            textAnchor="end"
-            height={60}
+
+            minTickGap={35}
+
           />
 
+
+          {/* Y AXIS */}
 
           <YAxis
-            stroke="#aaa"
+
+            stroke="#ffffff"
+
+            tick={{
+              fill: "#ffffff",
+              fontSize: 12
+            }}
+
             domain={[0, yMax]}
+
           />
 
 
-          {/* ✅ TOOLTIP WITH EXACT TIME */}
+          {/* TOOLTIP */}
 
           <Tooltip
-            labelFormatter={(label, payload) => {
 
-              if (payload && payload.length)
-                return payload[0].payload.fullTime;
-
-              return label;
-
+            contentStyle={{
+              background: "#0b1d2c",
+              border: "1px solid #00ffaa",
+              color: "white"
             }}
-            formatter={(value) =>
-              `${value.toFixed(1)} kW`
-            }
+
+            labelStyle={{
+              color: "#00ffaa"
+            }}
+
           />
 
 
@@ -275,23 +283,38 @@ export default function PowerGraph({ stationId, type, buildingName }) {
           {capacity > 0 && (
 
             <ReferenceLine
+
               y={capacity}
-              stroke="gold"
+
+              stroke="#FFD700"
+
               strokeDasharray="5 5"
-              label="Capacity"
+
+              label={{
+                value: "Capacity",
+                fill: "#FFD700",
+                position: "insideTopRight"
+              }}
+
             />
 
           )}
 
 
-          {/* POWER LINE */}
+          {/* MAIN LINE */}
 
           <Line
+
             type="monotone"
+
             dataKey="power"
+
             stroke="#00ffaa"
-            strokeWidth={2}
+
+            strokeWidth={2.5}
+
             dot={false}
+
           />
 
 

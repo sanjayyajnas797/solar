@@ -10,7 +10,9 @@ const {
 
     getGraph,
 
-    login
+    login,
+
+    getWeather
 
 } = require("./service");
 
@@ -100,6 +102,31 @@ router.get(
 
     }
 );
+
+// WEATHER BY CAMPUS
+
+router.get("/weather/:campus", async(req,res)=>{
+
+    try{
+
+        const campus = req.params.campus;
+
+        const weather =
+            await getWeather(campus);
+
+        res.json(weather);
+
+    }
+    catch(err){
+
+        res.status(500).json({
+            error: err.message
+        });
+
+    }
+
+});
+
 
 
 module.exports = router;

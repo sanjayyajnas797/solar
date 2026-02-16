@@ -2,473 +2,433 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Mainbuilding.css";
 
-import API_BASE from "./config";   // ✅ CONFIG IMPORT
-
 import logo from "../assets/sunlogo.png";
 import campusIcon from "../assets/building.png";
-import inverterIcon from "../assets/inverter.png";
-import energyIcon from "../assets/solar-panel.png";
-import solar from "../assets/solar-panel.png";
-import load from "../assets/solar-house.png";
-import grid from "../assets/tower.png";
 
-export default function Mainbuilding() {
+import { WiDaySunny, WiThermometer, WiStrongWind } from "react-icons/wi";
 
-  const navigate = useNavigate();
+import API_BASE from './config';   // ✅ ADD THIS
 
-  const [main, setMain] = useState({
-    today: 0,
-    yesterday: 0,
-    inverter: 0,
-    online: 0,
-    offline: 0
-  });
 
-  const [time, setTime] = useState("");
+export default function Mainbuilding(){
 
-  const [weather] = useState({
-    temp: "26°C",
-    condition: "Mostly Sunny"
-  });
+const navigate = useNavigate();
 
+const [campusList,setCampusList] = useState([]);
+const [weatherData,setWeatherData] = useState({});
+const [updateTime,setUpdateTime] = useState("");
 
-  const handleLogout = () => {
 
-    localStorage.removeItem("token");
+// LOGOUT
+const handleLogout=()=>{
+localStorage.removeItem("token");
+navigate("/");
+};
 
-    navigate("/");
 
-  };
+// FETCH WEATHER
+const fetchWeather = async(campus)=>{
 
+try{
 
-  const fetchData = async () => {
+const res = await fetch(
+`${API_BASE}/weather/${campus}`
+);
 
-    try {
+return await res.json();
 
-      // ✅ CONFIG USED HERE
+}catch{
 
-      const res =
-        await fetch(`${API_BASE}/main-building`);
+return {
+irradiance:0,
+ambientTemp:0,
+windSpeed:0
+};
 
-      const data =
-        await res.json();
+}
 
-      setMain(data);
+};
 
-      setTime(
-        new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit"
-        })
-      );
 
-    }
-    catch (err) {
+// FETCH DATA
+const fetchData = async()=>{
 
-      console.log(err);
+try{
 
-    }
+// MAIN BUILDING
+const resMain = await fetch(
+`${API_BASE}/main-building`
+);
 
-  };
+const mainData = await resMain.json();
 
 
-  useEffect(() => {
+// SUB BUILDINGS
+const resSub = await fetch(
+`${API_BASE}/sub-buildings`
+);
 
-    fetchData();
+const buildings = await resSub.json();
 
-    const interval =
-      setInterval(fetchData, 1000);
 
-    return () =>
-      clearInterval(interval);
+// GROUPING
+const summary={
 
-  }, []);
+NLCIC:{today:0,yesterday:0,total:0,count:0},
+NTPL:{today:0,yesterday:0,total:0,count:0},
+NUPPL:{today:0,yesterday:0,total:0,count:0},
+BTPS:{today:0,yesterday:0,total:0,count:0}
 
+};
 
 
-  return (
+buildings.forEach(b=>{
 
-    <div className="dashboard">
+const n=b.name?.toUpperCase()||"";
 
+if(n.includes("BTPS")){
 
-      {/* HEADER */}
+summary.BTPS.today+=b.today;
+summary.BTPS.yesterday+=b.yesterday;
+summary.BTPS.total+=b.total;
+summary.BTPS.count++;
 
-      <div className="main-header">
+}
 
+else if(n.includes("NLCIC")){
 
-        {/* LEFT */}
+summary.NLCIC.today+=b.today;
+summary.NLCIC.yesterday+=b.yesterday;
+summary.NLCIC.total+=b.total;
+summary.NLCIC.count++;
 
-        <div className="main-header-left">
+}
 
-          <img
-            src={logo}
-            className="main-logo"
-          />
+else if(n.includes("NTPL")){
 
-          <div>
+summary.NTPL.today+=b.today;
+summary.NTPL.yesterday+=b.yesterday;
+summary.NTPL.total+=b.total;
+summary.NTPL.count++;
 
-            <div className="main-title">
+}
 
-              Sun Industrial Automations & Solutions Private Limited
+else if(n.includes("NUPPL")){
 
-            </div>
+summary.NUPPL.today+=b.today;
+summary.NUPPL.yesterday+=b.yesterday;
+summary.NUPPL.total+=b.total;
+summary.NUPPL.count++;
 
-            <div className="main-subtitle">
+}
 
-              Enterprise Solar Monitoring System
+});
 
-            </div>
 
-          </div>
+// FINAL CAMPUS LIST
+const list=[
 
-        </div>
+{
+name:"NLCIL",
+display:"NLCIL CAMPUS",
+today:mainData.today,
+yesterday:mainData.yesterday,
+total:mainData.total,
+hasBuilding:true,
+path:"/buildings"
+},
 
+{
+name:"NLCIC",
+display:"NLCIC",
+...summary.NLCIC,
+hasBuilding:summary.NLCIC.count>0,
+path:"/nlcic"
+},
 
+{
+name:"NTPL",
+display:"NTPL",
+...summary.NTPL,
+hasBuilding:summary.NTPL.count>0,
+path:"/ntpl"
+},
 
-        {/* RIGHT */}
+{
+name:"NUPPL",
+display:"NUPPL",
+...summary.NUPPL,
+hasBuilding:summary.NUPPL.count>0,
+path:"/nuppl"
+},
 
-        <div className="main-header-right">
+{
+name:"BTPS",
+display:"BTPS",
+...summary.BTPS,
+hasBuilding:summary.BTPS.count>0,
+path:"/btps"
+}
 
+];
 
-          <div className="main-live">
 
-            <span className="main-live-dot"></span>
+// WEATHER FETCH
+const w={};
 
-            LIVE SYSTEM
+for(const c of list){
 
-          </div>
+w[c.name]=await fetchWeather(c.name);
 
+}
 
-          <div className="main-time">
+setWeatherData(w);
+setCampusList(list);
 
-            {time}
 
-          </div>
+// UPDATED TIME
+setUpdateTime(
+new Date().toLocaleTimeString("en-IN",{
+hour:"2-digit",
+minute:"2-digit",
+second:"2-digit"
+})
+);
 
+}catch(e){
 
-          <div className="main-weather">
+console.log(e);
 
-            {weather.temp}
+}
 
-            <span>
+};
 
-              {weather.condition}
 
-            </span>
+// AUTO REFRESH
+useEffect(()=>{
 
-          </div>
+fetchData();
 
+const t=setInterval(fetchData,10000);
 
-          <button
-            className="main-logout"
-            onClick={handleLogout}
-          >
+return ()=>clearInterval(t);
 
-            Logout
+},[]);
 
-          </button>
 
+// UI
+return(
 
-        </div>
+<div className="dashboard">
 
+{/* HEADER */}
+<div className="header">
 
-      </div>
+<div className="header-left">
 
+<img src={logo} className="logo"/>
 
+<div>
 
-      {/* KPI GRID */}
+<div className="company">
+Sun Industrial Automations & Solutions Pvt Ltd
+</div>
 
-      <div className="kpi-grid">
+<div className="subtitle">
+Enterprise Solar Monitoring System
+</div>
 
+</div>
 
-        {/* ENERGY */}
+</div>
 
-        <div className="kpi-card">
 
-          <img src={energyIcon}/>
+<div className="header-right">
 
-          <div>
+<div className="live-container">
 
-            <div className="kpi-label">
+<span className="live-dot"></span>
 
-              ENERGY TODAY
+<span className="live-text">
+LIVE SYSTEM
+</span>
 
-            </div>
+</div>
 
-            <div className="kpi-value">
 
-              {main.today.toFixed(1)} kWh
+<div className="update-container">
 
-            </div>
+<div className="update-label">
+LAST UPDATE
+</div>
 
-            <div className="kpi-sub">
+<div className="update-time">
+{updateTime}
+</div>
 
-              Yesterday {main.yesterday.toFixed(1)}
+</div>
 
-            </div>
 
-          </div>
+<button
+className="logout"
+onClick={handleLogout}
+>
+Logout
+</button>
 
-        </div>
+</div>
 
+<div className="header-energy-flow"></div>
 
+</div>
 
-        {/* INVERTER */}
 
-        <div className="kpi-card">
+{/* BODY */}
+<div className="scada-container">
 
-          <img src={inverterIcon}/>
+{campusList.map((c,i)=>{
 
-          <div>
+const w=weatherData[c.name]||{};
 
-            <div className="kpi-label">
+return(
 
-              INVERTERS
+<div className="scada-row" key={i}>
 
-            </div>
+<div
+className="panel campus-card"
+onClick={()=>navigate(c.path)}>
 
-            <div className="kpi-value">
+<img src={campusIcon}/>
 
-              {main.online} Online
+<div>
 
-            </div>
+<div className="label">
+CAMPUS
+</div>
 
-            <div className="kpi-sub red">
+<div className="value cyan">
+{c.display}
+</div>
 
-              {main.offline} Offline
+</div>
 
-            </div>
+</div>
 
-          </div>
 
-        </div>
+<div className="flow-line"></div>
 
 
+<div className="panel">
 
-        {/* SYSTEM HEALTH */}
+<div className="label">
+TODAY
+</div>
 
-        <div className="kpi-card">
+<div className="value green">
+{c.today?.toFixed(1)} kWh
+</div>
 
-          <div>
 
-            <div className="kpi-label">
+<div className="label">
+YESTERDAY
+</div>
 
-              SYSTEM HEALTH
+<div className="value blue">
+{c.yesterday?.toFixed(1)} kWh
+</div>
 
-            </div>
+</div>
 
-            <div className="kpi-value">
 
-              Operational
+<div className="flow-line"></div>
 
-            </div>
 
-            <div className="kpi-sub">
+<div className="panel">
 
-              All devices functioning normally
+<div className="label">
+CUMULATIVE
+</div>
 
-            </div>
+<div className="value cyan">
+{c.total?.toLocaleString()} kWh
+</div>
 
-          </div>
+</div>
 
-        </div>
 
+<div className="flow-line"></div>
 
 
-        {/* WEATHER */}
+<div className="panel">
 
-        <div className="kpi-card">
+<div className="weather-row">
 
-          <div>
+<WiDaySunny className="icon sun"/>
 
-            <div className="kpi-label">
+<div>
 
-              WEATHER
+<div className="label">
+IRRADIANCE
+</div>
 
-            </div>
+<div className="value green">
+{w.irradiance} W/m²
+</div>
 
-            <div className="kpi-value">
+</div>
 
-              {weather.temp}
+</div>
 
-            </div>
 
-            <div className="kpi-sub">
+<div className="weather-row">
 
-              {weather.condition}
+<WiThermometer className="icon temp"/>
 
-            </div>
+<div>
 
-          </div>
+<div className="label">
+TEMPERATURE
+</div>
 
-        </div>
+<div className="value blue">
+{w.ambientTemp} °C
+</div>
 
+</div>
 
-      </div>
+</div>
 
 
+<div className="weather-row">
 
-      {/* CAMPUS */}
+<WiStrongWind className="icon wind"/>
 
-      <div
-        className="campus-hero"
-        onClick={() =>
-          navigate("/buildings")
-        }
-      >
+<div>
 
-        <img src={campusIcon}/>
+<div className="label">
+WIND SPEED
+</div>
 
-        <div>
+<div className="value cyan">
+{w.windSpeed} km/h
+</div>
 
-          <div className="campus-title">
+</div>
 
-            NLCIL BUILDINGS
+</div>
 
-          </div>
+</div>
 
-          <div className="campus-energy">
+</div>
 
-            {main.today.toFixed(1)} kWh Generated Today
+);
 
-          </div>
+})}
 
-          <div className="campus-click">
+</div>
 
-            Click to open campus →
+</div>
 
-          </div>
-
-        </div>
-
-      </div>
-
-
-
-      {/* POWER FLOW */}
-
-      <div className="powerflow">
-
-        <div className="flow-box">
-
-          <img src={solar}/>
-
-          Solar
-
-        </div>
-
-
-        <div className="flow-line"></div>
-
-
-        <div className="flow-box">
-
-          <img src={inverterIcon}/>
-
-          Inverter
-
-        </div>
-
-
-        <div className="flow-line"></div>
-
-
-        <div className="flow-box">
-
-          <img src={load}/>
-
-          Load
-
-        </div>
-
-
-        <div className="flow-line"></div>
-
-
-        <div className="flow-box">
-
-          <img src={grid}/>
-
-          Grid
-
-        </div>
-
-
-      </div>
-
-
-
-      {/* INFO PANEL */}
-
-      <div className="info-panel">
-
-        <div className="info-title">
-
-          NLC Solar Power Plant Monitoring
-
-        </div>
-
-
-        <div className="info-grid">
-
-
-          <div>
-
-            Capacity
-
-            <span>500 kW</span>
-
-          </div>
-
-
-          <div>
-
-            Active Inverters
-
-            <span>
-
-              {main.online}
-
-            </span>
-
-          </div>
-
-
-          <div>
-
-            Total Generation Today
-
-            <span>
-
-              {main.today.toFixed(1)} kWh
-
-            </span>
-
-          </div>
-
-
-          <div>
-
-            System Status
-
-            <span className="green">
-
-              Operational
-
-            </span>
-
-          </div>
-
-
-        </div>
-
-
-      </div>
-
-
-    </div>
-
-  );
+);
 
 }
