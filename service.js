@@ -429,23 +429,17 @@ async function getYesterday(stationId) {
 }
 
 // ================= GET GRAPH DATA =================
-
 // ================= GET GRAPH DATA =================
-
 async function getGraph(type, stationId) {
 
     try {
 
-        const devices =
-            await getDevices(stationId);
+        const devices = await getDevices(stationId);
 
         const inverter =
-            devices.find(
-                d => d.deviceType === "INVERTER"
-            );
+            devices.find(d => d.deviceType === "INVERTER");
 
-        if (!inverter)
-            return [];
+        if (!inverter) return [];
 
         const now = new Date();
 
@@ -454,62 +448,48 @@ async function getGraph(type, stationId) {
         let granularity;
 
 
+        // ✅ TODAY
         if (type === "today") {
 
-            startAt =
-                now.toISOString().split("T")[0];
-
-            endAt = startAt;
+            startAt = now.toISOString().split("T")[0];
+            endAt   = startAt;
 
             granularity = 1;
 
         }
 
-
-        if (type === "yesterday") {
+        // ✅ YESTERDAY
+        else if (type === "yesterday") {
 
             const yesterday = new Date();
+            yesterday.setDate(now.getDate() - 1);
 
-            yesterday.setDate(
-                now.getDate() - 1
-            );
-
-            startAt =
-                yesterday.toISOString().split("T")[0];
-
-            endAt = startAt;
+            startAt = yesterday.toISOString().split("T")[0];
+            endAt   = startAt;
 
             granularity = 1;
 
         }
 
-
-        if (type === "monthly") {
+        // ✅ MONTHLY
+        else if (type === "monthly") {
 
             const firstDay =
-                new Date(
-                    now.getFullYear(),
-                    now.getMonth(),
-                    1
-                );
+                new Date(now.getFullYear(), now.getMonth(), 1);
 
-            startAt =
-                firstDay.toISOString().split("T")[0];
-
-            endAt =
-                now.toISOString().split("T")[0];
+            startAt = firstDay.toISOString().split("T")[0];
+            endAt   = now.toISOString().split("T")[0];
 
             granularity = 2;
 
         }
 
 
-        const data =
+        const result =
             await api(
                 "/v1.0/device/history",
                 {
-                    deviceSn:
-                        inverter.deviceSn,
+                    deviceSn: inverter.deviceSn,
 
                     startAt,
                     endAt,
@@ -523,26 +503,30 @@ async function getGraph(type, stationId) {
             );
 
 
-        const raw =
-            data?.dataList || [];
+        // ✅ THIS IS CORRECT ARRAY
+        const raw = result.dataList || [];
 
 
+        // ✅ MAP CORRECTLY
         return raw.map(item => {
 
-            const power =
-                Number(
-                    item.itemList?.find(
-                        i =>
-                        i.key ===
-                        "TotalActiveACOutputPower"
-                    )?.value || 0
+            const powerObj =
+                item.itemList?.find(
+                    i =>
+                    i.key === "TotalActiveACOutputPower"
                 );
 
             return {
 
-                time: item.collectTime,
+                // ✅ IMPORTANT FIX
+                time:
+                    item.collectTime ||
+                    item.time ||
+                    item.timestamp ||
+                    null,
 
-                power
+                power:
+                    Number(powerObj?.value || 0)
 
             };
 
@@ -551,17 +535,13 @@ async function getGraph(type, stationId) {
     }
     catch (err) {
 
-        console.log(
-            "Graph error:",
-            err.message
-        );
+        console.log("Graph error:", err.message);
 
         return [];
 
     }
 
 }
-
 
 
 // ================= EXPORT =================
