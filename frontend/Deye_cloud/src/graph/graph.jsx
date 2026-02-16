@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import API_BASE from '../pages/config'
+import API_BASE from "../pages/config";
 
 import {
   LineChart,
@@ -29,9 +29,7 @@ const capacityMap = {
 
 /* NORMALIZE */
 const normalizeName = (name) =>
-  name
-    ?.toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
+  name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 
 
@@ -43,11 +41,29 @@ export default function PowerGraph({
 
   const [data, setData] = useState([]);
 
-  const normalized =
-    normalizeName(buildingName);
+  const normalized = normalizeName(buildingName);
 
-  const capacity =
-    capacityMap[normalized] || 0;
+  const capacity = capacityMap[normalized] || 0;
+
+
+
+  /* SAFE TIME FORMAT FUNCTION */
+  const formatTime = (timeValue) => {
+
+    if (!timeValue) return "--:--";
+
+    const date = new Date(timeValue);
+
+    if (isNaN(date.getTime())) return "--:--";
+
+    return date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+
+  };
+
 
 
   /* FETCH GRAPH */
@@ -59,40 +75,37 @@ export default function PowerGraph({
       .then(res => res.json())
       .then(graph => {
 
-        const formatted =
-          graph.map(item => {
+        if (!Array.isArray(graph)) {
+          setData([]);
+          return;
+        }
 
-            const date =
-              new Date(item.time);
+        const formatted = graph.map(item => {
 
-            return {
+          const powerKW =
+            Number(item.power || 0) / 1000;
 
-              /* ✅ 24 HOUR FORMAT */
-              time:
-                date.toLocaleTimeString(
-                  "en-GB",
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false
-                  }
-                ),
+          return {
 
-              fullTime:
-                date.toLocaleString("en-GB"),
+            time: formatTime(item.time),
 
-              power:
-                Number(item.power) / 1000
+            fullTime: item.time,
 
-            };
+            power: powerKW
 
-          });
+          };
+
+        });
 
         setData(formatted);
 
+      })
+      .catch(() => {
+        setData([]);
       });
 
   }, [stationId, type]);
+
 
 
   /* CALCULATIONS */
@@ -102,25 +115,23 @@ export default function PowerGraph({
       ? data[data.length - 1].power
       : 0;
 
+
   const peak =
     data.length
       ? Math.max(...data.map(d => d.power))
       : 0;
 
+
   const avg =
     data.length
-      ? data.reduce(
-          (sum, d) =>
-            sum + d.power,
-          0
-        ) / data.length
+      ? data.reduce((sum, d) => sum + d.power, 0) / data.length
       : 0;
 
 
   const yMax =
     capacity
       ? Math.ceil(capacity * 1.2)
-      : Math.ceil(peak * 1.2);
+      : Math.ceil((peak || 1) * 1.2);
 
 
 
@@ -129,7 +140,6 @@ export default function PowerGraph({
     <div style={{
 
       width: "100%",
-
       height: "380px",
 
       background:
@@ -145,16 +155,13 @@ export default function PowerGraph({
     }}>
 
 
+
       {/* TITLE */}
 
       <h3 style={{
-
         color: "white",
-
         marginBottom: "8px",
-
         fontWeight: "600"
-
       }}>
         Today Power Graph
       </h3>
@@ -164,38 +171,29 @@ export default function PowerGraph({
       {/* INFO */}
 
       <div style={{
-
         display: "flex",
-
         gap: "25px",
-
         flexWrap: "wrap",
-
         marginBottom: "10px",
-
         fontSize: "14px"
-
       }}>
 
-
-        <span style={{color:"#00ffaa"}}>
+        <span style={{ color: "#00ffaa" }}>
           Current: {current.toFixed(1)} kW
         </span>
 
-        <span style={{color:"#4da3ff"}}>
+        <span style={{ color: "#4da3ff" }}>
           Peak: {peak.toFixed(1)} kW
         </span>
 
-        <span style={{color:"#ffb84d"}}>
+        <span style={{ color: "#ffb84d" }}>
           Average: {avg.toFixed(1)} kW
         </span>
 
         {capacity > 0 && (
-
-          <span style={{color:"#FFD700"}}>
+          <span style={{ color: "#FFD700" }}>
             Capacity: {capacity} kW
           </span>
-
         )}
 
       </div>
@@ -216,86 +214,66 @@ export default function PowerGraph({
           }}
         >
 
-
-          {/* GRID */}
-
           <CartesianGrid
             stroke="#1f3b55"
             strokeDasharray="3 3"
           />
 
 
-          {/* X AXIS */}
+          {/* X AXIS — RAILWAY TIME */}
 
           <XAxis
-
             dataKey="time"
-
             stroke="#ffffff"
-
             tick={{
               fill: "#ffffff",
               fontSize: 12
             }}
-
             interval="preserveStartEnd"
-
             minTickGap={35}
-
           />
 
 
           {/* Y AXIS */}
 
           <YAxis
-
             stroke="#ffffff"
-
             tick={{
               fill: "#ffffff",
               fontSize: 12
             }}
-
             domain={[0, yMax]}
-
           />
 
 
           {/* TOOLTIP */}
 
           <Tooltip
-
+            labelFormatter={(label) => `Time: ${label}`}
             contentStyle={{
               background: "#0b1d2c",
               border: "1px solid #00ffaa",
               color: "white"
             }}
-
             labelStyle={{
               color: "#00ffaa"
             }}
-
           />
 
 
-          {/* CAPACITY LINE */}
+          {/* CAPACITY */}
 
           {capacity > 0 && (
 
             <ReferenceLine
-
               y={capacity}
-
               stroke="#FFD700"
-
               strokeDasharray="5 5"
-
               label={{
                 value: "Capacity",
                 fill: "#FFD700",
                 position: "insideTopRight"
               }}
-
             />
 
           )}
@@ -304,19 +282,12 @@ export default function PowerGraph({
           {/* MAIN LINE */}
 
           <Line
-
             type="monotone"
-
             dataKey="power"
-
             stroke="#00ffaa"
-
             strokeWidth={2.5}
-
             dot={false}
-
           />
-
 
         </LineChart>
 
