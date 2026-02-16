@@ -27,7 +27,7 @@ const capacityMap = {
 };
 
 
-/* NORMALIZE */
+/* NORMALIZE BUILDING NAME */
 const normalizeName = (name) =>
   name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
@@ -47,27 +47,27 @@ export default function PowerGraph({
 
 
 
-  /* SAFE TIME FORMAT FUNCTION */
-  const formatTime = (timeValue) => {
+  /* IST RAILWAY TIME FORMAT FUNCTION */
+  const formatTime = (utcTime) => {
 
-    if (!timeValue) return "";
+    if (!utcTime) return "";
 
-    const date = new Date(timeValue);
+    const date = new Date(utcTime);
 
     if (isNaN(date)) return "";
 
     return date.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false
+      timeZone: "Asia/Kolkata",   // ✅ convert UTC → IST
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false               // railway format
     });
 
-};
+  };
 
 
 
-
-  /* FETCH GRAPH */
+  /* FETCH GRAPH DATA */
   useEffect(() => {
 
     if (!stationId) return;
@@ -77,32 +77,42 @@ export default function PowerGraph({
       .then(graph => {
 
         if (!Array.isArray(graph)) {
+
           setData([]);
+
           return;
+
         }
 
-        const formatted = graph.map(item => {
+        const formatted =
+          graph.map(item => {
 
-          const powerKW =
-            Number(item.power || 0) / 1000;
+            const powerKW =
+              Number(item.power || 0) / 1000;
 
-          return {
+            return {
 
-            time: formatTime(item.time),
+              time:
+                formatTime(item.time),
 
-            fullTime: item.time,
+              fullTime:
+                item.time,
 
-            power: powerKW
+              power:
+                Number(powerKW.toFixed(2))
 
-          };
+            };
 
-        });
+          })
+          .filter(d => d.time !== "");
 
         setData(formatted);
 
       })
       .catch(() => {
+
         setData([]);
+
       });
 
   }, [stationId, type]);
@@ -125,7 +135,9 @@ export default function PowerGraph({
 
   const avg =
     data.length
-      ? data.reduce((sum, d) => sum + d.power, 0) / data.length
+      ? data.reduce(
+          (sum, d) => sum + d.power, 0
+        ) / data.length
       : 0;
 
 
@@ -160,23 +172,33 @@ export default function PowerGraph({
       {/* TITLE */}
 
       <h3 style={{
+
         color: "white",
+
         marginBottom: "8px",
+
         fontWeight: "600"
+
       }}>
-        Today Power Graph
+        Power Trend
       </h3>
 
 
 
-      {/* INFO */}
+      {/* INFO BAR */}
 
       <div style={{
+
         display: "flex",
+
         gap: "25px",
+
         flexWrap: "wrap",
+
         marginBottom: "10px",
+
         fontSize: "14px"
+
       }}>
 
         <span style={{ color: "#00ffaa" }}>
@@ -192,9 +214,11 @@ export default function PowerGraph({
         </span>
 
         {capacity > 0 && (
+
           <span style={{ color: "#FFD700" }}>
             Capacity: {capacity} kW
           </span>
+
         )}
 
       </div>
@@ -221,7 +245,7 @@ export default function PowerGraph({
           />
 
 
-          {/* X AXIS — RAILWAY TIME */}
+          {/* X AXIS */}
 
           <XAxis
             dataKey="time"
@@ -231,7 +255,7 @@ export default function PowerGraph({
               fontSize: 12
             }}
             interval="preserveStartEnd"
-            minTickGap={35}
+            minTickGap={40}
           />
 
 
@@ -262,7 +286,7 @@ export default function PowerGraph({
           />
 
 
-          {/* CAPACITY */}
+          {/* CAPACITY LINE */}
 
           {capacity > 0 && (
 
@@ -280,7 +304,7 @@ export default function PowerGraph({
           )}
 
 
-          {/* MAIN LINE */}
+          {/* POWER LINE */}
 
           <Line
             type="monotone"
@@ -288,6 +312,7 @@ export default function PowerGraph({
             stroke="#00ffaa"
             strokeWidth={2.5}
             dot={false}
+            isAnimationActive={true}
           />
 
         </LineChart>
