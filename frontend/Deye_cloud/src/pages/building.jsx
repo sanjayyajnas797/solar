@@ -71,10 +71,11 @@ export default function Buildings() {
 
       filtered.forEach(b => {
 
-        map[b.id] =
-          Number(b.currentPower || 0);
+    map[b.id] =
+        Number(b.currentPower || 0);
 
-      });
+});
+
 
       setCurrentMap(map);
 

@@ -164,15 +164,14 @@ windSpeed:0
 
 // ================= BUILDING DATA =================
 
+// ================= BUILDING DATA =================
+
 async function getBuilding(station) {
 
-    const devices =
-        await getDevices(station.id);
+    const devices = await getDevices(station.id);
 
     const inverter =
-        devices.find(
-            d => d.deviceType === "INVERTER"
-        );
+        devices.find(d => d.deviceType === "INVERTER");
 
     if (!inverter)
         return {
@@ -180,9 +179,9 @@ async function getBuilding(station) {
             name: station.name,
             today: 0,
             yesterday: 0,
-            total: 0
+            total: 0,
+            currentPower: 0
         };
-
 
     const latest =
         await getLatest(inverter.deviceSn);
@@ -204,6 +203,18 @@ async function getBuilding(station) {
         );
 
 
+    const powerRaw =
+        Number(
+            latest?.dataList?.find(
+                d => d.key === "TotalActiveACOutputPower"
+            )?.value || 0
+        );
+
+
+    const currentPower =
+        Number((powerRaw / 1000).toFixed(1));
+
+
     const yesterday =
         await getYesterday(station.id);
 
@@ -218,11 +229,14 @@ async function getBuilding(station) {
 
         yesterday,
 
-        total
+        total,
+
+        currentPower
 
     };
 
 }
+
 
 
 // ================= MAIN BUILDING =================
@@ -418,8 +432,6 @@ async function getYesterday(stationId) {
 
 // ================= GET GRAPH DATA =================
 
-// ================= GET GRAPH DATA =================
-
 async function getGraph(type, stationId) {
 
     try {
@@ -449,7 +461,7 @@ async function getGraph(type, stationId) {
 
             endAt = startAt;
 
-            granularity = 1; // 5 min data
+            granularity = 1;
 
         }
 
@@ -487,7 +499,7 @@ async function getGraph(type, stationId) {
             endAt =
                 now.toISOString().split("T")[0];
 
-            granularity = 2; // daily
+            granularity = 2;
 
         }
 
@@ -515,21 +527,26 @@ async function getGraph(type, stationId) {
             data?.dataList || [];
 
 
-        return raw.map(item => ({
+        return raw.map(item => {
 
-            time:
-                item.collectTime,
-
-            power:
+            const power =
                 Number(
-                    item.itemList.find(
+                    item.itemList?.find(
                         i =>
                         i.key ===
                         "TotalActiveACOutputPower"
                     )?.value || 0
-                )
+                );
 
-        }));
+            return {
+
+                time: item.collectTime,
+
+                power
+
+            };
+
+        });
 
     }
     catch (err) {
@@ -544,6 +561,7 @@ async function getGraph(type, stationId) {
     }
 
 }
+
 
 
 // ================= EXPORT =================

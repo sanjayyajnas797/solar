@@ -50,19 +50,20 @@ export default function PowerGraph({
   /* SAFE TIME FORMAT FUNCTION */
   const formatTime = (timeValue) => {
 
-    if (!timeValue) return "--:--";
+    if (!timeValue) return "";
 
     const date = new Date(timeValue);
 
-    if (isNaN(date.getTime())) return "--:--";
+    if (isNaN(date)) return "";
 
-    return date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
+    return date.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
     });
 
-  };
+};
+
 
 
 

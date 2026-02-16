@@ -76,12 +76,14 @@ export default function Btps(){
       });
 
 
+      /* IMPORTANT FIX — USE currentPower FROM BACKEND */
+
       const map = {};
 
       btps.forEach(b=>{
 
         map[b.id] =
-          Number(b.currentPower||0);
+          Number(b.currentPower || 0);
 
       });
 
@@ -99,7 +101,7 @@ export default function Btps(){
     }
     catch(err){
 
-      console.log(err);
+      console.log("BTPS fetch error:",err);
 
     }
 
@@ -107,6 +109,7 @@ export default function Btps(){
 
 
   /* FETCH PEAK FROM GRAPH */
+
   const fetchPeak = async()=>{
 
     if(!selectedBuilding) return;
@@ -121,7 +124,7 @@ export default function Btps(){
       const graph =
         await res.json();
 
-      if(!graph.length){
+      if(!Array.isArray(graph) || !graph.length){
 
         setPeak({
           value:0,
@@ -139,18 +142,21 @@ export default function Btps(){
       graph.forEach(point=>{
 
         const power =
-          Number(point.power)/1000;
+          Number(point.power || 0)/1000;
 
         if(power > max){
 
           max = power;
 
-          peakTime =
-            new Date(point.time)
-            .toLocaleTimeString("en-IN",{
-              hour:"2-digit",
-              minute:"2-digit"
-            });
+          const date =
+            new Date(point.time);
+
+          if(!isNaN(date))
+            peakTime =
+              date.toLocaleTimeString("en-IN",{
+                hour:"2-digit",
+                minute:"2-digit"
+              });
 
         }
 
@@ -165,12 +171,14 @@ export default function Btps(){
     }
     catch(err){
 
-      console.log(err);
+      console.log("Peak error:",err);
 
     }
 
   };
 
+
+  /* AUTO REFRESH */
 
   useEffect(()=>{
 
@@ -325,7 +333,7 @@ Total Current
 
 
 
-{/* BUILDING GRID */}
+{/* BUILDINGS */}
 
 <div className="building-grid">
 
@@ -378,14 +386,14 @@ className={`building-card ${isActive?"active":""}`}
 <div>
 <div className="energy-label">TODAY</div>
 <div className="energy-value green">
-{Number(b.today).toFixed(1)} kWh
+{Number(b.today||0).toFixed(1)} kWh
 </div>
 </div>
 
 <div>
 <div className="energy-label">YESTERDAY</div>
 <div className="energy-value blue">
-{Number(b.yesterday).toFixed(1)} kWh
+{Number(b.yesterday||0).toFixed(1)} kWh
 </div>
 </div>
 
@@ -397,7 +405,7 @@ className={`building-card ${isActive?"active":""}`}
 Last update: {time}
 
 <div className="current-live">
-Current: {currentMap[b.id]?.toFixed(1)} kW
+Current: {(currentMap[b.id] || 0).toFixed(1)} kW
 </div>
 
 </div>
