@@ -416,6 +416,8 @@ async function getYesterday(stationId) {
 
 // ================= GET GRAPH DATA =================
 
+// ================= GET GRAPH DATA =================
+
 async function getGraph(type, stationId) {
 
     try {
@@ -431,74 +433,107 @@ async function getGraph(type, stationId) {
         if (!inverter)
             return [];
 
-        let granularity = 5;
+        const deviceSn =
+            inverter.deviceSn;
 
-        if (type === "today")
-            granularity = 5;   // 5 min
+        const now = new Date();
 
-        if (type === "yesterday")
-            granularity = 5;
+        let startAt;
+        let endAt;
+        let granularity;
 
-        if (type === "monthly")
-            granularity = 2;   // daily
+        if (type === "today") {
 
+            startAt =
+                now.toISOString().split("T")[0];
 
-        let start = new Date();
-        let end = new Date();
+            endAt = startAt;
+
+            granularity = 1;
+
+        }
 
         if (type === "yesterday") {
 
-            start.setDate(start.getDate() - 1);
-            end.setDate(end.getDate() - 1);
+            const y = new Date();
+
+            y.setDate(now.getDate() - 1);
+
+            startAt =
+                y.toISOString().split("T")[0];
+
+            endAt = startAt;
+
+            granularity = 1;
 
         }
 
         if (type === "monthly") {
 
-            start.setDate(1);
+            const firstDay =
+                new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    1
+                );
+
+            startAt =
+                firstDay.toISOString().split("T")[0];
+
+            endAt =
+                now.toISOString().split("T")[0];
+
+            granularity = 2;
 
         }
-
-        const startDate =
-            start.toISOString().split("T")[0];
-
-        const endDate =
-            end.toISOString().split("T")[0];
-
 
         const data =
             await api(
                 "/v1.0/device/history",
                 {
-                    deviceSn: inverter.deviceSn,
-                    startAt: startDate,
-                    endAt: endDate,
-                    granularity
+                    deviceSn,
+                    startAt,
+                    endAt,
+                    granularity,
+                    measurePoints: [
+                        "TotalActiveACOutputPower"
+                    ]
                 }
             );
 
+        const raw =
+            data?.dataList || [];
 
-        return (
-            data.deviceDataItems || []
-        ).map(item => ({
+        return raw.map(item => ({
 
-            time: item.collectTime,
+            time:
+                item.collectTime,
 
             power:
-                item.activePower || 0
+                Number(
+                    item.itemList.find(
+                        i =>
+                        i.key ===
+                        "TotalActiveACOutputPower"
+                    )?.value || 0
+                )
 
         }));
 
     }
     catch (err) {
 
-        console.log("Graph error:", err.message);
+        console.log(
+            "Graph error:",
+            err.message
+        );
 
         return [];
 
     }
 
 }
+
 
 // ================= EXPORT =================
 
