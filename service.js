@@ -168,10 +168,13 @@ windSpeed:0
 
 async function getBuilding(station) {
 
-    const devices = await getDevices(station.id);
+    const devices =
+        await getDevices(station.id);
 
     const inverter =
-        devices.find(d => d.deviceType === "INVERTER");
+        devices.find(
+            d => d.deviceType === "INVERTER"
+        );
 
     if (!inverter)
         return {
@@ -183,40 +186,68 @@ async function getBuilding(station) {
             currentPower: 0
         };
 
+
+    // CURRENT POWER
     const latest =
         await getLatest(inverter.deviceSn);
-
-
-    const today =
-        Number(
-            latest?.dataList?.find(
-                d => d.key === "DailyActiveProduction"
-            )?.value || 0
-        );
-
-
-    const total =
-        Number(
-            latest?.dataList?.find(
-                d => d.key === "TotalActiveProduction"
-            )?.value || 0
-        );
-
 
     const powerRaw =
         Number(
             latest?.dataList?.find(
-                d => d.key === "TotalActiveACOutputPower"
+                d =>
+                d.key ===
+                "TotalActiveACOutputPower"
             )?.value || 0
         );
-
 
     const currentPower =
         Number((powerRaw / 1000).toFixed(1));
 
 
+    // ✅ FIXED TODAY PRODUCTION
+    const todayDate =
+        new Date()
+        .toISOString()
+        .split("T")[0];
+
+    const todayRes =
+        await api(
+            "/v1.0/station/history",
+            {
+                stationId:
+                    Number(station.id),
+
+                startAt:
+                    todayDate,
+
+                endAt:
+                    todayDate,
+
+                granularity: 2
+            }
+        );
+
+    const today =
+        Number(
+            todayRes?.stationDataItems?.[0]
+            ?.generationValue || 0
+        );
+
+
+    // YESTERDAY
     const yesterday =
         await getYesterday(station.id);
+
+
+    // TOTAL ENERGY
+    const total =
+        Number(
+            latest?.dataList?.find(
+                d =>
+                d.key ===
+                "TotalActiveProduction"
+            )?.value || 0
+        );
 
 
     return {
