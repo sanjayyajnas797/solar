@@ -187,10 +187,22 @@ async function getBuilding(station) {
         };
 
 
-    // CURRENT POWER
     const latest =
         await getLatest(inverter.deviceSn);
 
+
+    // ✅ TODAY (LIVE VALUE)
+    const today =
+        Number(
+            latest?.dataList?.find(
+                d =>
+                d.key ===
+                "DailyActiveProduction"
+            )?.value || 0
+        );
+
+
+    // CURRENT POWER
     const powerRaw =
         Number(
             latest?.dataList?.find(
@@ -204,37 +216,7 @@ async function getBuilding(station) {
         Number((powerRaw / 1000).toFixed(1));
 
 
-    // ✅ FIXED TODAY PRODUCTION
-    const todayDate =
-        new Date()
-        .toISOString()
-        .split("T")[0];
-
-    const todayRes =
-        await api(
-            "/v1.0/station/history",
-            {
-                stationId:
-                    Number(station.id),
-
-                startAt:
-                    todayDate,
-
-                endAt:
-                    todayDate,
-
-                granularity: 2
-            }
-        );
-
-    const today =
-        Number(
-            todayRes?.stationDataItems?.[0]
-            ?.generationValue || 0
-        );
-
-
-    // YESTERDAY
+    // YESTERDAY (CORRECT FROM STATION HISTORY)
     const yesterday =
         await getYesterday(station.id);
 
