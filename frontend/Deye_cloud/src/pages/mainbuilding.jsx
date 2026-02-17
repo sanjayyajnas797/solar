@@ -5,9 +5,13 @@ import "./Mainbuilding.css";
 import logo from "../assets/sunlogo.png";
 import campusIcon from "../assets/building.png";
 
-import { WiDaySunny, WiThermometer, WiStrongWind } from "react-icons/wi";
+import {
+  WiDaySunny,
+  WiThermometer,
+  WiStrongWind
+} from "react-icons/wi";
 
-import API_BASE from './config';   // ✅ ADD THIS
+import API_BASE from "./config";
 
 
 export default function Mainbuilding(){
@@ -21,8 +25,8 @@ const [updateTime,setUpdateTime] = useState("");
 
 // LOGOUT
 const handleLogout=()=>{
-localStorage.removeItem("token");
-navigate("/");
+  localStorage.removeItem("token");
+  navigate("/");
 };
 
 
@@ -55,15 +59,7 @@ const fetchData = async()=>{
 
 try{
 
-// MAIN BUILDING
-const resMain = await fetch(
-`${API_BASE}/main-building`
-);
-
-const mainData = await resMain.json();
-
-
-// SUB BUILDINGS
+// SUB BUILDINGS ONLY (main-building not needed anymore)
 const resSub = await fetch(
 `${API_BASE}/sub-buildings`
 );
@@ -71,9 +67,10 @@ const resSub = await fetch(
 const buildings = await resSub.json();
 
 
-// GROUPING
+// CAMPUS SUMMARY OBJECT
 const summary={
 
+NLCIL:{today:0,yesterday:0,total:0,count:0},
 NLCIC:{today:0,yesterday:0,total:0,count:0},
 NTPL:{today:0,yesterday:0,total:0,count:0},
 NUPPL:{today:0,yesterday:0,total:0,count:0},
@@ -82,43 +79,63 @@ BTPS:{today:0,yesterday:0,total:0,count:0}
 };
 
 
+// GROUPING LOGIC
 buildings.forEach(b=>{
 
 const n=b.name?.toUpperCase()||"";
 
+
+// BTPS
 if(n.includes("BTPS")){
 
-summary.BTPS.today+=b.today;
-summary.BTPS.yesterday+=b.yesterday;
-summary.BTPS.total+=b.total;
+summary.BTPS.today+=Number(b.today||0);
+summary.BTPS.yesterday+=Number(b.yesterday||0);
+summary.BTPS.total+=Number(b.total||0);
 summary.BTPS.count++;
 
 }
 
+
+// NLCIC
 else if(n.includes("NLCIC")){
 
-summary.NLCIC.today+=b.today;
-summary.NLCIC.yesterday+=b.yesterday;
-summary.NLCIC.total+=b.total;
+summary.NLCIC.today+=Number(b.today||0);
+summary.NLCIC.yesterday+=Number(b.yesterday||0);
+summary.NLCIC.total+=Number(b.total||0);
 summary.NLCIC.count++;
 
 }
 
+
+// NTPL
 else if(n.includes("NTPL")){
 
-summary.NTPL.today+=b.today;
-summary.NTPL.yesterday+=b.yesterday;
-summary.NTPL.total+=b.total;
+summary.NTPL.today+=Number(b.today||0);
+summary.NTPL.yesterday+=Number(b.yesterday||0);
+summary.NTPL.total+=Number(b.total||0);
 summary.NTPL.count++;
 
 }
 
+
+// NUPPL
 else if(n.includes("NUPPL")){
 
-summary.NUPPL.today+=b.today;
-summary.NUPPL.yesterday+=b.yesterday;
-summary.NUPPL.total+=b.total;
+summary.NUPPL.today+=Number(b.today||0);
+summary.NUPPL.yesterday+=Number(b.yesterday||0);
+summary.NUPPL.total+=Number(b.total||0);
 summary.NUPPL.count++;
+
+}
+
+
+// EVERYTHING ELSE = NLCIL
+else{
+
+summary.NLCIL.today+=Number(b.today||0);
+summary.NLCIL.yesterday+=Number(b.yesterday||0);
+summary.NLCIL.total+=Number(b.total||0);
+summary.NLCIL.count++;
 
 }
 
@@ -131,17 +148,19 @@ const list=[
 {
 name:"NLCIL",
 display:"NLCIL CAMPUS",
-today:mainData.today,
-yesterday:mainData.yesterday,
-total:mainData.total,
-hasBuilding:true,
+today:summary.NLCIL.today,
+yesterday:summary.NLCIL.yesterday,
+total:summary.NLCIL.total,
+hasBuilding:summary.NLCIL.count>0,
 path:"/buildings"
 },
 
 {
 name:"NLCIC",
 display:"NLCIC",
-...summary.NLCIC,
+today:summary.NLCIC.today,
+yesterday:summary.NLCIC.yesterday,
+total:summary.NLCIC.total,
 hasBuilding:summary.NLCIC.count>0,
 path:"/nlcic"
 },
@@ -149,7 +168,9 @@ path:"/nlcic"
 {
 name:"NTPL",
 display:"NTPL",
-...summary.NTPL,
+today:summary.NTPL.today,
+yesterday:summary.NTPL.yesterday,
+total:summary.NTPL.total,
 hasBuilding:summary.NTPL.count>0,
 path:"/ntpl"
 },
@@ -157,7 +178,9 @@ path:"/ntpl"
 {
 name:"NUPPL",
 display:"NUPPL",
-...summary.NUPPL,
+today:summary.NUPPL.today,
+yesterday:summary.NUPPL.yesterday,
+total:summary.NUPPL.total,
 hasBuilding:summary.NUPPL.count>0,
 path:"/nuppl"
 },
@@ -165,7 +188,9 @@ path:"/nuppl"
 {
 name:"BTPS",
 display:"BTPS",
-...summary.BTPS,
+today:summary.BTPS.today,
+yesterday:summary.BTPS.yesterday,
+total:summary.BTPS.total,
 hasBuilding:summary.BTPS.count>0,
 path:"/btps"
 }
@@ -182,6 +207,7 @@ w[c.name]=await fetchWeather(c.name);
 
 }
 
+
 setWeatherData(w);
 setCampusList(list);
 
@@ -197,7 +223,7 @@ second:"2-digit"
 
 }catch(e){
 
-console.log(e);
+console.log("Mainbuilding error:",e);
 
 }
 
@@ -325,7 +351,7 @@ TODAY
 </div>
 
 <div className="value green">
-{c.today?.toFixed(1)} kWh
+{c.today.toFixed(1)} kWh
 </div>
 
 
@@ -334,7 +360,7 @@ YESTERDAY
 </div>
 
 <div className="value blue">
-{c.yesterday?.toFixed(1)} kWh
+{c.yesterday.toFixed(1)} kWh
 </div>
 
 </div>
@@ -350,7 +376,7 @@ CUMULATIVE
 </div>
 
 <div className="value cyan">
-{c.total?.toLocaleString()} kWh
+{c.total.toLocaleString()} kWh
 </div>
 
 </div>
