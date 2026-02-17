@@ -5,10 +5,13 @@ import "./Mainbuilding.css";
 import logo from "../assets/sunlogo.png";
 import campusIcon from "../assets/building.png";
 
+import mainlogo from "../assets/main logo.png";
+import Ntpl from "../assets/Ntpl.jpg";
+import Nuppl from "../assets/Nuppl.jpg";
+
 import {
   WiDaySunny,
-  WiThermometer,
-  WiStrongWind
+  WiThermometer
 } from "react-icons/wi";
 
 import API_BASE from "./config";
@@ -30,6 +33,34 @@ const handleLogout=()=>{
 };
 
 
+// GET CAMPUS LOGO FUNCTION
+const getCampusLogo = (name)=>{
+
+switch(name){
+
+case "NLCIL":
+return mainlogo;
+
+case "NLCIC":
+return mainlogo;
+
+case "BTPS":
+return mainlogo;
+
+case "NTPL":
+return Ntpl;
+
+case "NUPPL":
+return Nuppl;
+
+default:
+return campusIcon;
+
+}
+
+};
+
+
 // FETCH WEATHER
 const fetchWeather = async(campus)=>{
 
@@ -45,8 +76,7 @@ return await res.json();
 
 return {
 irradiance:0,
-ambientTemp:0,
-windSpeed:0
+ambientTemp:0
 };
 
 }
@@ -59,15 +89,14 @@ const fetchData = async()=>{
 
 try{
 
-// SUB BUILDINGS ONLY (main-building not needed anymore)
-const resSub = await fetch(
-`${API_BASE}/sub-buildings`
-);
+const resSub =
+await fetch(`${API_BASE}/sub-buildings`);
 
-const buildings = await resSub.json();
+const buildings =
+await resSub.json();
 
 
-// CAMPUS SUMMARY OBJECT
+// SUMMARY
 const summary={
 
 NLCIL:{today:0,yesterday:0,total:0,count:0},
@@ -79,13 +108,11 @@ BTPS:{today:0,yesterday:0,total:0,count:0}
 };
 
 
-// GROUPING LOGIC
+// GROUPING
 buildings.forEach(b=>{
 
 const n=b.name?.toUpperCase()||"";
 
-
-// BTPS
 if(n.includes("BTPS")){
 
 summary.BTPS.today+=Number(b.today||0);
@@ -95,8 +122,6 @@ summary.BTPS.count++;
 
 }
 
-
-// NLCIC
 else if(n.includes("NLCIC")){
 
 summary.NLCIC.today+=Number(b.today||0);
@@ -106,8 +131,6 @@ summary.NLCIC.count++;
 
 }
 
-
-// NTPL
 else if(n.includes("NTPL")){
 
 summary.NTPL.today+=Number(b.today||0);
@@ -117,8 +140,6 @@ summary.NTPL.count++;
 
 }
 
-
-// NUPPL
 else if(n.includes("NUPPL")){
 
 summary.NUPPL.today+=Number(b.today||0);
@@ -128,8 +149,6 @@ summary.NUPPL.count++;
 
 }
 
-
-// EVERYTHING ELSE = NLCIL
 else{
 
 summary.NLCIL.today+=Number(b.today||0);
@@ -142,56 +161,51 @@ summary.NLCIL.count++;
 });
 
 
-// FINAL CAMPUS LIST
+// FINAL LIST
 const list=[
 
 {
 name:"NLCIL",
-display:"NLCIL CAMPUS",
+display:"NLCIC,RTS-2.5MW",
 today:summary.NLCIL.today,
 yesterday:summary.NLCIL.yesterday,
 total:summary.NLCIL.total,
-hasBuilding:summary.NLCIL.count>0,
 path:"/buildings"
 },
 
 {
 name:"NLCIC",
-display:"NLCIC",
+display:"NLCIC,FTS-1.0MW",
 today:summary.NLCIC.today,
 yesterday:summary.NLCIC.yesterday,
 total:summary.NLCIC.total,
-hasBuilding:summary.NLCIC.count>0,
 path:"/nlcic"
 },
 
 {
 name:"NTPL",
-display:"NTPL",
+display:"NTPL,RTS-0.3MW",
 today:summary.NTPL.today,
 yesterday:summary.NTPL.yesterday,
 total:summary.NTPL.total,
-hasBuilding:summary.NTPL.count>0,
 path:"/ntpl"
 },
 
 {
 name:"NUPPL",
-display:"NUPPL",
+display:"NUPPL,RTS-0.8MW",
 today:summary.NUPPL.today,
 yesterday:summary.NUPPL.yesterday,
 total:summary.NUPPL.total,
-hasBuilding:summary.NUPPL.count>0,
 path:"/nuppl"
 },
 
 {
 name:"BTPS",
-display:"BTPS",
+display:"BTPS,RTS-0.4MW",
 today:summary.BTPS.today,
 yesterday:summary.BTPS.yesterday,
 total:summary.BTPS.total,
-hasBuilding:summary.BTPS.count>0,
 path:"/btps"
 }
 
@@ -207,12 +221,11 @@ w[c.name]=await fetchWeather(c.name);
 
 }
 
-
 setWeatherData(w);
 setCampusList(list);
 
 
-// UPDATED TIME
+// TIME
 setUpdateTime(
 new Date().toLocaleTimeString("en-IN",{
 hour:"2-digit",
@@ -247,66 +260,69 @@ return(
 
 <div className="dashboard">
 
+
 {/* HEADER */}
 <div className="header">
 
-<div className="header-left">
+<div className="header-left-new">
 
-<img src={logo} className="logo"/>
-
-<div>
-
-<div className="company">
-Sun Industrial Automations & Solutions Pvt Ltd
-</div>
-
-<div className="subtitle">
-Enterprise Solar Monitoring System
-</div>
-
-</div>
-
-</div>
+  {/* CLIENT LOGO */}
+  <img src={mainlogo} className="header-logo-left"/>
 
 
-<div className="header-right">
+  {/* TEXT BLOCK */}
+  <div className="header-text-block">
 
-<div className="live-container">
-
-<span className="live-dot"></span>
-
-<span className="live-text">
-LIVE SYSTEM
-</span>
-
-</div>
+    <div className="header-title">
+      4MW ROOFTOP & 1MW FLOATING SOLAR SYSTEM | ONLINE MONITORING
+    </div>
 
 
-<div className="update-container">
+    {/* SUPPLIER ROW */}
+    <div className="header-supplier-row">
 
-<div className="update-label">
-LAST UPDATE
-</div>
+      <span className="header-supplied-label">
+        Supplied, Installed & Commissioned By
+      </span>
 
-<div className="update-time">
-{updateTime}
-</div>
+      <img src={logo} className="header-logo-supplier"/>
+
+      <span className="header-company">
+        SUN Industrial Automations & Solutions Pvt Ltd, Chennai – 600096.
+      </span>
+
+    </div>
+
+  </div>
 
 </div>
 
 
-<button
-className="logout"
-onClick={handleLogout}
->
-Logout
-</button>
+
+  {/* RIGHT SECTION */}
+  <div className="header-right">
+
+    <div className="live-container">
+      <span className="live-dot"></span>
+      <span className="live-text">LIVE SYSTEM</span>
+    </div>
+
+    <div className="update-container">
+      <div className="update-label">LAST UPDATE</div>
+      <div className="update-time">{updateTime}</div>
+    </div>
+
+    <button className="logout" onClick={handleLogout}>
+      Logout
+    </button>
+
+  </div>
+
+  <div className="header-energy-flow"></div>
 
 </div>
 
-<div className="header-energy-flow"></div>
 
-</div>
 
 
 {/* BODY */}
@@ -320,17 +336,15 @@ return(
 
 <div className="scada-row" key={i}>
 
+
+{/* LOGO REPLACED HERE */}
 <div
 className="panel campus-card"
 onClick={()=>navigate(c.path)}>
 
-<img src={campusIcon}/>
+<img src={getCampusLogo(c.name)} />
 
 <div>
-
-<div className="label">
-CAMPUS
-</div>
 
 <div className="value cyan">
 {c.display}
@@ -385,6 +399,7 @@ CUMULATIVE
 <div className="flow-line"></div>
 
 
+{/* WEATHER */}
 <div className="panel">
 
 <div className="weather-row">
@@ -424,26 +439,8 @@ TEMPERATURE
 
 </div>
 
-
-<div className="weather-row">
-
-<WiStrongWind className="icon wind"/>
-
-<div>
-
-<div className="label">
-WIND SPEED
 </div>
 
-<div className="value cyan">
-{w.windSpeed} km/h
-</div>
-
-</div>
-
-</div>
-
-</div>
 
 </div>
 

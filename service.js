@@ -14,10 +14,8 @@ const WEATHER_CACHE_DURATION = 600000; // 10 minutes
 
 const CAMPUS_LOCATION = {
 
-    // Neyveli
     NLCIL: { lat: 11.7480, lon: 79.7714 },
 
-    // example change later if needed
     BTPS: { lat: 27.4924, lon: 77.6737 },
 
     NLCIC: { lat: 11.7500, lon: 79.7700 },
@@ -31,17 +29,16 @@ const CAMPUS_LOCATION = {
 
 // ================= MAIN CACHE =================
 
+// ✅ increased cache duration (FASTER)
 let CACHE = null;
 let CACHE_TIME = 0;
-
-const CACHE_DURATION = 30000;
+const CACHE_DURATION = 60000; // 60 seconds
 
 
 // ================= TOKEN CACHE =================
 
 let TOKEN = null;
 let TOKEN_TIME = 0;
-
 const TOKEN_DURATION = 3600 * 1000;
 
 
@@ -54,6 +51,8 @@ async function getToken() {
         Date.now() - TOKEN_TIME < TOKEN_DURATION
     )
         return TOKEN;
+
+    console.log("Fetching new token...");
 
     const res = await axios.post(
         `${config.BASE_URL}/v1.0/account/token`,
@@ -88,7 +87,8 @@ async function api(url, body) {
             params: { appId: config.APP_ID },
             headers: {
                 Authorization: `Bearer ${token}`
-            }
+            },
+            timeout: 15000 // ✅ prevent hanging
         }
     );
 
@@ -96,7 +96,7 @@ async function api(url, body) {
 }
 
 
-// ================= WEATHER FUNCTION =================
+// ================= WEATHER =================
 
 async function getWeather(campus){
 
@@ -121,7 +121,8 @@ windSpeed:0
 };
 
 const res = await axios.get(
-`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current=temperature_2m,wind_speed_10m,shortwave_radiation`
+`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current=temperature_2m,wind_speed_10m,shortwave_radiation`,
+{ timeout: 10000 }
 );
 
 const current = res.data.current;
@@ -139,7 +140,6 @@ current.wind_speed_10m
 
 };
 
-// cache save
 WEATHER_CACHE[campus] = {
 data:weather,
 time:Date.now()
@@ -162,208 +162,6 @@ windSpeed:0
 }
 
 
-// ================= BUILDING DATA =================
-
-// ================= BUILDING DATA =================
-
-async function getBuilding(station) {
-
-    const devices =
-        await getDevices(station.id);
-
-    const inverter =
-        devices.find(
-            d => d.deviceType === "INVERTER"
-        );
-
-    if (!inverter)
-        return {
-            id: station.id,
-            name: station.name,
-            today: 0,
-            yesterday: 0,
-            total: 0,
-            currentPower: 0
-        };
-
-
-    const latest =
-        await getLatest(inverter.deviceSn);
-
-
-    // ✅ TODAY (LIVE VALUE)
-    const today =
-        Number(
-            latest?.dataList?.find(
-                d =>
-                d.key ===
-                "DailyActiveProduction"
-            )?.value || 0
-        );
-
-
-    // CURRENT POWER
-    const powerRaw =
-        Number(
-            latest?.dataList?.find(
-                d =>
-                d.key ===
-                "TotalActiveACOutputPower"
-            )?.value || 0
-        );
-
-    const currentPower =
-        Number((powerRaw / 1000).toFixed(1));
-
-
-    // YESTERDAY (CORRECT FROM STATION HISTORY)
-    const yesterday =
-        await getYesterday(station.id);
-
-
-    // TOTAL ENERGY
-    const total =
-        Number(
-            latest?.dataList?.find(
-                d =>
-                d.key ===
-                "TotalActiveProduction"
-            )?.value || 0
-        );
-
-
-    return {
-
-        id: station.id,
-
-        name: station.name,
-
-        today,
-
-        yesterday,
-
-        total,
-
-        currentPower
-
-    };
-
-}
-
-
-
-// ================= MAIN BUILDING =================
-
-async function getMainBuildingData() {
-
-    try {
-
-        if (
-            CACHE &&
-            Date.now() - CACHE_TIME < CACHE_DURATION
-        )
-            return CACHE.main;
-
-
-        const stations =
-            await getStations();
-
-
-        const buildings =
-            await Promise.all(
-                stations.map(getBuilding)
-            );
-
-
-        let totalToday = 0;
-        let totalYesterday = 0;
-        let totalLifetime = 0;
-
-
-        buildings.forEach(b => {
-
-            totalToday += b.today;
-            totalYesterday += b.yesterday;
-            totalLifetime += b.total;
-
-        });
-
-
-        CACHE = {
-
-            main: {
-
-                name: "NLC CAMPUS",
-
-                today:
-                    Number(totalToday.toFixed(1)),
-
-                yesterday:
-                    Number(totalYesterday.toFixed(1)),
-
-                total:
-                    Number(totalLifetime.toFixed(1))
-
-            },
-
-            sub: buildings
-
-        };
-
-
-        CACHE_TIME = Date.now();
-
-
-        return CACHE.main;
-
-    }
-    catch {
-
-        return {
-            name: "NLC CAMPUS",
-            today: 0,
-            yesterday: 0,
-            total: 0
-        };
-
-    }
-
-}
-
-
-// ================= SUB BUILDINGS =================
-
-async function getSubBuildings() {
-
-    if (
-        CACHE &&
-        Date.now() - CACHE_TIME < CACHE_DURATION
-    )
-        return CACHE.sub;
-
-    await getMainBuildingData();
-
-    return CACHE.sub;
-}
-
-
-// ================= LOGIN =================
-
-function login(email, password) {
-
-    if (
-        email === "sun@gmail.com" &&
-        password === "123456"
-    )
-        return jwt.sign(
-            { email },
-            "mysecret",
-            { expiresIn: "1d" }
-        );
-
-    throw new Error("Invalid credentials");
-
-}
 // ================= GET STATIONS =================
 
 async function getStations() {
@@ -441,147 +239,308 @@ async function getYesterday(stationId) {
     );
 }
 
-async function getGraph(type, stationId) {
 
-    try {
+// ================= BUILDING =================
 
-        const devices =
-            await getDevices(stationId);
+async function getBuilding(station) {
 
-        const inverter =
-            devices.find(
-                d => d.deviceType === "INVERTER"
-            );
+try{
 
-        if (!inverter) return [];
+const devices =
+await getDevices(station.id);
 
-        const now = new Date();
+const inverter =
+devices.find(d=>d.deviceType==="INVERTER");
 
-        let startAt;
-        let endAt;
-        let granularity;
+if (!inverter)
+return {
+id: station.id,
+name: station.name,
+today: 0,
+yesterday: 0,
+total: 0,
+currentPower: 0
+};
 
+const latest =
+await getLatest(inverter.deviceSn);
 
-        if (type === "today") {
+const today =
+Number(
+latest?.dataList?.find(
+d=>d.key==="DailyActiveProduction"
+)?.value || 0
+);
 
-            startAt =
-                now.toISOString().split("T")[0];
+const powerRaw =
+Number(
+latest?.dataList?.find(
+d=>d.key==="TotalActiveACOutputPower"
+)?.value || 0
+);
 
-            endAt = startAt;
+const currentPower =
+Number((powerRaw / 1000).toFixed(1));
 
-            granularity = 1;
+const yesterday =
+await getYesterday(station.id);
 
-        }
-        else if (type === "yesterday") {
+const total =
+Number(
+latest?.dataList?.find(
+d=>d.key==="TotalActiveProduction"
+)?.value || 0
+);
 
-            const yesterday = new Date();
+return {
 
-            yesterday.setDate(now.getDate() - 1);
+id: station.id,
+name: station.name,
+today,
+yesterday,
+total,
+currentPower
 
-            startAt =
-                yesterday.toISOString().split("T")[0];
+};
 
-            endAt = startAt;
+}catch(err){
 
-            granularity = 1;
+console.log("Building error:", err.message);
 
-        }
-        else {
+return {
+id: station.id,
+name: station.name,
+today: 0,
+yesterday: 0,
+total: 0,
+currentPower: 0
+};
 
-            const firstDay =
-                new Date(
-                    now.getFullYear(),
-                    now.getMonth(),
-                    1
-                );
-
-            startAt =
-                firstDay.toISOString().split("T")[0];
-
-            endAt =
-                now.toISOString().split("T")[0];
-
-            granularity = 2;
-
-        }
-
-
-        const result =
-            await api(
-                "/v1.0/device/history",
-                {
-                    deviceSn:
-                        String(inverter.deviceSn),
-
-                    startAt,
-                    endAt,
-
-                    granularity,
-
-                    measurePoints: [
-                        "TotalActiveACOutputPower"
-                    ]
-                }
-            );
-
-
-        const raw =
-            result.dataList || [];
-
-
-        return raw.map(item => {
-
-            const powerObj =
-                item.itemList?.find(
-                    i =>
-                    i.key ===
-                    "TotalActiveACOutputPower"
-                );
-
-            return {
-
-                // ✅ FIXED HERE
-                time:
-                    new Date(
-                        Number(item.time) * 1000
-                    ).toISOString(),
-
-                power:
-                    Number(powerObj?.value || 0)
-
-            };
-
-        });
-
-
-    }
-    catch (err) {
-
-        console.log(
-            "Graph error:",
-            err.response?.data ||
-            err.message
-        );
-
-        return [];
-
-    }
+}
 
 }
 
 
+// ================= MAIN BUILDING =================
+
+async function getMainBuildingData() {
+
+try{
+
+if(
+CACHE &&
+Date.now() - CACHE_TIME < CACHE_DURATION
+)
+return CACHE.main;
+
+console.log("Refreshing main cache...");
+
+const stations =
+await getStations();
+
+const buildings =
+await Promise.all(
+stations.map(getBuilding)
+);
+
+let totalToday=0;
+let totalYesterday=0;
+let totalLifetime=0;
+
+buildings.forEach(b=>{
+
+totalToday+=b.today;
+totalYesterday+=b.yesterday;
+totalLifetime+=b.total;
+
+});
+
+CACHE={
+main:{
+name:"NLC CAMPUS",
+today:Number(totalToday.toFixed(1)),
+yesterday:Number(totalYesterday.toFixed(1)),
+total:Number(totalLifetime.toFixed(1))
+},
+sub:buildings
+};
+
+CACHE_TIME=Date.now();
+
+return CACHE.main;
+
+}catch(err){
+
+console.log("Main building error:", err.message);
+
+return {
+name:"NLC CAMPUS",
+today:0,
+yesterday:0,
+total:0
+};
+
+}
+
+}
+
+
+// ================= SUB BUILDINGS =================
+
+async function getSubBuildings(){
+
+if(
+CACHE &&
+Date.now() - CACHE_TIME < CACHE_DURATION
+)
+return CACHE.sub;
+
+await getMainBuildingData();
+
+return CACHE.sub;
+
+}
+
+
+// ================= GRAPH =================
+
+async function getGraph(type, stationId){
+
+try{
+
+const devices =
+await getDevices(stationId);
+
+const inverter =
+devices.find(
+d=>d.deviceType==="INVERTER"
+);
+
+if(!inverter) return [];
+
+const now=new Date();
+
+let startAt,endAt,granularity;
+
+if(type==="today"){
+
+startAt=now.toISOString().split("T")[0];
+endAt=startAt;
+granularity=1;
+
+}
+else if(type==="yesterday"){
+
+const y=new Date();
+y.setDate(now.getDate()-1);
+
+startAt=y.toISOString().split("T")[0];
+endAt=startAt;
+granularity=1;
+
+}
+else{
+
+const firstDay=new Date(
+now.getFullYear(),
+now.getMonth(),
+1
+);
+
+startAt=firstDay.toISOString().split("T")[0];
+endAt=now.toISOString().split("T")[0];
+granularity=2;
+
+}
+
+const result=
+await api(
+"/v1.0/device/history",
+{
+deviceSn:String(inverter.deviceSn),
+startAt,
+endAt,
+granularity,
+measurePoints:[
+"TotalActiveACOutputPower"
+]
+}
+);
+
+const raw=result.dataList||[];
+
+return raw.map(item=>{
+
+const powerObj=
+item.itemList?.find(
+i=>i.key==="TotalActiveACOutputPower"
+);
+
+return{
+time:new Date(Number(item.time)*1000).toISOString(),
+power:Number(powerObj?.value||0)
+};
+
+});
+
+}catch(err){
+
+console.log("Graph error:",err.message);
+return [];
+
+}
+
+}
+
+
+// ================= LOGIN =================
+
+function login(email,password){
+
+if(
+email==="sun@gmail.com" &&
+password==="123456"
+)
+return jwt.sign(
+{email},
+"mysecret",
+{expiresIn:"1d"}
+);
+
+throw new Error("Invalid credentials");
+
+}
+
+
+// ================= BACKGROUND CACHE REFRESH =================
+
+// ✅ This makes Render FREE tier FAST
+
+setInterval(async ()=>{
+
+try{
+
+await getMainBuildingData();
+
+console.log("Background cache refreshed");
+
+}catch(err){
+
+console.log("Background refresh error:", err.message);
+
+}
+
+},60000);
+
+
 // ================= EXPORT =================
 
-module.exports = {
+module.exports={
 
-    getMainBuildingData,
-    getSubBuildings,
-    getWeather,
-    login,
-   getStations,
-getDevices,
-getLatest,
-getYesterday,
+getMainBuildingData,
+getSubBuildings,
+getWeather,
+login,
 getGraph
 
 };

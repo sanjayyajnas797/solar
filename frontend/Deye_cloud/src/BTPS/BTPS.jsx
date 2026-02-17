@@ -5,7 +5,7 @@ import "../pages/Buildings.css";
 import PowerGraph from "../graph/graph";
 import API_BASE from "../pages/config";
 
-import logo from "../assets/sunlogo.png";
+import logo from "../assets/main logo.png";
 import buildIcon from "../assets/tower.png";
 
 
@@ -233,7 +233,7 @@ export default function Btps(){
 <div>
 
 <div className="second-company">
-BTPS Campus Monitoring
+BTPS RTS-0.4MW Monitoring
 </div>
 
 <div className="second-sub">
