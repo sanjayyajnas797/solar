@@ -6,6 +6,7 @@ import PowerGraph from "../graph/graph";
 import API_BASE from "../pages/config";
 
 import logo from "../assets/main logo.png";
+import epcLogo from "../assets/sunlogo.png";   // ✅ EPC LOGO ADDED
 import buildIcon from "../assets/tower.png";
 
 
@@ -24,18 +25,15 @@ const normalizeName = name =>
   name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 
-/* FORMAT NAME — KEEP NLC BTPS, REST TITLE CASE */
-/* FORMAT NAME — KEEP NLC BTPS, FIX CASE + COMMA SPACING */
+/* FORMAT NAME */
 const formatBtpsName = (name) => {
 
   if (!name) return "";
 
   let formatted = name;
 
-  /* fix comma spacing */
   formatted = formatted.replace(/,\s*/g, ", ");
 
-  /* keep NLC BTPS as uppercase */
   if (formatted.toUpperCase().startsWith("NLC BTPS")) {
 
     const prefix = "NLC BTPS";
@@ -56,6 +54,7 @@ const formatBtpsName = (name) => {
   }
 
   return formatted;
+
 };
 
 
@@ -114,10 +113,8 @@ export default function Btps(){
       const map = {};
 
       btps.forEach(b=>{
-
         map[b.id] =
           Number(b.currentPower || 0);
-
       });
 
       setCurrentMap(map);
@@ -133,9 +130,7 @@ export default function Btps(){
 
     }
     catch(err){
-
       console.log("BTPS fetch error:",err);
-
     }
 
   };
@@ -202,9 +197,7 @@ export default function Btps(){
 
     }
     catch(err){
-
       console.log("Peak error:",err);
-
     }
 
   };
@@ -257,6 +250,7 @@ export default function Btps(){
 
 <div className="secondheader-left">
 
+{/* CLIENT LOGO */}
 <img src={logo} className="second-logo"/>
 
 <div>
@@ -270,6 +264,27 @@ Solar Dashboard
 </div>
 
 </div>
+
+
+{/* ✅ EPC SECTION ADDED */}
+<div className="header-supplier-block">
+
+<img src={epcLogo} className="second-logo"/>
+
+<div className="epc-text-block">
+
+<div className="epc-label">
+EPC BY
+</div>
+
+<div className="header-company epc-company">
+SUN Industrial Automations & Solutions Pvt Ltd
+</div>
+
+</div>
+
+</div>
+
 
 </div>
 
@@ -297,7 +312,7 @@ onClick={()=>navigate("/dashboard")}
 
 
 
-{/* SUMMARY — RESTORED */}
+{/* SUMMARY */}
 <div className="summary">
 
 <div className="summary-card">
@@ -348,7 +363,7 @@ Peak Time: {peak.time}
 <div className="summary-card current-card">
 
 <div className="summary-label">
-Total Current
+Total Live Power
 </div>
 
 <div className="summary-value current-text">
@@ -388,13 +403,7 @@ className={`building-card ${isActive?"active":""}`}
 
 <img src={buildIcon} className="card-icon"/>
 
-{currentMap[b.id] > 0 ? (
 <div className="online">ONLINE</div>
-) : currentMap[b.id] === 0 ? (
-<div className="warning">WARNING</div>
-) : (
-<div className="offline">OFFLINE</div>
-)}
 
 </div>
 
@@ -438,7 +447,7 @@ Installed Capacity {capacity} kW
 Last update: {time}
 
 <div className="current-live">
-Current: {(currentMap[b.id] || 0).toFixed(1)} kW
+Live Power: {(currentMap[b.id] || 0).toFixed(1)} kW
 </div>
 
 </div>

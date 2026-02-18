@@ -5,19 +5,24 @@ import "../pages/Buildings.css";
 import PowerGraph from "../graph/graph";
 import API_BASE from "../pages/config";
 
+/* CLIENT LOGO */
 import logo from "../assets/main logo.png";
+
+/* EPC LOGO */
+import epcLogo from "../assets/sunlogo.png";
+
 import buildIcon from "../assets/tower.png";
 
 
 /* CAPACITY MAP */
 const capacityMap = {
   "NLCIL LIBRARY": 50.85,
-  "NLCIL Education office": 23.73,
-  "NLCIL L&DC office (INV-2)": 145
+  "NLCIL EDUCATION OFFICE": 23.73,
+  "NLCIL L&DC OFFICE (INV-2)": 145
 };
 
 
-/* FORMAT BUILDING NAME — PROFESSIONAL TITLE CASE */
+/* FORMAT BUILDING NAME */
 const formatBuildingName = (name) => {
 
   if (!name) return "";
@@ -25,18 +30,14 @@ const formatBuildingName = (name) => {
   return name
     .toLowerCase()
     .split(" ")
-    .map((word, index) => {
+    .map((word) => {
 
-      // keep NLCIL uppercase
       if (word === "nlcil") return "NLCIL";
 
-      // keep L&DC uppercase
       if (word.includes("&")) return word.toUpperCase();
 
-      // keep INV-2 uppercase
       if (word.includes("inv")) return word.toUpperCase();
 
-      // normal Title Case
       return word.charAt(0).toUpperCase() + word.slice(1);
 
     })
@@ -75,7 +76,7 @@ export default function Buildings() {
 
       const filtered =
         data.filter(
-          b => !b.name.toUpperCase().includes("BTPS")
+          b => b.name.toUpperCase().includes("NLCIL")
         );
 
       setBuildings(filtered);
@@ -104,7 +105,6 @@ export default function Buildings() {
 
       });
 
-
       setCurrentMap(map);
 
 
@@ -129,7 +129,7 @@ export default function Buildings() {
   };
 
 
-  /* PEAK FETCH */
+  /* FETCH PEAK */
   const fetchPeak = async () => {
 
     if (!selectedBuilding) return;
@@ -257,11 +257,11 @@ export default function Buildings() {
 
 
 {/* HEADER */}
-
 <div className="second-header">
 
 <div className="secondheader-left">
 
+{/* CLIENT LOGO */}
 <img src={logo} className="second-logo"/>
 
 <div>
@@ -275,6 +275,27 @@ Solar Dashboard
 </div>
 
 </div>
+
+
+{/* ✅ EPC SECTION ADDED */}
+<div className="header-supplier-block">
+
+<img src={epcLogo} className="second-logo"/>
+
+<div className="epc-text-block">
+
+<div className="epc-label">
+EPC BY
+</div>
+
+<div className="header-company epc-company">
+SUN Industrial Automations & Solutions Pvt Ltd
+</div>
+
+</div>
+
+</div>
+
 
 </div>
 
@@ -301,11 +322,8 @@ onClick={() => navigate("/dashboard")}
 </div>
 
 
-
 {/* SUMMARY */}
-
 <div className="summary">
-
 
 <div className="summary-card">
 <div className="summary-label">
@@ -361,7 +379,7 @@ Peak Time: {peak.time}
 <div className="summary-card current-card">
 
 <div className="summary-label">
-Total Current
+    Total Live Power
 </div>
 
 <div className="summary-value current-text">
@@ -370,22 +388,20 @@ Total Current
 
 </div>
 
+
 </div>
 
 
-
-{/* BUILDING GRID */}
-
+{/* BUILDINGS */}
 <div className="building-grid">
 
 {buildings.map(b => {
 
 const capacity =
-capacityMap[b.name];
+capacityMap[b.name.toUpperCase()];
 
 const isActive =
 selectedBuilding?.id === b.id;
-
 
 return (
 
@@ -399,22 +415,11 @@ className={`building-card ${isActive?"active":""}`}
 
 <img src={buildIcon} className="card-icon"/>
 
-{currentMap[b.id] > 0 ? (
-
-<div className="online">ONLINE</div>
-
-) : currentMap[b.id] === 0 ? (
-
-<div className="warning">WARNING</div>
-
-) : (
-
-<div className="offline">OFFLINE</div>
-
-)}
-
+<div className="online">
+ONLINE
 </div>
 
+</div>
 
 
 <div className="building-name">
@@ -430,7 +435,6 @@ Installed Capacity {capacity} kW
 }
 
 </div>
-
 
 
 <div className="energy-row">
@@ -457,7 +461,7 @@ Installed Capacity {capacity} kW
 Last update: {time}
 
 <div className="current-live">
-Current: {currentMap[b.id]?.toFixed(1)} kW
+Live Power: {currentMap[b.id]?.toFixed(1)} kW
 </div>
 
 </div>
@@ -471,9 +475,7 @@ Current: {currentMap[b.id]?.toFixed(1)} kW
 </div>
 
 
-
 {/* GRAPH */}
-
 {selectedBuilding && (
 
 <div className="graph-section">
@@ -481,7 +483,6 @@ Current: {currentMap[b.id]?.toFixed(1)} kW
 <div className="graph-title">
 Energy Trend - {formatBuildingName(selectedBuilding.name)}
 </div>
-
 
 <div className="graph-buttons">
 
@@ -492,14 +493,12 @@ onClick={() => setGraphType("today")}
 Today
 </button>
 
-
 <button
 className={`graph-btn ${graphType === "yesterday" ? "active-btn" : ""}`}
 onClick={() => setGraphType("yesterday")}
 >
 Yesterday
 </button>
-
 
 <button
 className={`graph-btn ${graphType === "monthly" ? "active-btn" : ""}`}
@@ -509,7 +508,6 @@ Monthly
 </button>
 
 </div>
-
 
 <div className="graph-box">
 

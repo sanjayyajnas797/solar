@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../pages/Buildings.css";
+
 import Nuppl from "../assets/Nuppl.jpg";
+import epcLogo from "../assets/sunlogo.png";   // ✅ EPC LOGO ADDED
 import buildIcon from "../assets/tower.png";
 
 export default function NupplPage(){
@@ -40,6 +42,7 @@ return(
 
 <div className="secondheader-left">
 
+{/* CLIENT LOGO */}
 <img src={Nuppl} className="second-logo"/>
 
 <div>
@@ -53,6 +56,27 @@ Solar Dashboard
 </div>
 
 </div>
+
+
+{/* ✅ EPC SECTION ADDED */}
+<div className="header-supplier-block">
+
+<img src={epcLogo} className="second-logo"/>
+
+<div className="epc-text-block">
+
+<div className="epc-label">
+EPC BY
+</div>
+
+<div className="header-company epc-company">
+SUN Industrial Automations & Solutions Pvt Ltd
+</div>
+
+</div>
+
+</div>
+
 
 </div>
 

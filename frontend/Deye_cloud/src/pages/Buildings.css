@@ -31,12 +31,15 @@ max-width:100%;
 
 overflow-x:hidden;
 
+/* prevents header overlap */
+padding-top:0;
+
 }
 
 
 
 /* ========================= */
-/* HEADER */
+/* HEADER — FINAL PERFECT */
 /* ========================= */
 
 .second-header{
@@ -47,8 +50,6 @@ background:linear-gradient(135deg,#021c2b,#05354a);
 
 display:flex;
 
-justify-content:space-between;
-
 align-items:center;
 
 padding:0 40px;
@@ -57,7 +58,20 @@ color:white;
 
 width:100%;
 
+/* ✅ FREEZE HEADER */
+position:fixed;
+
+top:0;
+
+left:0;
+
+z-index:9999;
+
 }
+
+
+
+/* LEFT SIDE */
 
 .secondheader-left{
 
@@ -65,47 +79,41 @@ display:flex;
 
 align-items:center;
 
-gap:15px;
+gap:20px;
+
+flex:1;
 
 }
+
+
+/* CLIENT LOGO */
 
 .second-logo{
 
 width:64px;
 height:64px;
 
-/* white background like SCADA */
 background:white;
 
 padding:6px;
 
 border-radius:12px;
 
-/* zoom image */
 object-fit:cover;
-object-position:center;
 
-/* zoom scale */
-transform:scale(1.15);
-
-/* glow shadow */
 box-shadow:
-0 0 12px rgba(0,255,200,0.35),
-0 0 6px rgba(0,255,200,0.2);
-
-transition:.25s;
+0 0 12px rgba(0,255,200,0.35);
 
 }
 
 
-/* hover zoom effect */
+/* TITLE BLOCK */
 
-.second-logo:hover{
+.second-title-block{
 
-transform:scale(1.22);
-
-box-shadow:
-0 0 18px rgba(0,255,200,0.6);
+display:flex;
+flex-direction:column;
+justify-content:center;
 
 }
 
@@ -113,7 +121,6 @@ box-shadow:
 .second-company{
 
 font-size:20px;
-
 font-weight:600;
 
 }
@@ -121,20 +128,91 @@ font-weight:600;
 .second-sub{
 
 font-size:12px;
-
 opacity:0.7;
 
 }
+
+
+
+/* EPC SECTION */
+
+.header-supplier-block{
+
+display:flex;
+
+align-items:center;
+
+gap:12px;
+
+/* moves EPC to center */
+margin-left:60px;
+
+padding-left:25px;
+
+border-left:1px solid rgba(255,255,255,0.25);
+
+height:60px;
+
+}
+
+
+.header-supplier-block img{
+
+width:60px;
+height:60px;
+
+background:white;
+
+padding:5px;
+
+border-radius:10px;
+
+}
+
+
+/* EPC TEXT */
+
+.epc-text-block{
+
+display:flex;
+flex-direction:column;
+
+}
+
+.epc-label{
+
+font-size:11px;
+color:#9fdde5;
+letter-spacing:1px;
+
+}
+
+.epc-company{
+
+font-size:14px;
+font-weight:700;
+color:#00ffc8;
+
+}
+
+
+
+/* RIGHT SIDE */
 
 .secondheader-right{
 
 display:flex;
 
-flex-direction:column;
+align-items:center;
 
-align-items:flex-end;
+gap:20px;
+
+margin-left:auto;
 
 }
+
+
+/* LIVE */
 
 .secondlive-box{
 
@@ -142,21 +220,27 @@ color:#00ff88;
 
 font-weight:600;
 
+font-size:13px;
+
 }
+
+
+/* UPDATED */
 
 .second-updated{
 
-font-size:12px;
+font-size:13px;
 
-opacity:0.7;
+color:#9fdde5;
 
 }
 
+
+/* BACK BUTTON */
+
 .back-btn{
 
-margin-top:5px;
-
-padding:6px 14px;
+padding:6px 16px;
 
 border:none;
 
@@ -168,12 +252,22 @@ border-radius:20px;
 
 cursor:pointer;
 
+font-weight:600;
+
+transition:.2s;
+
+}
+
+.back-btn:hover{
+
+opacity:.9;
+
 }
 
 
 
 /* ========================= */
-/* SUMMARY FULL WIDTH */
+/* SUMMARY */
 /* ========================= */
 
 .summary{
@@ -200,17 +294,121 @@ border-radius:14px;
 
 box-shadow:0 4px 20px rgba(0,0,0,0.08);
 
-width:100%;
+border-left:5px solid transparent;
+
+transition:0.25s;
+
+position:relative;
 
 }
+
+.summary-card:hover{
+
+transform:translateY(-4px);
+
+box-shadow:0 8px 28px rgba(0,0,0,0.12);
+
+}
+
+.summary-card:nth-child(1){
+
+border-left:5px solid #00bcd4;
+
+}
+
+.summary-card:nth-child(1) .summary-value{
+
+color:#00acc1;
+
+}
+
+.summary-card:nth-child(2){
+
+border-left:5px solid #00c853;
+
+}
+
+.summary-card:nth-child(2) .summary-value{
+
+color:#00c853;
+
+}
+
+.summary-card:nth-child(3){
+
+border-left:5px solid #2196f3;
+
+}
+
+.summary-card:nth-child(3) .summary-value{
+
+color:#2196f3;
+
+}
+.peak-card{
+
+border-left:5px solid #FFD700;
+
+}
+
+.peak-card .summary-value{
+
+color:#FFD700;
+
+font-weight:700;
+
+}
+
+.peak-card .peak-time:nth-child(3){
+
+color:#012130;
+
+font-weight:600;
+
+}
+
+.peak-card .peak-time:nth-child(4){
+
+color:#607d8b;
+
+font-weight:500;
+
+}
+
+
+.current-card{
+
+border-left:5px solid #00e676;
+
+}
+
+.current-card .summary-value{
+
+color:#00c853;
+
+font-weight:700;
+
+}
+
+
+/* ========================= */
+/* LABEL */
+/* ========================= */
 
 .summary-label{
 
 font-size:12px;
 
-color:#777;
+color:#78909c;
+
+font-weight:600;
+
+letter-spacing:0.5px;
 
 }
+
+
+/* VALUE */
 
 .summary-value{
 
@@ -219,6 +417,7 @@ font-size:26px;
 font-weight:700;
 
 }
+
 
 
 
@@ -245,7 +444,7 @@ color:#FFD700;
 
 
 /* ========================= */
-/* BUILDING GRID FULL WIDTH */
+/* BUILDING GRID */
 /* ========================= */
 
 .building-grid{
@@ -254,13 +453,9 @@ padding:20px 40px;
 
 display:grid;
 
-/* FULL WIDTH AUTO FILL */
-
-grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+grid-template-columns:repeat(auto-fill,minmax(520px,520px));
 
 gap:25px;
-
-width:100%;
 
 }
 
@@ -282,27 +477,21 @@ box-shadow:0 4px 18px rgba(0,0,0,0.08);
 
 cursor:pointer;
 
-transition:all .25s ease;
+transition:.25s;
 
 border:2px solid transparent;
 
 position:relative;
 
-width:100%;
-
 }
+
 
 .building-card:hover{
 
 transform:scale(1.03);
 
-box-shadow:0 8px 22px rgba(0,0,0,0.12);
-
 }
 
-
-
-/* SELECTED CARD */
 
 .building-card.active{
 
@@ -310,10 +499,7 @@ transform:scale(1.05);
 
 border:2px solid #00bcd4;
 
-box-shadow:0 10px 25px rgba(0,0,0,0.15);
-
 }
-
 
 
 /* SELECTED BADGE */
@@ -325,7 +511,6 @@ content:"SELECTED";
 position:absolute;
 
 top:-8px;
-
 right:12px;
 
 background:#00bcd4;
@@ -344,9 +529,7 @@ border-radius:20px;
 
 
 
-/* ========================= */
 /* CARD HEADER */
-/* ========================= */
 
 .card-header{
 
@@ -389,42 +572,33 @@ font-weight:600;
 content:"";
 
 width:8px;
-
 height:8px;
 
 border-radius:50%;
 
 background:#00e676;
 
-animation: blink 1.5s infinite;
+animation:blinkGreen 1.5s infinite;
 
 }
 
-@keyframes blink{
+@keyframes blinkGreen{
 
 0%{opacity:1}
-
 50%{opacity:.3}
-
 100%{opacity:1}
 
 }
 
 
 
-/* ========================= */
-/* BUILDING NAME + CAPACITY */
-/* ========================= */
+/* BUILDING NAME */
 
 .building-name{
 
 display:flex;
 
-align-items:center;
-
 justify-content:space-between;
-
-gap:10px;
 
 font-size:18px;
 
@@ -432,23 +606,17 @@ font-weight:600;
 
 margin:12px 0;
 
-color:#111;
+}
+
+.buildings-page{
+
+padding-top:100px;
 
 }
 
-.building-card.active .building-name{
-
-color:#000;
-
-}
-
-
-
-/* GOLD CAPACITY BADGE */
+/* CAPACITY */
 
 .capacity-inline{
-
-flex-shrink:0;
 
 padding:4px 12px;
 
@@ -462,15 +630,11 @@ color:#111;
 
 font-weight:700;
 
-box-shadow:0 2px 6px rgba(0,0,0,0.2);
-
 }
 
 
 
-/* ========================= */
 /* ENERGY */
-/* ========================= */
 
 .energy-row{
 
@@ -500,9 +664,7 @@ font-weight:700;
 
 
 
-/* ========================= */
 /* FOOTER */
-/* ========================= */
 
 .card-footer{
 
@@ -526,15 +688,11 @@ margin-top:3px;
 
 
 
-/* ========================= */
-/* GRAPH SECTION */
-/* ========================= */
+/* GRAPH */
 
 .graph-section{
 
 padding:40px;
-
-width:100%;
 
 }
 
@@ -545,8 +703,6 @@ font-size:20px;
 margin-bottom:12px;
 
 font-weight:600;
-
-color:#012130;
 
 }
 
@@ -560,15 +716,11 @@ padding:20px;
 
 box-shadow:0 4px 20px rgba(0,0,0,0.08);
 
-width:100%;
-
 }
 
 
 
-/* ========================= */
-/* GRAPH BUTTONS */
-/* ========================= */
+/* GRAPH BUTTON */
 
 .graph-buttons{
 
@@ -596,12 +748,6 @@ font-weight:600;
 
 }
 
-.graph-btn:hover{
-
-background:#ddd;
-
-}
-
 .active-btn{
 
 background:linear-gradient(90deg,#00ffd5,#00a2ff);
@@ -613,78 +759,10 @@ color:white;
 
 
 /* ========================= */
-/* PEAK + CURRENT CARDS */
-/* ========================= */
-
-.peak-card{
-
-border-left:5px solid gold;
-
-}
-
-.peak-text{
-
-color:gold;
-
-font-weight:700;
-
-}
-
-.peak-time{
-
-font-size:12px;
-
-color:#777;
-
-}
-
-.current-card{
-
-border-left:5px solid #00e676;
-
-}
-
-.current-text{
-
-color:#00e676;
-
-font-weight:700;
-
-}
-
-
-
-/* ========================= */
 /* RESPONSIVE */
 /* ========================= */
 
-@media(max-width:1400px){
-
-.building-grid{
-
-grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-
-}
-
-}
-
 @media(max-width:900px){
-
-.building-grid{
-
-grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-
-}
-
-.summary{
-
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-
-}
-
-}
-
-@media(max-width:600px){
 
 .second-header{
 
@@ -692,95 +770,26 @@ flex-direction:column;
 
 height:auto;
 
-padding:15px;
-
 gap:10px;
 
-}
-
-.summary{
-
-padding:20px;
+padding:15px;
 
 }
 
-.building-grid{
+.secondheader-right{
 
-padding:20px;
-
-}
-
-.graph-section{
-
-padding:20px;
+margin-left:0;
 
 }
 
 }
 /* ========================= */
-/* EMPTY PAGE MESSAGE */
+/* NOT CONNECTED STATUS */
 /* ========================= */
 
-.empty-container{
+.not-connected{
 
-display:flex;
-flex-direction:column;
-
-align-items:center;
-justify-content:center;
-
-height:60vh;
-
-opacity:0.85;
-
-}
-
-.empty-icon{
-
-width:90px;
-height:90px;
-
-margin-bottom:18px;
-
-opacity:0.6;
-
-}
-
-.empty-title{
-
-font-size:22px;
-font-weight:600;
-
-color:#012130;
-
-margin-bottom:8px;
-
-}
-
-.empty-sub{
-
-font-size:15px;
-
-color:#555;
-
-margin-bottom:4px;
-
-}
-
-.empty-sub-light{
-
-font-size:13px;
-
-color:#888;
-
-}
-/* ========================= */
-/* ONLINE STATUS */
-/* ========================= */
-
-.online{
-
-color:#00e676;
+color:#9e9e9e;
 
 font-size:12px;
 
@@ -794,116 +803,16 @@ font-weight:600;
 
 }
 
-.online::before{
+.not-connected::before{
 
 content:"";
 
 width:8px;
-
 height:8px;
 
 border-radius:50%;
 
-background:#00e676;
-
-animation: blinkGreen 1.5s infinite;
+background:#9e9e9e;
 
 }
 
-@keyframes blinkGreen{
-
-0%{opacity:1}
-50%{opacity:.3}
-100%{opacity:1}
-
-}
-
-
-/* ========================= */
-/* WARNING STATUS */
-/* ========================= */
-
-.warning{
-
-color:#FFC107;
-
-font-size:12px;
-
-display:flex;
-
-align-items:center;
-
-gap:6px;
-
-font-weight:600;
-
-}
-
-.warning::before{
-
-content:"";
-
-width:8px;
-
-height:8px;
-
-border-radius:50%;
-
-background:#FFC107;
-
-animation: blinkYellow 1.5s infinite;
-
-}
-
-@keyframes blinkYellow{
-
-0%{opacity:1}
-50%{opacity:.2}
-100%{opacity:1}
-
-}
-
-
-/* ========================= */
-/* OFFLINE STATUS */
-/* ========================= */
-
-.offline{
-
-color:#ff5252;
-
-font-size:12px;
-
-display:flex;
-
-align-items:center;
-
-gap:6px;
-
-font-weight:600;
-
-}
-
-.offline::before{
-
-content:"";
-
-width:8px;
-
-height:8px;
-
-border-radius:50%;
-
-background:#ff5252;
-
-animation: blinkRed 1.5s infinite;
-
-}
-
-@keyframes blinkRed{
-
-0%{opacity:1}
-50%{opacity:.2}
-100%{opacity:1}
-
-}

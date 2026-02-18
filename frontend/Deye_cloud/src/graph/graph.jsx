@@ -13,21 +13,31 @@ import {
 } from "recharts";
 
 
-/* CAPACITY MAP */
+/* ========================= */
+/* CAPACITY MAP — UPDATED */
+/* ========================= */
+
 const capacityMap = {
 
+  /* NLCIL */
   "NLCILLIBRARY": 50.85,
   "NLCILEDUCATIONOFFICE": 23.73,
   "NLCILLDCOFFICEINV2": 145,
 
   "NLCBTPSOHCBUILDING": 23.73,
   "NLCBTPSOFFICERSCLUB": 27.12,
-  "NLCBTPSTAOFFICE": 23.73
+  "NLCBTPSTAOFFICE": 23.73,
+
+  /* ✅ NTPL ADDED */
+  "NTPLSTROMWATERPUMPHOUSE": 20.34
 
 };
 
 
-/* NORMALIZE BUILDING NAME */
+/* ========================= */
+/* NORMALIZE NAME */
+/* ========================= */
+
 const normalizeName = (name) =>
   name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
@@ -43,11 +53,15 @@ export default function PowerGraph({
 
   const normalized = normalizeName(buildingName);
 
+  /* ✅ NOW NTPL capacity also works */
   const capacity = capacityMap[normalized] || 0;
 
 
 
-  /* IST RAILWAY TIME FORMAT FUNCTION */
+  /* ========================= */
+  /* IST TIME FORMAT */
+  /* ========================= */
+
   const formatTime = (utcTime) => {
 
     if (!utcTime) return "";
@@ -57,17 +71,20 @@ export default function PowerGraph({
     if (isNaN(date)) return "";
 
     return date.toLocaleTimeString("en-IN", {
-      timeZone: "Asia/Kolkata",   // ✅ convert UTC → IST
+      timeZone: "Asia/Kolkata",
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false               // railway format
+      hour12: false
     });
 
   };
 
 
 
+  /* ========================= */
   /* FETCH GRAPH DATA */
+  /* ========================= */
+
   useEffect(() => {
 
     if (!stationId) return;
@@ -79,7 +96,6 @@ export default function PowerGraph({
         if (!Array.isArray(graph)) {
 
           setData([]);
-
           return;
 
         }
@@ -92,14 +108,11 @@ export default function PowerGraph({
 
             return {
 
-              time:
-                formatTime(item.time),
+              time: formatTime(item.time),
 
-              fullTime:
-                item.time,
+              fullTime: item.time,
 
-              power:
-                Number(powerKW.toFixed(2))
+              power: Number(powerKW.toFixed(2))
 
             };
 
@@ -119,7 +132,9 @@ export default function PowerGraph({
 
 
 
+  /* ========================= */
   /* CALCULATIONS */
+  /* ========================= */
 
   const current =
     data.length
@@ -135,9 +150,7 @@ export default function PowerGraph({
 
   const avg =
     data.length
-      ? data.reduce(
-          (sum, d) => sum + d.power, 0
-        ) / data.length
+      ? data.reduce((sum, d) => sum + d.power, 0) / data.length
       : 0;
 
 
@@ -185,7 +198,9 @@ export default function PowerGraph({
 
 
 
-      {/* INFO BAR */}
+      {/* ========================= */}
+      {/* INFO BAR — COLORS FIXED */}
+      {/* ========================= */}
 
       <div style={{
 
@@ -201,18 +216,22 @@ export default function PowerGraph({
 
       }}>
 
+        {/* ✅ CURRENT — GREEN */}
         <span style={{ color: "#00ffaa" }}>
           Current: {current.toFixed(1)} kW
         </span>
 
+        {/* ✅ PEAK — BLUE */}
         <span style={{ color: "#4da3ff" }}>
           Peak: {peak.toFixed(1)} kW
         </span>
 
+        {/* AVERAGE */}
         <span style={{ color: "#ffb84d" }}>
           Average: {avg.toFixed(1)} kW
         </span>
 
+        {/* CAPACITY */}
         {capacity > 0 && (
 
           <span style={{ color: "#FFD700" }}>
@@ -225,7 +244,9 @@ export default function PowerGraph({
 
 
 
+      {/* ========================= */}
       {/* GRAPH */}
+      {/* ========================= */}
 
       <ResponsiveContainer width="100%" height="85%">
 
@@ -286,7 +307,9 @@ export default function PowerGraph({
           />
 
 
-          {/* CAPACITY LINE */}
+          {/* ========================= */}
+          {/* CAPACITY LINE — NOW WORKS FOR NTPL */}
+          {/* ========================= */}
 
           {capacity > 0 && (
 
