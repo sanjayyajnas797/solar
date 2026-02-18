@@ -16,7 +16,6 @@ import {
 
 import API_BASE from "./config";
 
-
 export default function Mainbuilding(){
 
 const navigate = useNavigate();
@@ -26,14 +25,12 @@ const [weatherData,setWeatherData] = useState({});
 const [updateTime,setUpdateTime] = useState("");
 
 
-// LOGOUT
 const handleLogout=()=>{
   localStorage.removeItem("token");
   navigate("/");
 };
 
 
-// GET CAMPUS LOGO FUNCTION
 const getCampusLogo = (name)=>{
 
 switch(name){
@@ -61,7 +58,7 @@ return campusIcon;
 };
 
 
-// FETCH WEATHER
+// WEATHER FETCH
 const fetchWeather = async(campus)=>{
 
 try{
@@ -166,7 +163,9 @@ const list=[
 
 {
 name:"NLCIL",
-display:"NLCIC,RTS-2.5MW",
+display:"NLCIL RTS",
+mw:"2.5MW",
+mwClass:"mw-yellow",
 today:summary.NLCIL.today,
 yesterday:summary.NLCIL.yesterday,
 total:summary.NLCIL.total,
@@ -175,7 +174,9 @@ path:"/buildings"
 
 {
 name:"NLCIC",
-display:"NLCIC,FTS-1.0MW",
+display:"NLCIL FTS",
+mw:"1.0MW",
+mwClass:"mw-orange",
 today:summary.NLCIC.today,
 yesterday:summary.NLCIC.yesterday,
 total:summary.NLCIC.total,
@@ -184,7 +185,9 @@ path:"/nlcic"
 
 {
 name:"NTPL",
-display:"NTPL,RTS-0.3MW",
+display:"NTPL RTS",
+mw:"0.3MW",
+mwClass:"mw-green",
 today:summary.NTPL.today,
 yesterday:summary.NTPL.yesterday,
 total:summary.NTPL.total,
@@ -193,7 +196,9 @@ path:"/ntpl"
 
 {
 name:"NUPPL",
-display:"NUPPL,RTS-0.8MW",
+display:"NUPPL RTS",
+mw:"0.8MW",
+mwClass:"mw-blue",
 today:summary.NUPPL.today,
 yesterday:summary.NUPPL.yesterday,
 total:summary.NUPPL.total,
@@ -202,7 +207,9 @@ path:"/nuppl"
 
 {
 name:"BTPS",
-display:"BTPS,RTS-0.4MW",
+display:"BTPS RTS",
+mw:"0.4MW",
+mwClass:"mw-pink",
 today:summary.BTPS.today,
 yesterday:summary.BTPS.yesterday,
 total:summary.BTPS.total,
@@ -243,7 +250,6 @@ console.log("Mainbuilding error:",e);
 };
 
 
-// AUTO REFRESH
 useEffect(()=>{
 
 fetchData();
@@ -260,72 +266,73 @@ return(
 
 <div className="dashboard">
 
-
-{/* HEADER */}
 <div className="header">
 
 <div className="header-left-new">
 
-  {/* CLIENT LOGO */}
-  <img src={mainlogo} className="header-logo-left"/>
+{/* MAIN CLIENT LOGO */}
+<img src={mainlogo} className="header-logo-left"/>
 
 
-  {/* TEXT BLOCK */}
-  <div className="header-text-block">
+{/* HEADER TEXT */}
+<div className="header-text-block">
 
-    <div className="header-title">
-      4MW ROOFTOP & 1MW FLOATING SOLAR SYSTEM | ONLINE MONITORING
-    </div>
+<div className="header-client-name">
+NLC India Limited
+</div>
 
-
-    {/* SUPPLIER ROW */}
-    <div className="header-supplier-row">
-
-      <span className="header-supplied-label">
-        Supplied, Installed & Commissioned By
-      </span>
-
-      <img src={logo} className="header-logo-supplier"/>
-
-      <span className="header-company">
-        SUN Industrial Automations & Solutions Pvt Ltd, Chennai – 600096.
-      </span>
-
-    </div>
-
-  </div>
+<div className="header-title">
+4MW Rooftop & 1MW Floating Solar System
+<span className="header-separator"> | </span>
+Online Monitoring
+</div>
 
 </div>
 
 
 
-  {/* RIGHT SECTION */}
-  <div className="header-right">
+{/* SUPPLIER SECTION */}
+<div className="header-supplier-block">
 
-    <div className="live-container">
-      <span className="live-dot"></span>
-      <span className="live-text">LIVE SYSTEM</span>
-    </div>
+<div className="header-supplier-label">
+Supplied, Installed & Commissioned By
+</div>
 
-    <div className="update-container">
-      <div className="update-label">LAST UPDATE</div>
-      <div className="update-time">{updateTime}</div>
-    </div>
+<img src={logo} className="header-logo-supplier"/>
 
-    <button className="logout" onClick={handleLogout}>
-      Logout
-    </button>
+<div className="header-company">
+SUN Industrial Automations & Solutions Pvt Ltd
+</div>
 
-  </div>
-
-  <div className="header-energy-flow"></div>
+</div>
 
 </div>
 
 
 
+<div className="header-right">
 
-{/* BODY */}
+<div className="live-container">
+<span className="live-dot"></span>
+<span className="live-text">LIVE SYSTEM</span>
+</div>
+
+<div className="update-container">
+<div className="update-label">LAST UPDATE</div>
+<div className="update-time">{updateTime}</div>
+</div>
+
+<button className="logout" onClick={handleLogout}>
+Logout
+</button>
+
+</div>
+
+<div className="header-energy-flow"></div>
+
+</div>
+
+
 <div className="scada-container">
 
 {campusList.map((c,i)=>{
@@ -337,7 +344,6 @@ return(
 <div className="scada-row" key={i}>
 
 
-{/* LOGO REPLACED HERE */}
 <div
 className="panel campus-card"
 onClick={()=>navigate(c.path)}>
@@ -347,7 +353,8 @@ onClick={()=>navigate(c.path)}>
 <div>
 
 <div className="value cyan">
-{c.display}
+{c.display} {" "}
+<span className={c.mwClass}>{c.mw}</span>
 </div>
 
 </div>
@@ -399,7 +406,6 @@ CUMULATIVE
 <div className="flow-line"></div>
 
 
-{/* WEATHER */}
 <div className="panel">
 
 <div className="weather-row">

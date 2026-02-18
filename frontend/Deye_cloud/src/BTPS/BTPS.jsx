@@ -24,6 +24,41 @@ const normalizeName = name =>
   name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 
+/* FORMAT NAME — KEEP NLC BTPS, REST TITLE CASE */
+/* FORMAT NAME — KEEP NLC BTPS, FIX CASE + COMMA SPACING */
+const formatBtpsName = (name) => {
+
+  if (!name) return "";
+
+  let formatted = name;
+
+  /* fix comma spacing */
+  formatted = formatted.replace(/,\s*/g, ", ");
+
+  /* keep NLC BTPS as uppercase */
+  if (formatted.toUpperCase().startsWith("NLC BTPS")) {
+
+    const prefix = "NLC BTPS";
+
+    let rest = formatted.slice(prefix.length);
+
+    rest = rest
+      .toLowerCase()
+      .split(" ")
+      .map(word =>
+        word
+          ? word.charAt(0).toUpperCase() + word.slice(1)
+          : ""
+      )
+      .join(" ");
+
+    formatted = prefix + rest;
+  }
+
+  return formatted;
+};
+
+
 export default function Btps(){
 
   const navigate = useNavigate();
@@ -76,8 +111,6 @@ export default function Btps(){
       });
 
 
-      /* IMPORTANT FIX — USE currentPower FROM BACKEND */
-
       const map = {};
 
       btps.forEach(b=>{
@@ -108,8 +141,7 @@ export default function Btps(){
   };
 
 
-  /* FETCH PEAK FROM GRAPH */
-
+  /* FETCH PEAK */
   const fetchPeak = async()=>{
 
     if(!selectedBuilding) return;
@@ -128,7 +160,7 @@ export default function Btps(){
 
         setPeak({
           value:0,
-          name:selectedBuilding.name,
+          name:formatBtpsName(selectedBuilding.name),
           time:"--"
         });
 
@@ -164,7 +196,7 @@ export default function Btps(){
 
       setPeak({
         value:max,
-        name:selectedBuilding.name,
+        name:formatBtpsName(selectedBuilding.name),
         time:peakTime
       });
 
@@ -179,7 +211,6 @@ export default function Btps(){
 
 
   /* AUTO REFRESH */
-
   useEffect(()=>{
 
     fetchBuildings();
@@ -201,7 +232,6 @@ export default function Btps(){
 
 
   /* TOTALS */
-
   const totalToday =
     buildings.reduce(
       (sum,b)=>sum+Number(b.today||0),0
@@ -223,7 +253,6 @@ export default function Btps(){
 
 
 {/* HEADER */}
-
 <div className="second-header">
 
 <div className="secondheader-left">
@@ -268,8 +297,7 @@ onClick={()=>navigate("/dashboard")}
 
 
 
-{/* SUMMARY */}
-
+{/* SUMMARY — RESTORED */}
 <div className="summary">
 
 <div className="summary-card">
@@ -334,7 +362,6 @@ Total Current
 
 
 {/* BUILDINGS */}
-
 <div className="building-grid">
 
 {buildings.map(b=>{
@@ -361,7 +388,13 @@ className={`building-card ${isActive?"active":""}`}
 
 <img src={buildIcon} className="card-icon"/>
 
+{currentMap[b.id] > 0 ? (
 <div className="online">ONLINE</div>
+) : currentMap[b.id] === 0 ? (
+<div className="warning">WARNING</div>
+) : (
+<div className="offline">OFFLINE</div>
+)}
 
 </div>
 
@@ -369,12 +402,12 @@ className={`building-card ${isActive?"active":""}`}
 <div className="building-name">
 
 <span className="building-title">
-{b.name}
+{formatBtpsName(b.name)}
 </span>
 
 {capacity &&
 <span className="capacity-inline">
-{capacity} kW
+Installed Capacity {capacity} kW
 </span>
 }
 
@@ -421,13 +454,12 @@ Current: {(currentMap[b.id] || 0).toFixed(1)} kW
 
 
 {/* GRAPH */}
-
 {selectedBuilding &&(
 
 <div className="graph-section">
 
 <div className="graph-title">
-Energy Trend - {selectedBuilding.name}
+Energy Trend - {formatBtpsName(selectedBuilding.name)}
 </div>
 
 
@@ -462,7 +494,7 @@ Monthly
 <PowerGraph
 stationId={selectedBuilding.id}
 type={graphType}
-buildingName={selectedBuilding.name}
+buildingName={formatBtpsName(selectedBuilding.name)}
 />
 
 </div>

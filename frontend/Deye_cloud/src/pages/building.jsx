@@ -17,6 +17,34 @@ const capacityMap = {
 };
 
 
+/* FORMAT BUILDING NAME — PROFESSIONAL TITLE CASE */
+const formatBuildingName = (name) => {
+
+  if (!name) return "";
+
+  return name
+    .toLowerCase()
+    .split(" ")
+    .map((word, index) => {
+
+      // keep NLCIL uppercase
+      if (word === "nlcil") return "NLCIL";
+
+      // keep L&DC uppercase
+      if (word.includes("&")) return word.toUpperCase();
+
+      // keep INV-2 uppercase
+      if (word.includes("inv")) return word.toUpperCase();
+
+      // normal Title Case
+      return word.charAt(0).toUpperCase() + word.slice(1);
+
+    })
+    .join(" ");
+
+};
+
+
 export default function Buildings() {
 
   const navigate = useNavigate();
@@ -71,10 +99,10 @@ export default function Buildings() {
 
       filtered.forEach(b => {
 
-    map[b.id] =
-        Number(b.currentPower || 0);
+        map[b.id] =
+          Number(b.currentPower || 0);
 
-});
+      });
 
 
       setCurrentMap(map);
@@ -101,7 +129,7 @@ export default function Buildings() {
   };
 
 
-  /* ✅ FIXED PEAK FETCH (USES SAME GRAPH API) */
+  /* PEAK FETCH */
   const fetchPeak = async () => {
 
     if (!selectedBuilding) return;
@@ -120,7 +148,7 @@ export default function Buildings() {
 
         setPeak({
           value: 0,
-          name: selectedBuilding.name,
+          name: formatBuildingName(selectedBuilding.name),
           time: "--"
         });
 
@@ -159,7 +187,7 @@ export default function Buildings() {
       setPeak({
 
         value: max,
-        name: selectedBuilding.name,
+        name: formatBuildingName(selectedBuilding.name),
         time: peakTime
 
       });
@@ -174,7 +202,6 @@ export default function Buildings() {
   };
 
 
-  /* AUTO REFRESH BUILDINGS */
   useEffect(() => {
 
     fetchBuildings();
@@ -191,7 +218,6 @@ export default function Buildings() {
   }, []);
 
 
-  /* FETCH PEAK WHEN BUILDING OR TYPE CHANGE */
   useEffect(() => {
 
     if (selectedBuilding)
@@ -199,8 +225,6 @@ export default function Buildings() {
 
   }, [selectedBuilding, graphType]);
 
-
-  /* TOTALS */
 
   const totalToday =
     buildings.reduce(
@@ -313,8 +337,6 @@ Yesterday Production
 </div>
 
 
-{/* PEAK CARD */}
-
 <div className="summary-card peak-card">
 
 <div className="summary-label">
@@ -364,9 +386,6 @@ capacityMap[b.name];
 const isActive =
 selectedBuilding?.id === b.id;
 
-const isPeak =
-peak.name === b.name;
-
 
 return (
 
@@ -380,20 +399,33 @@ className={`building-card ${isActive?"active":""}`}
 
 <img src={buildIcon} className="card-icon"/>
 
+{currentMap[b.id] > 0 ? (
+
 <div className="online">ONLINE</div>
 
+) : currentMap[b.id] === 0 ? (
+
+<div className="warning">WARNING</div>
+
+) : (
+
+<div className="offline">OFFLINE</div>
+
+)}
+
 </div>
+
 
 
 <div className="building-name">
 
 <span className="building-title">
-{b.name}
+{formatBuildingName(b.name)}
 </span>
 
 {capacity &&
 <span className="capacity-inline">
-{capacity} kW
+Installed Capacity {capacity} kW
 </span>
 }
 
@@ -432,7 +464,6 @@ Current: {currentMap[b.id]?.toFixed(1)} kW
 
 </div>
 
-
 );
 
 })}
@@ -448,7 +479,7 @@ Current: {currentMap[b.id]?.toFixed(1)} kW
 <div className="graph-section">
 
 <div className="graph-title">
-Energy Trend - {selectedBuilding.name}
+Energy Trend - {formatBuildingName(selectedBuilding.name)}
 </div>
 
 
@@ -483,13 +514,9 @@ Monthly
 <div className="graph-box">
 
 <PowerGraph
-
 stationId={selectedBuilding.id}
-
 type={graphType}
-
-buildingName={selectedBuilding.name}
-
+buildingName={formatBuildingName(selectedBuilding.name)}
 />
 
 </div>
@@ -497,7 +524,6 @@ buildingName={selectedBuilding.name}
 </div>
 
 )}
-
 
 </div>
 

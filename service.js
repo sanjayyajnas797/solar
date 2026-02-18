@@ -4,6 +4,17 @@ const sha256 = require("./hash");
 const jwt = require("jsonwebtoken");
 
 
+// ✅ ADD KEEP ALIVE (SPEED BOOST)
+const http = require('http');
+const https = require("https");
+
+const axiosInstance = axios.create({
+    httpAgent: new http.Agent({ keepAlive: true }),
+    httpsAgent: new https.Agent({ keepAlive: true }),
+    timeout: 15000
+});
+
+
 // ================= WEATHER CACHE =================
 
 let WEATHER_CACHE = {};
@@ -29,10 +40,12 @@ const CAMPUS_LOCATION = {
 
 // ================= MAIN CACHE =================
 
-// ✅ increased cache duration (FASTER)
 let CACHE = null;
 let CACHE_TIME = 0;
-const CACHE_DURATION = 60000; // 60 seconds
+const CACHE_DURATION = 60000;
+
+// ✅ ADD CACHE LOCK
+let CACHE_PROMISE = null;
 
 
 // ================= TOKEN CACHE =================
@@ -54,7 +67,7 @@ async function getToken() {
 
     console.log("Fetching new token...");
 
-    const res = await axios.post(
+    const res = await axiosInstance.post(
         `${config.BASE_URL}/v1.0/account/token`,
         {
             appSecret: config.APP_SECRET,
@@ -80,15 +93,14 @@ async function api(url, body) {
 
     const token = await getToken();
 
-    const res = await axios.post(
+    const res = await axiosInstance.post(
         `${config.BASE_URL}${url}`,
         body,
         {
             params: { appId: config.APP_ID },
             headers: {
                 Authorization: `Bearer ${token}`
-            },
-            timeout: 15000 // ✅ prevent hanging
+            }
         }
     );
 
@@ -120,9 +132,8 @@ ambientTemp:0,
 windSpeed:0
 };
 
-const res = await axios.get(
-`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current=temperature_2m,wind_speed_10m,shortwave_radiation`,
-{ timeout: 10000 }
+const res = await axiosInstance.get(
+`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current=temperature_2m,wind_speed_10m,shortwave_radiation`
 );
 
 const current = res.data.current;
@@ -333,6 +344,14 @@ Date.now() - CACHE_TIME < CACHE_DURATION
 )
 return CACHE.main;
 
+
+// ✅ ADD CACHE LOCK
+if(CACHE_PROMISE)
+return CACHE_PROMISE;
+
+
+CACHE_PROMISE = (async()=>{
+
 console.log("Refreshing main cache...");
 
 const stations =
@@ -367,11 +386,20 @@ sub:buildings
 
 CACHE_TIME=Date.now();
 
+// ✅ RELEASE LOCK
+CACHE_PROMISE=null;
+
 return CACHE.main;
+
+})();
+
+return CACHE_PROMISE;
 
 }catch(err){
 
 console.log("Main building error:", err.message);
+
+CACHE_PROMISE=null;
 
 return {
 name:"NLC CAMPUS",
@@ -513,8 +541,6 @@ throw new Error("Invalid credentials");
 
 
 // ================= BACKGROUND CACHE REFRESH =================
-
-// ✅ This makes Render FREE tier FAST
 
 setInterval(async ()=>{
 

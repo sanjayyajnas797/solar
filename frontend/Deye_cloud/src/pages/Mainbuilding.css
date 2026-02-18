@@ -58,14 +58,14 @@ box-shadow:0 4px 15px rgba(0,0,0,0.25);
 
 display:flex;
 align-items:center;
-
-gap:18px;
+gap:28px;
 
 flex:1;
 
 min-height:80px;
 
 }
+
 
 
 /* CLIENT LOGO */
@@ -110,14 +110,33 @@ gap:4px;
 
 .header-title{
 
-font-size:20px;
-font-weight:700;
+font-size:14px;
 
-letter-spacing:.4px;
+font-weight:500;
 
-color:#ffffff;
+letter-spacing:.5px;
+
+color:#bfeaf2;
+
+margin-top:4px;
+
+white-space:nowrap;
+
+opacity:0.95;
 
 }
+
+
+.header-separator{
+
+color:#00ffc8;
+
+font-weight:600;
+
+margin:0 6px;
+
+}
+
 
 
 /* SUPPLIER ROW */
@@ -148,23 +167,94 @@ color:#d4f6ff;
 
 .header-logo-supplier{
 
-width:38px;
-height:38px;
+width:70px;
+height:70px;
 
 background:white;
 
-padding:4px;
+padding:6px;
 
-border-radius:8px;
+border-radius:12px;
 
 object-fit:cover;
 
-transform:scale(1.1);
-
 box-shadow:
-0 0 10px rgba(0,255,200,0.3);
+0 0 15px rgba(0,255,200,0.35);
 
 }
+/* CLIENT NAME */
+
+.header-client-name{
+
+font-size:26px;
+
+font-weight:700;
+
+color:#ffffff;
+
+letter-spacing:.6px;
+
+line-height:1.05;
+
+margin-bottom:2px;
+
+}
+
+
+
+
+/* SUPPLIER BLOCK */
+
+.header-supplier-block{
+
+display:flex;
+align-items:center;
+
+gap:14px;
+
+margin-left:60px;
+
+border-left:1px solid rgba(255,255,255,0.25);
+
+padding-left:28px;
+
+height:70px;
+
+}
+
+
+
+
+/* SUPPLIER LABEL */
+
+.header-supplier-label{
+
+font-size:11px;
+
+color:#9fdde5;
+
+white-space:nowrap;
+
+}
+
+
+
+
+/* COMPANY NAME */
+
+.header-company{
+
+font-size:14px;
+
+font-weight:600;
+
+color:#00ffc8;
+
+white-space:nowrap;
+
+}
+
+
 
 
 /* COMPANY NAME */
@@ -664,4 +754,30 @@ display:none;
 width:100%;
 }
 
+}
+/* MW UNIQUE COLORS */
+
+.mw-yellow{
+color:#FFD700;
+font-weight:700;
+}
+
+.mw-orange{
+color:#FF8C00;
+font-weight:700;
+}
+
+.mw-green{
+color:#00FF88;
+font-weight:700;
+}
+
+.mw-blue{
+color:#4DA3FF;
+font-weight:700;
+}
+
+.mw-pink{
+color:#FF4DA6;
+font-weight:700;
 }

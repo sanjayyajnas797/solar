@@ -774,3 +774,136 @@ font-size:13px;
 color:#888;
 
 }
+/* ========================= */
+/* ONLINE STATUS */
+/* ========================= */
+
+.online{
+
+color:#00e676;
+
+font-size:12px;
+
+display:flex;
+
+align-items:center;
+
+gap:6px;
+
+font-weight:600;
+
+}
+
+.online::before{
+
+content:"";
+
+width:8px;
+
+height:8px;
+
+border-radius:50%;
+
+background:#00e676;
+
+animation: blinkGreen 1.5s infinite;
+
+}
+
+@keyframes blinkGreen{
+
+0%{opacity:1}
+50%{opacity:.3}
+100%{opacity:1}
+
+}
+
+
+/* ========================= */
+/* WARNING STATUS */
+/* ========================= */
+
+.warning{
+
+color:#FFC107;
+
+font-size:12px;
+
+display:flex;
+
+align-items:center;
+
+gap:6px;
+
+font-weight:600;
+
+}
+
+.warning::before{
+
+content:"";
+
+width:8px;
+
+height:8px;
+
+border-radius:50%;
+
+background:#FFC107;
+
+animation: blinkYellow 1.5s infinite;
+
+}
+
+@keyframes blinkYellow{
+
+0%{opacity:1}
+50%{opacity:.2}
+100%{opacity:1}
+
+}
+
+
+/* ========================= */
+/* OFFLINE STATUS */
+/* ========================= */
+
+.offline{
+
+color:#ff5252;
+
+font-size:12px;
+
+display:flex;
+
+align-items:center;
+
+gap:6px;
+
+font-weight:600;
+
+}
+
+.offline::before{
+
+content:"";
+
+width:8px;
+
+height:8px;
+
+border-radius:50%;
+
+background:#ff5252;
+
+animation: blinkRed 1.5s infinite;
+
+}
+
+@keyframes blinkRed{
+
+0%{opacity:1}
+50%{opacity:.2}
+100%{opacity:1}
+
+}
