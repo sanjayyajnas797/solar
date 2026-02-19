@@ -208,3 +208,53 @@ font-size:11px;
 opacity:.6;
 
 }
+/* ============================= */
+/* MOBILE RESPONSIVE FIX */
+/* ============================= */
+
+@media (max-width: 768px) {
+
+.login-container{
+padding:20px;
+height:100vh;
+}
+
+.login-box{
+width:100%;
+max-width:380px;
+padding:25px;
+border-radius:12px;
+}
+
+.login-logo{
+width:55px;
+}
+
+.company-name{
+font-size:16px;
+}
+
+.company-sub{
+font-size:12px;
+}
+
+.company-desc{
+font-size:11px;
+margin-bottom:20px;
+}
+
+.input-group input{
+padding:10px;
+font-size:14px;
+}
+
+.login-btn{
+padding:11px;
+font-size:14px;
+}
+
+.footer{
+font-size:10px;
+}
+
+}

@@ -17,9 +17,9 @@ import buildIcon from "../assets/tower.png";
 /* CAPACITY MAP — NTPL */
 const capacityMap = {
   "NTPL STROM WATER PUMP HOUSE": 20.34,
-  "NTPL ADMIN BUILDING": 15.00,
-  "NTPL WORKSHOP BUILDING": 18.50,
-  "NTPL GUEST HOUSE": 12.75
+  "NTPL PARKING SHED 1 TO 6": 118.65,
+  "NTPL SERVICE BUILDING": 110.74,
+  "NTPL ADMINISTRATIVE BUILDING": 50.85
 };
 
 
@@ -28,7 +28,7 @@ const dummyBuildings = [
 
 {
 id:"dummy-1",
-name:"NTPL Admin Building",
+name:"NTPL Parking Shed 1 to 6",
 today:0,
 yesterday:0,
 currentPower:0,
@@ -37,7 +37,7 @@ isDummy:true
 
 {
 id:"dummy-2",
-name:"NTPL Workshop Building",
+name:"NTPL Service Building",
 today:0,
 yesterday:0,
 currentPower:0,
@@ -46,7 +46,7 @@ isDummy:true
 
 {
 id:"dummy-3",
-name:"NTPL Guest House",
+name:"NTPL Administrative Building",
 today:0,
 yesterday:0,
 currentPower:0,

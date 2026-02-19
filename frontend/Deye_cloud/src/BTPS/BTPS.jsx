@@ -24,9 +24,7 @@ const capacityMap = {
 const normalizeName = name =>
   name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-
-/* FORMAT NAME */
-const formatBtpsName = (name) => {
+       const formatBtpsName = (name) => {
 
   if (!name) return "";
 
@@ -43,11 +41,17 @@ const formatBtpsName = (name) => {
     rest = rest
       .toLowerCase()
       .split(" ")
-      .map(word =>
-        word
-          ? word.charAt(0).toUpperCase() + word.slice(1)
-          : ""
-      )
+      .map(word => {
+
+        if (!word) return "";
+
+        /* ✅ FORCE TA CAPITAL */
+        if (word.toLowerCase() === "ta")
+          return "TA";
+
+        return word.charAt(0).toUpperCase() + word.slice(1);
+
+      })
       .join(" ");
 
     formatted = prefix + rest;
@@ -56,7 +60,6 @@ const formatBtpsName = (name) => {
   return formatted;
 
 };
-
 
 export default function Btps(){
 

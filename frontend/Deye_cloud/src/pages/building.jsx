@@ -14,15 +14,34 @@ import epcLogo from "../assets/sunlogo.png";
 import buildIcon from "../assets/tower.png";
 
 
+/* ========================= */
 /* CAPACITY MAP */
+/* ========================= */
+
 const capacityMap = {
-  "NLCIL LIBRARY": 50.85,
-  "NLCIL EDUCATION OFFICE": 23.73,
-  "NLCIL L&DC OFFICE (INV-2)": 145
+
+  "NLCILLIBRARY": 50.85,
+  "NLCILEDUCATIONOFFICE": 23.73,
+  "NLCILLDCOFFICEINV2": 145,
+
+  /* ✅ TPS-2 ADDED */
+  "TPS2EXPENSTIONBUILDINGSWITCHYARD": 142
+
 };
 
 
+/* ========================= */
+/* NORMALIZE NAME */
+/* ========================= */
+
+const normalizeName = (name) =>
+  name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+
+/* ========================= */
 /* FORMAT BUILDING NAME */
+/* ========================= */
+
 const formatBuildingName = (name) => {
 
   if (!name) return "";
@@ -66,7 +85,10 @@ export default function Buildings() {
   });
 
 
+  /* ========================= */
   /* FETCH BUILDINGS */
+  /* ========================= */
+
   const fetchBuildings = async () => {
 
     try {
@@ -75,9 +97,17 @@ export default function Buildings() {
       const data = await res.json();
 
       const filtered =
-        data.filter(
-          b => b.name.toUpperCase().includes("NLCIL")
-        );
+        data.filter(b => {
+
+          const name = b.name.toUpperCase();
+
+          return (
+            name.includes("NLCIL") ||
+            name.includes("TPS-2") ||
+            name.includes("NEYVELI")
+          );
+
+        });
 
       setBuildings(filtered);
 
@@ -129,7 +159,10 @@ export default function Buildings() {
   };
 
 
+  /* ========================= */
   /* FETCH PEAK */
+  /* ========================= */
+
   const fetchPeak = async () => {
 
     if (!selectedBuilding) return;
@@ -155,10 +188,8 @@ export default function Buildings() {
         return;
       }
 
-
       let max = 0;
       let peakTime = "--";
-
 
       graph.forEach(point => {
 
@@ -182,7 +213,6 @@ export default function Buildings() {
         }
 
       });
-
 
       setPeak({
 
@@ -261,7 +291,6 @@ export default function Buildings() {
 
 <div className="secondheader-left">
 
-{/* CLIENT LOGO */}
 <img src={logo} className="second-logo"/>
 
 <div>
@@ -276,8 +305,6 @@ Solar Dashboard
 
 </div>
 
-
-{/* ✅ EPC SECTION ADDED */}
 <div className="header-supplier-block">
 
 <img src={epcLogo} className="second-logo"/>
@@ -296,9 +323,7 @@ SUN Industrial Automations & Solutions Pvt Ltd
 
 </div>
 
-
 </div>
-
 
 <div className="secondheader-right">
 
@@ -326,60 +351,37 @@ onClick={() => navigate("/dashboard")}
 <div className="summary">
 
 <div className="summary-card">
-<div className="summary-label">
-Total Buildings
+<div className="summary-label">Total Buildings</div>
+<div className="summary-value">{buildings.length}</div>
 </div>
-<div className="summary-value">
-{buildings.length}
-</div>
-</div>
-
 
 <div className="summary-card">
-<div className="summary-label">
-Today Production
+<div className="summary-label">Today Production</div>
+<div className="summary-value green">{totalToday.toFixed(1)} kWh</div>
 </div>
-<div className="summary-value green">
-{totalToday.toFixed(1)} kWh
-</div>
-</div>
-
 
 <div className="summary-card">
-<div className="summary-label">
-Yesterday Production
+<div className="summary-label">Yesterday Production</div>
+<div className="summary-value blue">{totalYesterday.toFixed(1)} kWh</div>
 </div>
-<div className="summary-value blue">
-{totalYesterday.toFixed(1)} kWh
-</div>
-</div>
-
 
 <div className="summary-card peak-card">
 
-<div className="summary-label">
-Peak Power
-</div>
+<div className="summary-label">Peak Power</div>
 
 <div className="summary-value peak-text">
 {peak.value.toFixed(1)} kW
 </div>
 
-<div className="peak-time">
-{peak.name}
-</div>
-
-<div className="peak-time">
-Peak Time: {peak.time}
-</div>
+<div className="peak-time">{peak.name}</div>
+<div className="peak-time">Peak Time: {peak.time}</div>
 
 </div>
-
 
 <div className="summary-card current-card">
 
 <div className="summary-label">
-    Total Live Power
+Total Live Power
 </div>
 
 <div className="summary-value current-text">
@@ -387,7 +389,6 @@ Peak Time: {peak.time}
 </div>
 
 </div>
-
 
 </div>
 
@@ -398,7 +399,9 @@ Peak Time: {peak.time}
 {buildings.map(b => {
 
 const capacity =
-capacityMap[b.name.toUpperCase()];
+capacityMap[
+  normalizeName(b.name)
+];
 
 const isActive =
 selectedBuilding?.id === b.id;
@@ -412,15 +415,9 @@ className={`building-card ${isActive?"active":""}`}
 >
 
 <div className="card-header">
-
 <img src={buildIcon} className="card-icon"/>
-
-<div className="online">
-ONLINE
+<div className="online">ONLINE</div>
 </div>
-
-</div>
-
 
 <div className="building-name">
 
@@ -435,7 +432,6 @@ Installed Capacity {capacity} kW
 }
 
 </div>
-
 
 <div className="energy-row">
 
@@ -454,7 +450,6 @@ Installed Capacity {capacity} kW
 </div>
 
 </div>
-
 
 <div className="card-footer">
 

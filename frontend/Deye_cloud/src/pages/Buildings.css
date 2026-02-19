@@ -816,3 +816,95 @@ background:#9e9e9e;
 
 }
 
+/* ========================= */
+/* MOBILE RESPONSIVE ENHANCED */
+/* ========================= */
+
+@media (max-width: 768px) {
+
+/* HEADER */
+.second-header{
+flex-direction:column;
+align-items:flex-start;
+height:auto;
+padding:15px;
+gap:10px;
+position:relative;
+}
+
+.secondheader-left{
+flex-direction:column;
+align-items:flex-start;
+gap:10px;
+}
+
+.header-supplier-block{
+margin-left:0;
+padding-left:0;
+border-left:none;
+height:auto;
+}
+
+.secondheader-right{
+width:100%;
+justify-content:space-between;
+margin-top:10px;
+}
+
+/* SUMMARY STACK */
+.summary{
+grid-template-columns:1fr;
+padding:20px;
+gap:15px;
+}
+
+/* BUILDING GRID STACK */
+.building-grid{
+grid-template-columns:1fr;
+padding:20px;
+gap:18px;
+}
+
+/* BUILDING CARD */
+.building-card{
+padding:18px;
+}
+
+.building-name{
+flex-direction:column;
+gap:6px;
+font-size:16px;
+}
+
+.capacity-inline{
+font-size:10px;
+padding:3px 10px;
+}
+
+.energy-row{
+flex-direction:column;
+gap:8px;
+}
+
+.graph-section{
+padding:20px;
+}
+
+.graph-title{
+font-size:18px;
+}
+
+.graph-box{
+padding:15px;
+}
+
+.graph-buttons{
+flex-wrap:wrap;
+}
+
+.graph-btn{
+font-size:13px;
+padding:6px 14px;
+}
+
+}

@@ -773,14 +773,7 @@ width:100%;
 /* GOLD MW SHINING EFFECT */
 .mw-uniform{
 
-color:#FFD700;
-
-font-weight:800;
-
-margin-left:6px;
-
-/* GOLD GRADIENT SHINE */
-background:linear-gradient(
+background: linear-gradient(
 90deg,
 #FFD700 0%,
 #FFF6B7 25%,
@@ -791,20 +784,19 @@ background:linear-gradient(
 
 background-size:200% auto;
 
--webkit-background-clip:text;
+background-clip: text;
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
 
--webkit-text-fill-color:transparent;
+animation: goldShine 3s linear infinite;
 
-/* SHINE ANIMATION */
-animation:goldShine 3s linear infinite;
-
-/* GLOW EFFECT */
 text-shadow:
 0 0 6px rgba(255,215,0,0.6),
 0 0 12px rgba(255,215,0,0.4),
 0 0 18px rgba(255,215,0,0.2);
 
 }
+
 
 /* SHINE MOVEMENT */
 @keyframes goldShine{
@@ -844,4 +836,93 @@ color:#00ffc8;
 color:#00ffc8;
 font-weight:700;
 margin-left:6px;
+}
+/* ============================= */
+/* MOBILE RESPONSIVE ENHANCED */
+/* ============================= */
+
+@media (max-width: 768px) {
+
+/* HEADER STACK */
+.header{
+flex-direction:column;
+align-items:flex-start;
+gap:12px;
+padding:15px;
+position:relative;
+}
+
+.header-left-new{
+flex-direction:column;
+align-items:flex-start;
+gap:10px;
+}
+
+.header-client-name{
+font-size:20px;
+}
+
+.header-title{
+white-space:normal;
+font-size:12px;
+}
+
+.header-supplier-block{
+margin-left:0;
+padding-left:0;
+border-left:none;
+height:auto;
+}
+
+.header-right{
+width:100%;
+justify-content:space-between;
+margin-top:10px;
+}
+
+/* SCADA CONTAINER */
+.scada-container{
+margin-top:20px;
+padding:15px;
+}
+
+/* SCADA ROW STACK */
+.scada-row{
+grid-template-columns:1fr;
+gap:12px;
+padding:12px;
+}
+
+.flow-line{
+display:none;
+}
+
+.panel{
+width:100%;
+padding:15px;
+}
+
+.campus-card{
+flex-direction:row;
+gap:12px;
+}
+
+.campus-card img{
+width:50px;
+height:50px;
+transform:none;
+}
+
+.value{
+font-size:18px;
+}
+
+.weather-row{
+gap:8px;
+}
+
+.icon{
+font-size:24px;
+}
+
 }
