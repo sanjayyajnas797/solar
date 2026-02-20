@@ -1,131 +1,266 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import "../pages/Buildings.css";
+import API_BASE from "../pages/config";
 
 import mainlogo from "../assets/main logo.png";
-import epcLogo from "../assets/sunlogo.png";   // ✅ EPC LOGO ADDED
+import epcLogo from "../assets/sunlogo.png";
 import buildIcon from "../assets/tower.png";
 
-export default function NlcicPage(){
+/* ========================= */
+/* CAPACITY MAP */
+/* ========================= */
 
-const navigate = useNavigate();
-const [time,setTime] = useState("");
-
-
-useEffect(()=>{
-
-const updateClock=()=>{
-
-setTime(
-new Date().toLocaleTimeString("en-IN",{
-hour:"2-digit",
-minute:"2-digit",
-second:"2-digit"
-})
-);
-
+const capacityMap = {
+  "NLCIC ADMIN BUILDING": 120,
+  "NLCIC CONTROL ROOM": 85,
+  "NLCIC OFFICE BLOCK": 60
 };
 
-updateClock();
-const interval=setInterval(updateClock,1000);
-return ()=>clearInterval(interval);
+/* ========================= */
+/* 3 DUMMY BUILDINGS */
+/* ========================= */
 
-},[]);
+const dummyBuildings = [
+  { id: "dummy-1", name: "NLCIC Admin Building", isDummy: true },
+  { id: "dummy-2", name: "NLCIC Control Room", isDummy: true },
+  { id: "dummy-3", name: "NLCIC Office Block", isDummy: true }
+];
 
+/* ========================= */
+/* FORMAT NAME */
+/* ========================= */
 
-return(
+const formatBuildingName = (name) => {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .split(" ")
+    .map(word =>
+      word === "nlcic"
+        ? "NLCIC"
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(" ");
+};
 
-<div className="buildings-page">
+export default function NlcicPage() {
 
+  const navigate = useNavigate();
 
-{/* HEADER */}
-<div className="second-header">
+  const [buildings, setBuildings] = useState([]);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
+  const [time, setTime] = useState("");
 
-<div className="secondheader-left">
+  /* ========================= */
+  /* FETCH BUILDINGS */
+  /* ========================= */
 
-{/* CLIENT LOGO */}
-<img src={mainlogo} className="second-logo"/>
+  useEffect(() => {
 
-<div>
+    const fetchBuildings = async () => {
 
-<div className="second-company">
-NLCIC FTS-1.0MW Monitoring
-</div>
+      try {
 
-<div className="second-sub">
-Solar Dashboard
-</div>
+        const res = await fetch(`${API_BASE}/sub-buildings`);
+        const data = await res.json();
 
-</div>
+        const real =
+          data.filter(b =>
+            b.name.toUpperCase().includes("NLCIC")
+          );
 
+        const combined = [
+          ...real,
+          ...dummyBuildings.slice(0, 3 - real.length)
+        ];
 
-{/* ✅ EPC SECTION ADDED */}
-<div className="header-supplier-block">
+        setBuildings(combined);
 
-<img src={epcLogo} className="second-logo"/>
+        if (!selectedBuilding && combined.length) {
+          setSelectedBuilding(combined[0]);
+        }
 
-<div className="epc-text-block">
+        setTime(
+          new Date().toLocaleTimeString("en-IN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+          })
+        );
 
-<div className="epc-label">
-EPC BY
-</div>
+      } catch (err) {
+        console.log(err);
+      }
 
-<div className="header-company epc-company">
-SUN Industrial Automations & Solutions Pvt Ltd
-</div>
+    };
 
-</div>
+    fetchBuildings();
+    const interval = setInterval(fetchBuildings, 15000);
+    return () => clearInterval(interval);
 
-</div>
+  }, []);
 
+  /* ========================= */
+  /* TOTALS */
+  /* ========================= */
 
-</div>
+  const totalToday = 0;
+  const totalYesterday = 0;
+  const totalCurrent = 0;
 
+  /* ========================= */
+  /* RETURN */
+  /* ========================= */
 
-<div className="secondheader-right">
+  return (
 
-<div className="secondlive-box">
-● LIVE SYSTEM
-</div>
+    <div className="buildings-page">
 
-<div className="second-updated">
-Updated: {time}
-</div>
+      {/* HEADER */}
+      <div className="second-header">
 
-<button
-className="back-btn"
-onClick={()=>navigate("/dashboard")}
->
-← Back
-</button>
+        <div className="secondheader-left">
 
-</div>
+          <img src={mainlogo} className="second-logo" />
 
-</div>
+          <div>
+            <div className="second-company">
+              NLCIC FTS-1.0MW Monitoring
+            </div>
+            <div className="second-sub">
+              Solar Dashboard
+            </div>
+          </div>
 
+          <div className="header-supplier-block">
+            <img src={epcLogo} className="second-logo" />
+            <div className="epc-text-block">
+              <div className="epc-label">EPC BY</div>
+              <div className="header-company epc-company">
+                SUN Industrial Automations & Solutions Pvt Ltd
+              </div>
+            </div>
+          </div>
 
-{/* EMPTY MESSAGE */}
-<div className="empty-container">
+        </div>
 
-<img src={buildIcon} className="empty-icon"/>
+        <div className="secondheader-right">
+          <div className="secondlive-box">● LIVE SYSTEM</div>
+          <div className="second-updated">Updated: {time}</div>
 
-<div className="empty-title">
-No Buildings Added Yet
-</div>
+          <button
+            className="back-btn"
+            onClick={() => navigate("/dashboard")}
+          >
+            ← Back
+          </button>
+        </div>
 
-<div className="empty-sub">
-Buildings for this plant have not been configured.
-</div>
+      </div>
 
-<div className="empty-sub-light">
-Future buildings I will Added
-</div>
+      {/* SUMMARY */}
+      <div className="summary">
 
-</div>
+        <div className="summary-card">
+          <div className="summary-label">Total Buildings</div>
+          <div className="summary-value">{buildings.length}</div>
+        </div>
 
+        <div className="summary-card">
+          <div className="summary-label">Today Production</div>
+          <div className="summary-value">0.0 kWh</div>
+        </div>
 
-</div>
+        <div className="summary-card">
+          <div className="summary-label">Yesterday Production</div>
+          <div className="summary-value">0.0 kWh</div>
+        </div>
 
-);
+        <div className="summary-card">
+          <div className="summary-label">Peak Power</div>
+          <div className="summary-value">0.0 kW</div>
+          <div className="peak-time">--</div>
+          <div className="peak-time">Peak Time: --</div>
+        </div>
+
+        <div className="summary-card">
+          <div className="summary-label">Live Power</div>
+          <div className="summary-value">0.0 kW</div>
+        </div>
+
+      </div>
+
+      {/* BUILDINGS */}
+      <div className="building-grid">
+
+        {buildings.map(b => {
+
+          const capacity =
+            capacityMap[b.name.toUpperCase()];
+
+          const isActive =
+            selectedBuilding?.id === b.id;
+
+          return (
+
+            <div
+              key={b.id}
+              onClick={() => setSelectedBuilding(b)}
+              className={`building-card ${isActive ? "active" : ""}`}
+            >
+
+              <div className="card-header">
+                <img src={buildIcon} className="card-icon" />
+                <div className="not-connected">NOT CONNECTED</div>
+              </div>
+
+              <div className="building-name">
+
+                <span className="building-title">
+                  {formatBuildingName(b.name)}
+                </span>
+
+                {capacity &&
+                  <span className="capacity-inline">
+                    Installed Capacity {capacity} kW
+                  </span>
+                }
+
+              </div>
+
+              <div className="energy-row">
+
+                <div>
+                  <div className="energy-label">TODAY</div>
+                  <div className="energy-value">0.0 kWh</div>
+                </div>
+
+                <div>
+                  <div className="energy-label">YESTERDAY</div>
+                  <div className="energy-value">0.0 kWh</div>
+                </div>
+
+              </div>
+
+              <div className="card-footer">
+                Last update: {time}
+                <div className="current-live">
+                  Live Power: 0.0 kW
+                </div>
+              </div>
+
+            </div>
+
+          );
+
+        })}
+
+      </div>
+
+    </div>
+
+  );
 
 }

@@ -25,17 +25,23 @@ const WEATHER_CACHE_DURATION = 600000; // 10 minutes
 
 const CAMPUS_LOCATION = {
 
-    NLCIL: { lat: 11.7480, lon: 79.7714 },
+  // ✅ NLCIL – Neyveli (CORRECT)
+  NLCIL: { lat: 11.5485, lon: 79.4766 },
 
-    BTPS: { lat: 27.4924, lon: 77.6737 },
+  // ✅ BTPS – Barsingsar, Rajasthan (CORRECT)
+  BTPS: { lat: 28.0983, lon: 73.4278 },
 
-    NLCIC: { lat: 11.7500, lon: 79.7700 },
+  // ✅ NTPL – Tuticorin (Thoothukudi) (CORRECT)
+  NTPL: { lat: 8.7642, lon: 78.1348 },
 
-    NTPL: { lat: 13.0827, lon: 80.2707 },
+  // ✅ NUPPL – Neyveli (same region ok)
+  NUPPL: { lat: 11.5485, lon: 79.4766 },
 
-    NUPPL: { lat: 11.6000, lon: 79.5000 }
+  // ✅ NLCIC – Neyveli (same)
+  NLCIC: { lat: 11.5485, lon: 79.4766 }
 
 };
+
 
 
 // ================= MAIN CACHE =================
