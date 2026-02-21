@@ -488,7 +488,7 @@ ONLINE
 
 {capacity &&
 <span className="capacity-inline">
-Installed Capacity {capacity} kW
+Plant Capacity {capacity} kW
 </span>
 }
 
