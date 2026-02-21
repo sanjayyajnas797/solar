@@ -14,7 +14,16 @@ const axiosInstance = axios.create({
     timeout: 15000
 });
 
+// ================= YESTERDAY CACHE =================
 
+let YESTERDAY_CACHE = {};
+const YESTERDAY_CACHE_DURATION = 86400000; // 24 hrs
+
+
+// ================= DEVICE CACHE =================
+
+let DEVICE_CACHE = {};
+const DEVICE_CACHE_DURATION = 300000; // 5 mins
 // ================= WEATHER CACHE =================
 
 let WEATHER_CACHE = {};
@@ -197,17 +206,30 @@ async function getStations() {
 
 async function getDevices(stationId) {
 
-    const data =
-        await api(
-            "/v1.0/station/device",
-            {
-                page: 1,
-                size: 100,
-                stationIds: [Number(stationId)]
-            }
-        );
+    if (
+        DEVICE_CACHE[stationId] &&
+        Date.now() - DEVICE_CACHE[stationId].time < DEVICE_CACHE_DURATION
+    ) {
+        return DEVICE_CACHE[stationId].data;
+    }
 
-    return data.deviceListItems || [];
+    const data = await api(
+        "/v1.0/station/device",
+        {
+            page: 1,
+            size: 100,
+            stationIds: [Number(stationId)]
+        }
+    );
+
+    const devices = data.deviceListItems || [];
+
+    DEVICE_CACHE[stationId] = {
+        data: devices,
+        time: Date.now()
+    };
+
+    return devices;
 }
 
 
@@ -231,31 +253,41 @@ async function getLatest(deviceSn) {
 
 async function getYesterday(stationId) {
 
-    const yesterday = new Date();
+    // ✅ CACHE
+    if (
+        YESTERDAY_CACHE[stationId] &&
+        Date.now() - YESTERDAY_CACHE[stationId].time < YESTERDAY_CACHE_DURATION
+    ) {
+        return YESTERDAY_CACHE[stationId].value;
+    }
 
-    yesterday.setDate(
-        yesterday.getDate() - 1
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const date = yesterday.toISOString().split("T")[0];
+
+    const data = await api(
+        "/v1.0/station/history",
+        {
+            stationId: Number(stationId),
+            startAt: date,
+            endAt: date,
+            granularity: 2
+        }
     );
 
-    const date =
-        yesterday.toISOString().split("T")[0];
-
-    const data =
-        await api(
-            "/v1.0/station/history",
-            {
-                stationId: Number(stationId),
-                startAt: date,
-                endAt: date,
-                granularity: 2
-            }
-        );
-
-    return Number(
+    const value = Number(
         data?.stationDataItems?.[0]?.generationValue || 0
     );
-}
 
+    // ✅ SAVE CACHE
+    YESTERDAY_CACHE[stationId] = {
+        value,
+        time: Date.now()
+    };
+
+    return value;
+}
 
 // ================= BUILDING =================
 
@@ -263,8 +295,11 @@ async function getBuilding(station) {
 
 try{
 
-const devices =
-await getDevices(station.id);
+// ⚡ PARALLEL FETCH
+const [devices, yesterday] = await Promise.all([
+    getDevices(station.id),
+    getYesterday(station.id)
+]);
 
 const inverter =
 devices.find(d=>d.deviceType==="INVERTER");
@@ -279,8 +314,8 @@ total: 0,
 currentPower: 0
 };
 
-const latest =
-await getLatest(inverter.deviceSn);
+// ⚡ ONLY ONE API CALL
+const latest = await getLatest(inverter.deviceSn);
 
 const today =
 Number(
@@ -299,9 +334,6 @@ d=>d.key==="TotalActiveACOutputPower"
 const currentPower =
 Number((powerRaw / 1000).toFixed(1));
 
-const yesterday =
-await getYesterday(station.id);
-
 const total =
 Number(
 latest?.dataList?.find(
@@ -310,14 +342,12 @@ d=>d.key==="TotalActiveProduction"
 );
 
 return {
-
 id: station.id,
 name: station.name,
 today,
 yesterday,
 total,
 currentPower
-
 };
 
 }catch(err){
@@ -336,7 +366,6 @@ currentPower: 0
 }
 
 }
-
 
 // ================= MAIN BUILDING =================
 
