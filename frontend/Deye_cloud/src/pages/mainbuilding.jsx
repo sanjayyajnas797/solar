@@ -69,6 +69,9 @@ NUPPL:{today:0,yesterday:0,total:0,count:0},
 BTPS:{today:0,yesterday:0,total:0,count:0}
 };
 
+/* ========================= */
+/* OLD LOOP (UNCHANGED) */
+/* ========================= */
 buildings.forEach(b=>{
 const n=b.name?.toUpperCase()||"";
 
@@ -104,7 +107,53 @@ summary.NLCIL.count++;
 }
 });
 
-// ✅ MW all same color class
+/* ========================= */
+/* ✅ NEW CORRECT LOGIC (ADD ONLY) */
+/* ========================= */
+
+const getSum = (list) => ({
+  today: list.reduce((s,b)=>s+Number(b.today||0),0),
+  yesterday: list.reduce((s,b)=>s+Number(b.yesterday||0),0),
+  total: list.reduce((s,b)=>s+Number(b.total||0),0),
+  count: list.length
+});
+
+/* ✅ PERFECT FILTERING */
+const NLCIL_list = buildings.filter(b => {
+  const n = b.name?.toUpperCase() || "";
+  return (
+    (n.includes("NLCIL") && !n.includes("NLCIC")) ||
+    n.includes("TPS-2")
+  );
+});
+
+const NLCIC_list = buildings.filter(b =>
+  b.name?.toUpperCase().includes("NLCIC")
+);
+
+const NTPL_list = buildings.filter(b =>
+  b.name?.toUpperCase().includes("NTPL")
+);
+
+const NUPPL_list = buildings.filter(b =>
+  b.name?.toUpperCase().includes("NUPPL")
+);
+
+const BTPS_list = buildings.filter(b =>
+  b.name?.toUpperCase().includes("BTPS")
+);
+
+/* ✅ FINAL SUMMARY */
+summary.NLCIL = getSum(NLCIL_list);
+summary.NLCIC = getSum(NLCIC_list);
+summary.NTPL = getSum(NTPL_list);
+summary.NUPPL = getSum(NUPPL_list);
+summary.BTPS = getSum(BTPS_list);
+
+/* ========================= */
+/* FINAL LIST */
+/* ========================= */
+
 const list=[
 {
 name:"NLCIL",
@@ -193,10 +242,8 @@ return(
 
 <div className="header-left-new">
 
-{/* CLIENT LOGO */}
 <img src={mainlogo} className="header-logo-left"/>
 
-{/* CLIENT TEXT */}
 <div className="header-text-block">
 <div className="header-client-name">
 NLC India Limited
@@ -208,23 +255,14 @@ Online Monitoring
 </div>
 </div>
 
-{/* ✅ UPDATED EPC SECTION */}
 <div className="header-supplier-block">
-
 <img src={logo} className="header-logo-left"/>
-
 <div className="epc-text-block">
-
-<div className="epc-label">
-EPC BY
-</div>
-
+<div className="epc-label">EPC BY</div>
 <div className="header-company epc-company">
 SUN Industrial Automations & Solutions Pvt Ltd
 </div>
-
 </div>
-
 </div>
 
 </div>
@@ -261,21 +299,14 @@ return(
 
 <div className="scada-row" key={i}>
 
-<div
-className="panel campus-card"
-onClick={()=>navigate(c.path)}>
-
+<div className="panel campus-card" onClick={()=>navigate(c.path)}>
 <img src={getCampusLogo(c.name)} />
-
 <div>
-
 <div className="value cyan">
 {c.display}
 <span className={c.mwClass}> {c.mw}</span>
 </div>
-
 </div>
-
 </div>
 
 <div className="flow-line"></div>
@@ -283,6 +314,7 @@ onClick={()=>navigate(c.path)}>
 <div className="panel">
 <div className="label">TODAY</div>
 <div className="value green">{c.today.toFixed(1)} kWh</div>
+
 <div className="label">YESTERDAY</div>
 <div className="value blue">{c.yesterday.toFixed(1)} kWh</div>
 </div>

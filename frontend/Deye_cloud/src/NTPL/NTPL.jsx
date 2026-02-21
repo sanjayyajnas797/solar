@@ -421,25 +421,7 @@ Yesterday Production
 </div>
 
 
-<div className="summary-card peak-card">
 
-<div className="summary-label">
-Peak Power
-</div>
-
-<div className="summary-value peak-text">
-{peak.value.toFixed(1)} kW
-</div>
-
-<div className="peak-time">
-{peak.name}
-</div>
-
-<div className="peak-time">
-Peak Time: {peak.time}
-</div>
-
-</div>
 
 
 <div className="summary-card current-card">
@@ -526,6 +508,13 @@ Installed Capacity {capacity} kW
 <div className="energy-label">YESTERDAY</div>
 <div className="energy-value blue">
 {Number(b.yesterday||0).toFixed(1)} kWh
+</div>
+</div>
+
+<div>
+<div className="energy-label">CUMULATIVE</div>
+<div className="energy-value cumulative">
+{Number(b.total || 0).toFixed(1)} kWh
 </div>
 </div>
 

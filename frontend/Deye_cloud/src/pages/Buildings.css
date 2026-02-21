@@ -616,23 +616,24 @@ padding-top:100px;
 
 /* CAPACITY */
 
+/* ✅ CLASSIC GOLD (OLD STYLE BUT CLEAN) */
 .capacity-inline{
 
-padding:4px 12px;
+  padding:6px 14px;
 
-font-size:11px;
+  font-size:12px;
 
-border-radius:20px;
+  border-radius:8px;
 
-background:linear-gradient(135deg,#FFD700,#FFA500);
+  background:linear-gradient(135deg,#FFD700,#FFC107); /* ✅ strong gold */
 
-color:#111;
+  color:#1a1a1a;
 
-font-weight:700;
+  font-weight:600;
+
+  border:none;
 
 }
-
-
 
 /* ENERGY */
 
@@ -907,4 +908,7 @@ font-size:13px;
 padding:6px 14px;
 }
 
+}
+.cumulative{
+  color:#00acc1;
 }

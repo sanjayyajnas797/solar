@@ -8,30 +8,21 @@ import mainlogo from "../assets/main logo.png";
 import epcLogo from "../assets/sunlogo.png";
 import buildIcon from "../assets/tower.png";
 
-/* ========================= */
 /* CAPACITY MAP */
-/* ========================= */
-
 const capacityMap = {
   "NLCIC ADMIN BUILDING": 120,
   "NLCIC CONTROL ROOM": 85,
   "NLCIC OFFICE BLOCK": 60
 };
 
-/* ========================= */
-/* 3 DUMMY BUILDINGS */
-/* ========================= */
-
+/* DUMMY BUILDINGS */
 const dummyBuildings = [
   { id: "dummy-1", name: "NLCIC Admin Building", isDummy: true },
   { id: "dummy-2", name: "NLCIC Control Room", isDummy: true },
   { id: "dummy-3", name: "NLCIC Office Block", isDummy: true }
 ];
 
-/* ========================= */
-/* FORMAT NAME */
-/* ========================= */
-
+/* FORMAT */
 const formatBuildingName = (name) => {
   if (!name) return "";
   return name
@@ -52,10 +43,6 @@ export default function NlcicPage() {
   const [buildings, setBuildings] = useState([]);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [time, setTime] = useState("");
-
-  /* ========================= */
-  /* FETCH BUILDINGS */
-  /* ========================= */
 
   useEffect(() => {
 
@@ -102,17 +89,10 @@ export default function NlcicPage() {
 
   }, []);
 
-  /* ========================= */
   /* TOTALS */
-  /* ========================= */
-
   const totalToday = 0;
   const totalYesterday = 0;
   const totalCurrent = 0;
-
-  /* ========================= */
-  /* RETURN */
-  /* ========================= */
 
   return (
 
@@ -178,12 +158,7 @@ export default function NlcicPage() {
           <div className="summary-value">0.0 kWh</div>
         </div>
 
-        <div className="summary-card">
-          <div className="summary-label">Peak Power</div>
-          <div className="summary-value">0.0 kW</div>
-          <div className="peak-time">--</div>
-          <div className="peak-time">Peak Time: --</div>
-        </div>
+        {/* ❌ PEAK CARD REMOVED */}
 
         <div className="summary-card">
           <div className="summary-label">Live Power</div>
@@ -230,6 +205,7 @@ export default function NlcicPage() {
 
               </div>
 
+              {/* ✅ CUMULATIVE ADDED */}
               <div className="energy-row">
 
                 <div>
@@ -240,6 +216,11 @@ export default function NlcicPage() {
                 <div>
                   <div className="energy-label">YESTERDAY</div>
                   <div className="energy-value">0.0 kWh</div>
+                </div>
+
+                <div>
+                  <div className="energy-label">CUMULATIVE</div>
+                  <div className="energy-value cumulative">0.0 kWh</div>
                 </div>
 
               </div>

@@ -25,7 +25,7 @@ const capacityMap = {
   "NLCILLDCOFFICEINV2": 145,
 
   /* ✅ TPS-2 ADDED */
-  "TPS2EXPENSTIONBUILDINGSWITCHYARD": 142
+  "TPS2EXPENSTIONBUILDINGSWITCHYARD": 35.03
 
 };
 
@@ -45,6 +45,11 @@ const normalizeName = (name) =>
 const formatBuildingName = (name) => {
 
   if (!name) return "";
+
+  /* ✅ CUSTOM NAME FIX */
+  if (name.toUpperCase().includes("TPS-2 EXPENSTION")) {
+    return "Tps-2 Expe Switch Yard";
+  }
 
   return name
     .toLowerCase()
@@ -365,18 +370,7 @@ onClick={() => navigate("/dashboard")}
 <div className="summary-value blue">{totalYesterday.toFixed(1)} kWh</div>
 </div>
 
-<div className="summary-card peak-card">
-
-<div className="summary-label">Peak Power</div>
-
-<div className="summary-value peak-text">
-{peak.value.toFixed(1)} kW
-</div>
-
-<div className="peak-time">{peak.name}</div>
-<div className="peak-time">Peak Time: {peak.time}</div>
-
-</div>
+{/* ❌ PEAK CARD REMOVED */}
 
 <div className="summary-card current-card">
 
@@ -433,6 +427,7 @@ Installed Capacity {capacity} kW
 
 </div>
 
+{/* ✅ UPDATED ENERGY ROW */}
 <div className="energy-row">
 
 <div>
@@ -446,6 +441,13 @@ Installed Capacity {capacity} kW
 <div className="energy-label">YESTERDAY</div>
 <div className="energy-value blue">
 {Number(b.yesterday).toFixed(1)} kWh
+</div>
+</div>
+
+<div>
+<div className="energy-label">CUMULATIVE</div>
+<div className="energy-value cumulative">
+{Number(b.total || 0).toFixed(1)} kWh
 </div>
 </div>
 

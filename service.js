@@ -244,7 +244,7 @@ async function getLatest(deviceSn) {
                 deviceList: [String(deviceSn)]
             }
         );
-
+            console.log("FULL DEVICE RESPONSE:", JSON.stringify(data, null, 2));
     return data.deviceDataList?.[0] || null;
 }
 

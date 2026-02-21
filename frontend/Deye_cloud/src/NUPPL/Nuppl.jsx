@@ -9,7 +9,7 @@ import epcLogo from "../assets/sunlogo.png";
 import buildIcon from "../assets/tower.png";
 
 /* ========================= */
-/* CAPACITY MAP (UPPERCASE SAFE) */
+/* CAPACITY MAP */
 /* ========================= */
 
 const capacityMap = {
@@ -23,7 +23,7 @@ const capacityMap = {
 };
 
 /* ========================= */
-/* 7 DUMMY BUILDINGS */
+/* DUMMY BUILDINGS */
 /* ========================= */
 
 const dummyBuildings = [
@@ -36,10 +36,7 @@ const dummyBuildings = [
 { id:"dummy-7", name:"NUPPL Training Centre", isDummy:true }
 ];
 
-/* ========================= */
-/* FORMAT NAME */
-/* ========================= */
-
+/* FORMAT */
 const formatBuildingName = (name) => {
 if (!name) return "";
 return name
@@ -61,10 +58,6 @@ const [buildings,setBuildings] = useState([]);
 const [selectedBuilding,setSelectedBuilding] = useState(null);
 const [time,setTime] = useState("");
 
-/* ========================= */
-/* FETCH BUILDINGS */
-/* ========================= */
-
 useEffect(()=>{
 
 const fetchBuildings = async()=>{
@@ -74,11 +67,9 @@ try{
 const res = await fetch(`${API_BASE}/sub-buildings`);
 const data = await res.json();
 
-/* Future real NUPPL buildings */
 const real =
 data.filter(b=>b.name.toUpperCase().includes("NUPPL"));
 
-/* Always show 7 */
 const combined = [
 ...real,
 ...dummyBuildings.slice(0,7-real.length)
@@ -113,7 +104,7 @@ return ()=>clearInterval(interval);
 
 
 /* ========================= */
-/* TOTALS (ALL ZERO FOR NOW) */
+/* TOTALS */
 /* ========================= */
 
 const totalToday = 0;
@@ -122,15 +113,14 @@ const totalCurrent = 0;
 
 
 /* ========================= */
-/* RETURN */
+/* UI */
 /* ========================= */
 
 return(
 
 <div className="buildings-page">
 
-{/* ================= HEADER ================= */}
-
+{/* HEADER */}
 <div className="second-header">
 
 <div className="secondheader-left">
@@ -169,8 +159,7 @@ SUN Industrial Automations & Solutions Pvt Ltd
 </div>
 
 
-{/* ================= SUMMARY ================= */}
-
+{/* SUMMARY */}
 <div className="summary">
 
 <div className="summary-card">
@@ -188,12 +177,7 @@ SUN Industrial Automations & Solutions Pvt Ltd
 <div className="summary-value">0.0 kWh</div>
 </div>
 
-<div className="summary-card">
-<div className="summary-label">Peak Power</div>
-<div className="summary-value">0.0 kW</div>
-<div className="peak-time">--</div>
-<div className="peak-time">Peak Time: --</div>
-</div>
+{/* ❌ PEAK CARD REMOVED */}
 
 <div className="summary-card">
 <div className="summary-label">Live Power</div>
@@ -203,14 +187,13 @@ SUN Industrial Automations & Solutions Pvt Ltd
 </div>
 
 
-{/* ================= BUILDINGS ================= */}
-
+{/* BUILDINGS */}
 <div className="building-grid">
 
 {buildings.map(b=>{
 
 const capacity =
-capacityMap[b.name.toUpperCase()];   // ✅ FIXED
+capacityMap[b.name.toUpperCase()];
 
 const isActive =
 selectedBuilding?.id===b.id;
@@ -242,6 +225,7 @@ Installed Capacity {capacity} kW
 
 </div>
 
+{/* ✅ CUMULATIVE ADDED */}
 <div className="energy-row">
 
 <div>
@@ -252,6 +236,11 @@ Installed Capacity {capacity} kW
 <div>
 <div className="energy-label">YESTERDAY</div>
 <div className="energy-value">0.0 kWh</div>
+</div>
+
+<div>
+<div className="energy-label">CUMULATIVE</div>
+<div className="energy-value cumulative">0.0 kWh</div>
 </div>
 
 </div>
