@@ -207,14 +207,16 @@ path:"/btps"
 }
 ];
 
+// ❗ HIDE NLCIC TEMPORARY
+const filteredList = list.filter(c => c.name !== "NLCIC");
+
 const w={};
-for(const c of list){
-w[c.name]=await fetchWeather(c.name);
+for(const c of filteredList){
+  w[c.name]=await fetchWeather(c.name);
 }
 
 setWeatherData(w);
-setCampusList(list);
-
+setCampusList(filteredList);
 setUpdateTime(
 new Date().toLocaleTimeString("en-IN",{
 hour:"2-digit",
