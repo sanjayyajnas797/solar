@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Mainbuilding.css";
-
+import { useRef } from "react";
 import logo from "../assets/sunlogo.png";
 import campusIcon from "../assets/building.png";
 
@@ -16,6 +16,7 @@ import {
 
 import API_BASE from "./config";
 
+
 export default function Mainbuilding(){
 
 const navigate = useNavigate();
@@ -28,7 +29,11 @@ const handleLogout=()=>{
   localStorage.removeItem("token");
   navigate("/");
 };
+const autoRef = useRef(true);
 
+// ✅ ADD HERE
+const pageTimerRef = useRef(null);
+const backTimerRef = useRef(null);
 const getCampusLogo = (name)=>{
 switch(name){
 case "NLCIL":
@@ -45,6 +50,17 @@ return campusIcon;
 };
 
 useEffect(() => {
+  localStorage.setItem("AUTO_MODE", "true");
+
+  if (!localStorage.getItem("PAGE_INDEX")) {
+    localStorage.setItem("PAGE_INDEX", 0);
+  }
+}, []);
+
+const getIndex = () =>
+  Number(localStorage.getItem("PAGE_INDEX") || 0);
+
+useEffect(() => {
 
   const sequence = [
     "/buildings",
@@ -53,33 +69,22 @@ useEffect(() => {
     "/btps"
   ];
 
-  let index = 0;
+  const timer = setInterval(() => {
 
-  const runLoop = () => {
+    if (localStorage.getItem("AUTO_MODE") === "false") return;
 
-    // 1. Main → Page
+    const index = getIndex();
+
     navigate(sequence[index]);
 
-    // 2. Back to Main after 15 sec
-    setTimeout(() => {
-      navigate("/dashboard");
+    const nextIndex = (index + 1) % sequence.length;
+    localStorage.setItem("PAGE_INDEX", nextIndex);
 
-      // 3. Next page
-      index = (index + 1) % sequence.length;
+  }, 5000); // ⏱️ 20 sec per page
 
-      // 4. Repeat loop
-      setTimeout(runLoop, 5000); // stay in main 5 sec
-
-    }, 15000);
-
-  };
-
-  const start = setTimeout(runLoop, 5000);
-
-  return () => clearTimeout(start);
+  return () => clearInterval(timer);
 
 }, []);
-
 // WEATHER FETCH
 const fetchWeather = async(campus)=>{
 try{
@@ -337,7 +342,17 @@ return(
 
 <div className="scada-row" key={i}>
 
-<div className="panel campus-card" onClick={()=>navigate(c.path)}>
+<div
+  className="panel campus-card"
+ onClick={() => {
+  localStorage.setItem("AUTO_MODE", "false");
+
+  clearTimeout(pageTimerRef.current);
+  clearTimeout(backTimerRef.current);
+
+  navigate(c.path);
+}}
+>
 <img src={getCampusLogo(c.name)} />
 <div>
 <div className="value cyan">

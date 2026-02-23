@@ -83,40 +83,27 @@ export default function Btps(){
 
 useEffect(() => {
 
-  // 🧠 if user manually interacted → stop auto
-  let isManual = false;
+  if (localStorage.getItem("AUTO_MODE") === "false") return;
 
-  const handleUserAction = () => {
-    isManual = true;
-  };
-
-  window.addEventListener("click", handleUserAction);
-
-  // 🔽 1. Scroll to graph
+  // 👉 SCROLL
   const scrollTimer = setTimeout(() => {
-    if (!isManual) {
-      const graph = document.querySelector(".graph-section");
-      if (graph) {
-        graph.scrollIntoView({ behavior: "smooth" });
-      }
+    const graph = document.querySelector(".graph-section");
+    if (graph) {
+      graph.scrollIntoView({ behavior: "smooth" });
     }
   }, 4000);
 
-  // 🔙 2. Back to dashboard
+  // 👉 BACK TO DASHBOARD
   const backTimer = setTimeout(() => {
-    if (!isManual) {
-      navigate("/dashboard");
-    }
-  }, 12000);
+    navigate("/dashboard");
+  }, 10000);
 
   return () => {
     clearTimeout(scrollTimer);
     clearTimeout(backTimer);
-    window.removeEventListener("click", handleUserAction);
   };
 
 }, []);
-
   /* FETCH BUILDINGS */
   const fetchBuildings = async()=>{
 
