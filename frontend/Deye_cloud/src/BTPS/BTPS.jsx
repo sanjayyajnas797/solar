@@ -81,6 +81,27 @@ export default function Btps(){
     time:"--"
   });
 
+useEffect(() => {
+
+  // 🔽 1. Graph scroll
+  const scrollTimer = setTimeout(() => {
+    const graph = document.querySelector(".graph-section");
+    if (graph) {
+      graph.scrollIntoView({ behavior: "smooth" });
+    }
+  }, 4000);
+
+  // 🔙 2. Back to Main Dashboard
+  const backTimer = setTimeout(() => {
+    navigate("/dashboard");
+  }, 12000);
+
+  return () => {
+    clearTimeout(scrollTimer);
+    clearTimeout(backTimer);
+  };
+
+}, []);
 
   /* FETCH BUILDINGS */
   const fetchBuildings = async()=>{

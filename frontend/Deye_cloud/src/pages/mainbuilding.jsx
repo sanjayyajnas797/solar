@@ -44,6 +44,42 @@ return campusIcon;
 }
 };
 
+useEffect(() => {
+
+  const sequence = [
+    "/buildings",
+    "/ntpl",
+    "/nuppl",
+    "/btps"
+  ];
+
+  let index = 0;
+
+  const runLoop = () => {
+
+    // 1. Main → Page
+    navigate(sequence[index]);
+
+    // 2. Back to Main after 15 sec
+    setTimeout(() => {
+      navigate("/dashboard");
+
+      // 3. Next page
+      index = (index + 1) % sequence.length;
+
+      // 4. Repeat loop
+      setTimeout(runLoop, 5000); // stay in main 5 sec
+
+    }, 15000);
+
+  };
+
+  const start = setTimeout(runLoop, 5000);
+
+  return () => clearTimeout(start);
+
+}, []);
+
 // WEATHER FETCH
 const fetchWeather = async(campus)=>{
 try{

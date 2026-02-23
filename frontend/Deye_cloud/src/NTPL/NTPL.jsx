@@ -14,6 +14,7 @@ import epcLogo from "../assets/sunlogo.png";
 import buildIcon from "../assets/tower.png";
 
 
+
 /* CAPACITY MAP — NTPL */
 const capacityMap = {
   "NTPL STROM WATER PUMP HOUSE": 20.34,
@@ -103,6 +104,27 @@ time:"--"
 });
 
 
+useEffect(() => {
+
+  // 🔽 1. Graph scroll
+  const scrollTimer = setTimeout(() => {
+    const graph = document.querySelector(".graph-section");
+    if (graph) {
+      graph.scrollIntoView({ behavior: "smooth" });
+    }
+  }, 4000);
+
+  // 🔙 2. Back to Main Dashboard
+  const backTimer = setTimeout(() => {
+    navigate("/dashboard");
+  }, 12000);
+
+  return () => {
+    clearTimeout(scrollTimer);
+    clearTimeout(backTimer);
+  };
+
+}, []);
 
 /* FETCH BUILDINGS */
 const fetchBuildings = async()=>{

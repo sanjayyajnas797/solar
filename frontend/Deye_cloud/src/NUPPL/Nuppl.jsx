@@ -58,6 +58,28 @@ const [buildings,setBuildings] = useState([]);
 const [selectedBuilding,setSelectedBuilding] = useState(null);
 const [time,setTime] = useState("");
 
+
+useEffect(() => {
+
+  // 🔽 1. Graph scroll
+  const scrollTimer = setTimeout(() => {
+    const graph = document.querySelector(".graph-section");
+    if (graph) {
+      graph.scrollIntoView({ behavior: "smooth" });
+    }
+  }, 4000);
+
+  // 🔙 2. Back to Main Dashboard
+  const backTimer = setTimeout(() => {
+    navigate("/dashboard");
+  }, 12000);
+
+  return () => {
+    clearTimeout(scrollTimer);
+    clearTimeout(backTimer);
+  };
+
+}, []);
 useEffect(()=>{
 
 const fetchBuildings = async()=>{

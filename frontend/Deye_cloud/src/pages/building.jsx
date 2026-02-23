@@ -18,6 +18,7 @@ import buildIcon from "../assets/tower.png";
 /* CAPACITY MAP */
 /* ========================= */
 
+
 const capacityMap = {
 
   "NLCILLIBRARY": 50.85,
@@ -90,6 +91,27 @@ export default function Buildings() {
   });
 
 
+useEffect(() => {
+
+  // 🔽 1. Graph scroll
+  const scrollTimer = setTimeout(() => {
+    const graph = document.querySelector(".graph-section");
+    if (graph) {
+      graph.scrollIntoView({ behavior: "smooth" });
+    }
+  }, 4000);
+
+  // 🔙 2. Back to Main Dashboard
+  const backTimer = setTimeout(() => {
+    navigate("/dashboard");
+  }, 12000);
+
+  return () => {
+    clearTimeout(scrollTimer);
+    clearTimeout(backTimer);
+  };
+
+}, []);
   /* ========================= */
   /* FETCH BUILDINGS */
   /* ========================= */
