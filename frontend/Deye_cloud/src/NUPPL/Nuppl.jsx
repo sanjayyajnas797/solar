@@ -58,29 +58,7 @@ const [buildings,setBuildings] = useState([]);
 const [selectedBuilding,setSelectedBuilding] = useState(null);
 const [time,setTime] = useState("");
 
-useEffect(() => {
 
-  if (localStorage.getItem("AUTO_MODE") === "false") return;
-
-  // 👉 SCROLL
-  const scrollTimer = setTimeout(() => {
-    const graph = document.querySelector(".graph-section");
-    if (graph) {
-      graph.scrollIntoView({ behavior: "smooth" });
-    }
-  }, 4000);
-
-  // 👉 BACK TO DASHBOARD
-  const backTimer = setTimeout(() => {
-    navigate("/dashboard");
-  }, 10000);
-
-  return () => {
-    clearTimeout(scrollTimer);
-    clearTimeout(backTimer);
-  };
-
-}, []);
 useEffect(()=>{
 
 const fetchBuildings = async()=>{

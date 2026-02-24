@@ -103,29 +103,7 @@ name:"--",
 time:"--"
 });
 
-useEffect(() => {
 
-  if (localStorage.getItem("AUTO_MODE") === "false") return;
-
-  // 👉 SCROLL
-  const scrollTimer = setTimeout(() => {
-    const graph = document.querySelector(".graph-section");
-    if (graph) {
-      graph.scrollIntoView({ behavior: "smooth" });
-    }
-  }, 4000);
-
-  // 👉 BACK TO DASHBOARD
-  const backTimer = setTimeout(() => {
-    navigate("/dashboard");
-  }, 10000);
-
-  return () => {
-    clearTimeout(scrollTimer);
-    clearTimeout(backTimer);
-  };
-
-}, []);
 
 /* FETCH BUILDINGS */
 const fetchBuildings = async()=>{
@@ -478,7 +456,9 @@ return(
 
 <div
 key={b.id}
-onClick={()=>setSelectedBuilding(b)}
+onClick={() => {
+  setSelectedBuilding(b);
+}}
 className={`building-card ${isActive?"active":""}`}
 >
 <div className="card-header">

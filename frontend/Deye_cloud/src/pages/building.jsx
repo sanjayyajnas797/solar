@@ -27,6 +27,7 @@ const capacityMap = {
 
   /* ✅ TPS-2 ADDED */
   "TPS2EXPENSTIONBUILDINGSWITCHYARD": 35.03
+  
 
 };
 
@@ -58,6 +59,7 @@ const formatBuildingName = (name) => {
     .map((word) => {
 
       if (word === "nlcil") return "NLCIL";
+       
 
       if (word.includes("&")) return word.toUpperCase();
 
@@ -90,29 +92,7 @@ export default function Buildings() {
     time: "--"
   });
 
-useEffect(() => {
 
-  if (localStorage.getItem("AUTO_MODE") === "false") return;
-
-  // 👉 SCROLL
-  const scrollTimer = setTimeout(() => {
-    const graph = document.querySelector(".graph-section");
-    if (graph) {
-      graph.scrollIntoView({ behavior: "smooth" });
-    }
-  }, 4000);
-
-  // 👉 BACK TO DASHBOARD
-  const backTimer = setTimeout(() => {
-    navigate("/dashboard");
-  }, 10000);
-
-  return () => {
-    clearTimeout(scrollTimer);
-    clearTimeout(backTimer);
-  };
-
-}, []);
 
 
   /* ========================= */
@@ -135,6 +115,7 @@ useEffect(() => {
             name.includes("NLCIL") ||
             name.includes("TPS-2") ||
             name.includes("NEYVELI")
+            
           );
 
         });
@@ -429,8 +410,7 @@ return (
 
 <div
   key={b.id}
-  onClick={() => {
-  localStorage.setItem("AUTO_MODE", "false"); // 🛑 GLOBAL STOP
+ onClick={() => {
   setSelectedBuilding(b);
 }}
   className={`building-card ${isActive ? "active" : ""}`}

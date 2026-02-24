@@ -49,50 +49,13 @@ return campusIcon;
 }
 };
 
-useEffect(() => {
-  localStorage.setItem("AUTO_MODE", "true");
-
-  if (!localStorage.getItem("PAGE_INDEX")) {
-    localStorage.setItem("PAGE_INDEX", 0);
+const fetchWeather = async (campus) => {
+  try {
+    const res = await fetch(`${API_BASE}/weather/${campus}`);
+    return await res.json();
+  } catch {
+    return { irradiance: 0, ambientTemp: 0 };
   }
-}, []);
-
-const getIndex = () =>
-  Number(localStorage.getItem("PAGE_INDEX") || 0);
-
-useEffect(() => {
-
-  const sequence = [
-    "/buildings",
-    "/ntpl",
-    "/nuppl",
-    "/btps"
-  ];
-
-  const timer = setInterval(() => {
-
-    if (localStorage.getItem("AUTO_MODE") === "false") return;
-
-    const index = getIndex();
-
-    navigate(sequence[index]);
-
-    const nextIndex = (index + 1) % sequence.length;
-    localStorage.setItem("PAGE_INDEX", nextIndex);
-
-  }, 5000); // ⏱️ 20 sec per page
-
-  return () => clearInterval(timer);
-
-}, []);
-// WEATHER FETCH
-const fetchWeather = async(campus)=>{
-try{
-const res = await fetch(`${API_BASE}/weather/${campus}`);
-return await res.json();
-}catch{
-return {irradiance:0,ambientTemp:0};
-}
 };
 
 // FETCH DATA
@@ -345,12 +308,7 @@ return(
 <div
   className="panel campus-card"
  onClick={() => {
-  localStorage.setItem("AUTO_MODE", "false");
-
-  clearTimeout(pageTimerRef.current);
-  clearTimeout(backTimerRef.current);
-
-  navigate(c.path);
+  navigate(c.path); // ✅ simple navigation மட்டும்
 }}
 >
 <img src={getCampusLogo(c.name)} />
