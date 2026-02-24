@@ -80,7 +80,7 @@ async function getToken() {
     )
         return TOKEN;
 
-    console.log("Fetching new token...");
+   
 
     const res = await axiosInstance.post(
         `${config.BASE_URL}/v1.0/account/token`,
@@ -175,7 +175,7 @@ return weather;
 
 }catch(err){
 
-console.log("Weather error:",err.message);
+
 
 return {
 irradiance:0,
@@ -244,7 +244,7 @@ async function getLatest(deviceSn) {
                 deviceList: [String(deviceSn)]
             }
         );
-            console.log("FULL DEVICE RESPONSE:", JSON.stringify(data, null, 2));
+           
     return data.deviceDataList?.[0] || null;
 }
 
@@ -432,7 +432,7 @@ return CACHE_PROMISE;
 
 }catch(err){
 
-console.log("Main building error:", err.message);
+
 
 CACHE_PROMISE=null;
 
@@ -583,7 +583,7 @@ try{
 
 await getMainBuildingData();
 
-console.log("Background cache refreshed");
+
 
 }catch(err){
 
