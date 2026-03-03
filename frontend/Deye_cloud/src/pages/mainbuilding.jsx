@@ -139,9 +139,18 @@ const NTPL_list = buildings.filter(b =>
   b.name?.toUpperCase().includes("NTPL")
 );
 
-const NUPPL_list = buildings.filter(b =>
-  b.name?.toUpperCase().includes("NUPPL")
-);
+const NUPPL_list = buildings.filter(b => {
+  const n = b.name?.toUpperCase() || "";
+
+  return (
+    n.includes("NUPPL") ||
+    n.includes("TYPE 4")||
+    n.includes("TYPE-4")||
+    n.includes("TYPE -4")||
+    n.includes("TYPE 3") ||
+    n.includes("TYPE -3")// 👈 முக்கியம்
+  );
+});
 
 const BTPS_list = buildings.filter(b =>
   b.name?.toUpperCase().includes("BTPS")
@@ -211,22 +220,23 @@ path:"/btps"
 }
 ];
 
-// ❗ HIDE NLCIC TEMPORARY
-const filteredList = list.filter(c => c.name !== "NLCIC");
 
-const w={};
-for(const c of filteredList){
-  w[c.name]=await fetchWeather(c.name);
+
+const w = {};
+
+for(const c of list){
+  w[c.name] = await fetchWeather(c.name);
 }
 
 setWeatherData(w);
-setCampusList(filteredList);
+setCampusList(list);
+
 setUpdateTime(
-new Date().toLocaleTimeString("en-IN",{
-hour:"2-digit",
-minute:"2-digit",
-second:"2-digit"
-})
+  new Date().toLocaleTimeString("en-IN",{
+    hour:"2-digit",
+    minute:"2-digit",
+    second:"2-digit"
+  })
 );
 
 }catch(e){

@@ -2,122 +2,145 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import "../pages/Buildings.css";
+import PowerGraph from "../graph/graph";
 import API_BASE from "../pages/config";
 
+/* LOGOS */
 import Nuppl from "../assets/Nuppl.jpg";
 import epcLogo from "../assets/sunlogo.png";
-import buildIcon from "../assets/tower.png";
+import buildIcon from "../assets/merger.png";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchdata } from "../store/createslice";
 
-/* ========================= */
-/* CAPACITY MAP */
-/* ========================= */
-
+/* CAPACITY */
 const capacityMap = {
-  "NUPPL GENERAL HOSPITAL": 122.04,
-  "NUPPL ESTATE OFFICE": 30.51,
-  "NUPPL ESTATE STORE": 10.17,
-  "NUPPL SCHOOL": 134.47,
-  "NUPPL TYPE 3 QUARTERS_5 BUILDINGS": 129.95,
-  "NUPPL TYPE 4 QUARTERS_11 BUILDINGS": 298.32,
-  "NUPPL TRAINING CENTRE": 80.23
+  "NUPPLGENERALHOSPITAL": 122.04,
+  "NUPPLESTATEOFFICE": 30.51,
+  "NUPPLESTATESTORE": 10.17,
+  "NUPPLSCHOOL": 134.47,
+  "NUPPLTYPE3QUARTERS5BUILDINGS": 129.95,
+  "NUPPLTYPE4QUARTERS11BUILDINGS": 298.32,
+  "NUPPLTRAININGCENTRE": 80.23
 };
 
-/* ========================= */
-/* DUMMY BUILDINGS */
-/* ========================= */
+const normalizeName = (name) =>
+  name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-const dummyBuildings = [
-{ id:"dummy-1", name:"NUPPL General Hospital", isDummy:true },
-{ id:"dummy-2", name:"NUPPL Estate Office", isDummy:true },
-{ id:"dummy-3", name:"NUPPL Estate Store", isDummy:true },
-{ id:"dummy-4", name:"NUPPL School", isDummy:true },
-{ id:"dummy-5", name:"NUPPL Type 3 Quarters_5 Buildings", isDummy:true },
-{ id:"dummy-6", name:"NUPPL Type 4 Quarters_11 Buildings", isDummy:true },
-{ id:"dummy-7", name:"NUPPL Training Centre", isDummy:true }
-];
-
-/* FORMAT */
 const formatBuildingName = (name) => {
-if (!name) return "";
-return name
-.toLowerCase()
-.split(" ")
-.map(word =>
-word === "nuppl"
-? "NUPPL"
-: word.charAt(0).toUpperCase() + word.slice(1)
-)
-.join(" ");
+  if (!name) return "";
+
+  return name
+    .toLowerCase()
+    .split(" ")
+    .map(word =>
+      word === "nuppl"
+        ? "NUPPL"
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(" ");
 };
 
-export default function NupplPage(){
-
-const navigate = useNavigate();
-
-const [buildings,setBuildings] = useState([]);
-const [selectedBuilding,setSelectedBuilding] = useState(null);
-const [time,setTime] = useState("");
 
 
-useEffect(()=>{
+export default function NupplPage() {
+  
+  const navigate = useNavigate();
 
-const fetchBuildings = async()=>{
+  const [list, setList] = useState([]);
+  const [selected, setSelected] = useState(null);
 
-try{
+  const [graphType, setGraphType] = useState("today");
+  const [time, setTime] = useState("");
+  const [currentMap, setCurrentMap] = useState({});
 
-const res = await fetch(`${API_BASE}/sub-buildings`);
-const data = await res.json();
+ 
 
-const real =
-data.filter(b=>b.name.toUpperCase().includes("NUPPL"));
+   /* FETCH */
+   const fetchBuildings = async () => {
+     try {
+      const res = await fetch(`${API_BASE}/sub-buildings`);
+      const data = await res.json();
 
-const combined = [
-...real,
-...dummyBuildings.slice(0,7-real.length)
-];
-
-setBuildings(combined);
-
-if(!selectedBuilding && combined.length){
-setSelectedBuilding(combined[0]);
-}
-
-setTime(
-new Date().toLocaleTimeString("en-IN",{
-hour:"2-digit",
-minute:"2-digit",
-second:"2-digit"
-})
+      /* TYPE4 */
+      const type4 = data.filter(b =>
+        normalizeName(b.name).includes("TYPE4")
+      );
+      const type3 = data.filter(b =>
+  normalizeName(b.name).includes("TYPE3")
 );
 
-}
-catch(err){
-console.log(err);
-}
+      /* OTHERS */
+      const others = data.filter(b =>
+        normalizeName(b.name).includes("NUPPL") &&
+        !normalizeName(b.name).includes("TYPE4")&&
+        !normalizeName(b.name).includes("TYPE3")
+      );
 
+      /* GROUP CARD */
+      const type4Group = {
+        id: "TYPE4_GROUP",
+        name: "Type 4 Quarters 11 Buildings",
+        isGroup: true,
+        type: "TYPE4",
+        children: type4
+      };
+       
+       /* ✅ NEW TYPE3 GROUP */
+const type3Group = {
+  id: "TYPE3_GROUP",
+  name: "Type 3 Quarters 5 Buildings",
+  isGroup: true,
+  type: "TYPE3",
+  children: type3
 };
+      const finalList = [type4Group, type3Group, ...others];
 
-fetchBuildings();
-const interval = setInterval(fetchBuildings,15000);
-return ()=>clearInterval(interval);
+      setList(finalList);
 
-},[]);
+      /* CURRENT MAP */
+      const map = {};
+      data.forEach(b => {
+        map[b.id] = Number(b.currentPower || 0);
+      });
+      setCurrentMap(map);
 
+      setTime(
+        new Date().toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        })
+      );
 
-/* ========================= */
-/* TOTALS */
-/* ========================= */
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
-const totalToday = 0;
-const totalYesterday = 0;
-const totalCurrent = 0;
+  useEffect(() => {
+    fetchBuildings();
+    const i = setInterval(fetchBuildings, 15000);
+    return () => clearInterval(i);
+  }, []);
 
+  /* TOTALS */
+  const totalToday = list.reduce((sum, b) => {
+    if (b.isGroup) {
+      return sum + b.children.reduce((s, x) => s + Number(x.today || 0), 0);
+    }
+    return sum + Number(b.today || 0);
+  }, 0);
 
-/* ========================= */
-/* UI */
-/* ========================= */
+  const totalYesterday = list.reduce((sum, b) => {
+    if (b.isGroup) {
+      return sum + b.children.reduce((s, x) => s + Number(x.yesterday || 0), 0);
+    }
+    return sum + Number(b.yesterday || 0);
+  }, 0);
 
-return(
+  const totalCurrent = Object.values(currentMap).reduce((a, b) => a + b, 0);
+
+  return (
 
 <div className="buildings-page">
 
@@ -125,16 +148,13 @@ return(
 <div className="second-header">
 
 <div className="secondheader-left">
-
 <img src={Nuppl} className="second-logo"/>
 
 <div>
 <div className="second-company">
 NUPPL RTS-0.8MW Monitoring
 </div>
-<div className="second-sub">
-Solar Dashboard
-</div>
+<div className="second-sub">Solar Dashboard</div>
 </div>
 
 <div className="header-supplier-block">
@@ -152,103 +172,125 @@ SUN Industrial Automations & Solutions Pvt Ltd
 <div className="secondheader-right">
 <div className="secondlive-box">● LIVE SYSTEM</div>
 <div className="second-updated">Updated: {time}</div>
-<button className="back-btn" onClick={()=>navigate("/dashboard")}>
+
+<button className="back-btn" onClick={() => navigate("/dashboard")}>
 ← Back
 </button>
 </div>
 
 </div>
 
-
 {/* SUMMARY */}
 <div className="summary">
 
 <div className="summary-card">
 <div className="summary-label">Total Buildings</div>
-<div className="summary-value">{buildings.length}</div>
+<div className="summary-value">{list.length}</div>
 </div>
 
 <div className="summary-card">
-<div className="summary-label">Today Production</div>
-<div className="summary-value">0.0 kWh</div>
+<div className="summary-label">Today</div>
+<div className="summary-value green">{totalToday.toFixed(1)} kWh</div>
 </div>
 
 <div className="summary-card">
-<div className="summary-label">Yesterday Production</div>
-<div className="summary-value">0.0 kWh</div>
+<div className="summary-label">Yesterday</div>
+<div className="summary-value blue">{totalYesterday.toFixed(1)} kWh</div>
 </div>
 
-{/* ❌ PEAK CARD REMOVED */}
-
-<div className="summary-card">
+<div className="summary-card current-card">
 <div className="summary-label">Live Power</div>
-<div className="summary-value">0.0 kW</div>
+<div className="summary-value current-text">
+{totalCurrent.toFixed(1)} kW
+</div>
 </div>
 
 </div>
 
-
-{/* BUILDINGS */}
+{/* CARDS */}
 <div className="building-grid">
 
-{buildings.map(b=>{
+{list.map(b => {
 
-const capacity =
-capacityMap[b.name.toUpperCase()];
+let today = 0, yesterday = 0, total = 0, current = 0;
 
-const isActive =
-selectedBuilding?.id===b.id;
+if (b.isGroup) {
+  today = b.children.reduce((s,x)=>s+Number(x.today||0),0);
+  yesterday = b.children.reduce((s,x)=>s+Number(x.yesterday||0),0);
+  total = b.children.reduce((s,x)=>s+Number(x.total||0),0);
+  current = b.children.reduce((s,x)=>s+Number(x.currentPower||0),0);
+} else {
+  today = Number(b.today || 0);
+  yesterday = Number(b.yesterday || 0);
+  total = Number(b.total || 0);
+  current = Number(b.currentPower || 0);
+}
 
-return(
+const isActive = selected?.id === b.id;
+
+return (
 
 <div
 key={b.id}
-onClick={()=>setSelectedBuilding(b)}
-className={`building-card ${isActive?"active":""}`}
+onClick={() => {
+  if (b.isGroup) {
+
+    if (b.id === "TYPE4_GROUP") {
+      navigate("/type4", { state: b.children });
+    }
+
+    /* ✅ TYPE3 ROUTE */
+    else if (b.id === "TYPE3_GROUP") {
+      navigate("/type3", { state: b.children });
+    }
+
+  } else {
+    setSelected(b);
+  }
+}}
+className={`building-card 
+  ${b.isGroup ? "group-card" : ""} 
+  ${isActive ? "active" : ""}`
+}
 >
 
 <div className="card-header">
 <img src={buildIcon} className="card-icon"/>
-<div className="not-connected">NOT CONNECTED</div>
+<div className="online">
+{b.isGroup ? "GROUP" : "ONLINE"}
+</div>
 </div>
 
 <div className="building-name">
-
 <span className="building-title">
 {formatBuildingName(b.name)}
 </span>
-
-{capacity &&
-<span className="capacity-inline">
-Plant Capacity {capacity} kW
-</span>
-}
-
 </div>
 
-{/* ✅ CUMULATIVE ADDED */}
 <div className="energy-row">
 
 <div>
 <div className="energy-label">TODAY</div>
-<div className="energy-value">0.0 kWh</div>
+<div className="energy-value green">{today.toFixed(1)} kWh</div>
 </div>
 
 <div>
 <div className="energy-label">YESTERDAY</div>
-<div className="energy-value">0.0 kWh</div>
+<div className="energy-value blue">{yesterday.toFixed(1)} kWh</div>
 </div>
 
 <div>
 <div className="energy-label">CUMULATIVE</div>
-<div className="energy-value cumulative">0.0 kWh</div>
+<div className="energy-value cumulative">{total.toFixed(1)} kWh</div>
 </div>
 
 </div>
 
 <div className="card-footer">
 Last update: {time}
-<div className="current-live">Live Power: 0.0 kW</div>
+<div className="current-live">
+Live Power: {current.toFixed(1)} kW
+</div>
 </div>
 
 </div>
@@ -259,8 +301,46 @@ Last update: {time}
 
 </div>
 
+{/* GRAPH */}
+{selected && !selected.isGroup && (
+
+<div className="graph-section">
+
+<div className="graph-title">
+Energy Trend - {formatBuildingName(selected.name)}
 </div>
 
-);
+<div className="graph-buttons">
 
+<button
+className={`graph-btn ${graphType === "today" ? "active-btn" : ""}`}
+onClick={() => setGraphType("today")}
+>
+Today
+</button>
+
+<button
+className={`graph-btn ${graphType === "yesterday" ? "active-btn" : ""}`}
+onClick={() => setGraphType("yesterday")}
+>
+Yesterday
+</button>
+
+</div>
+
+<div className="graph-box">
+<PowerGraph
+stationId={selected.id}
+type={graphType}
+buildingName={formatBuildingName(selected.name)}
+/>
+</div>
+
+</div>
+
+)}
+
+</div>
+
+  );
 }

@@ -43,8 +43,8 @@ const CAMPUS_LOCATION = {
   // ✅ NTPL – Tuticorin (Thoothukudi) (CORRECT)
   NTPL: { lat: 8.7642, lon: 78.1348 },
 
-  // ✅ NUPPL – Neyveli (same region ok)
-  NUPPL: { lat: 11.5485, lon: 79.4766 },
+  // ✅ NUPPL – kanpur (same region ok)
+  NUPPL: { lat: 26.4499, lon: 80.3319 },
 
   // ✅ NLCIC – Neyveli (same)
   NLCIC: { lat: 11.5485, lon: 79.4766 }
@@ -103,26 +103,53 @@ async function getToken() {
 
 
 // ================= API HELPER =================
-
-async function api(url, body) {
-
+    async function api(url, body) {
+  try {
     const token = await getToken();
 
     const res = await axiosInstance.post(
-        `${config.BASE_URL}${url}`,
-        body,
-        {
-            params: { appId: config.APP_ID },
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
+      `${config.BASE_URL}${url}`,
+      body,
+      {
+        params: { appId: config.APP_ID },
+        headers: {
+          Authorization: `Bearer ${token}`
         }
+      }
     );
 
     return res.data;
+
+  } catch (err) {
+
+    
+    if (err.response?.status === 401) {
+      console.log("Token expired → refreshing...");
+
+      
+      TOKEN = null;
+
+     
+      const newToken = await getToken();
+
+      const retry = await axiosInstance.post(
+        `${config.BASE_URL}${url}`,
+        body,
+        {
+          params: { appId: config.APP_ID },
+          headers: {
+            Authorization: `Bearer ${newToken}`
+          }
+        }
+      );
+
+      return retry.data;
+    }
+
+    console.log("API ERROR:", err.message);
+    return {};
+  }
 }
-
-
 // ================= WEATHER =================
 
 async function getWeather(campus){
@@ -387,7 +414,7 @@ return CACHE_PROMISE;
 
 CACHE_PROMISE = (async()=>{
 
-console.log("Refreshing main cache...");
+
 
 const stations =
 await getStations();
@@ -467,91 +494,107 @@ return CACHE.sub;
 
 // ================= GRAPH =================
 
-async function getGraph(type, stationId){
+async function getGraph(type, stationId) {
 
-try{
+  try {
 
-const devices =
-await getDevices(stationId);
+    const devices = await getDevices(stationId);
 
-const inverter =
-devices.find(
-d=>d.deviceType==="INVERTER"
-);
+    const inverter =
+      devices.find(d => d.deviceType === "INVERTER");
 
-if(!inverter) return [];
+    if (!inverter) return [];
 
-const now=new Date();
+    const now = new Date();
 
-let startAt,endAt,granularity;
+    let startAt, endAt, granularity;
+    let measurePoint;
 
-if(type==="today"){
+    // ================= TODAY =================
+    if (type === "today") {
 
-startAt=now.toISOString().split("T")[0];
-endAt=startAt;
-granularity=1;
+      startAt = now.toISOString().split("T")[0];
+      endAt = startAt;
 
-}
-else if(type==="yesterday"){
+      granularity = 1;
 
-const y=new Date();
-y.setDate(now.getDate()-1);
+      // ✅ POWER (kW)
+      measurePoint = "TotalActiveACOutputPower";
+    }
 
-startAt=y.toISOString().split("T")[0];
-endAt=startAt;
-granularity=1;
+    // ================= YESTERDAY =================
+    else if (type === "yesterday") {
 
-}
-else{
+      const y = new Date();
+      y.setDate(now.getDate() - 1);
 
-const firstDay=new Date(
-now.getFullYear(),
-now.getMonth(),
-1
-);
+      startAt = y.toISOString().split("T")[0];
+      endAt = startAt;
 
-startAt=firstDay.toISOString().split("T")[0];
-endAt=now.toISOString().split("T")[0];
-granularity=2;
+      granularity = 1;
 
-}
+      // ✅ POWER (kW)
+      measurePoint = "TotalActiveACOutputPower";
+    }
 
-const result=
-await api(
-"/v1.0/device/history",
-{
-deviceSn:String(inverter.deviceSn),
-startAt,
-endAt,
-granularity,
-measurePoints:[
-"TotalActiveACOutputPower"
-]
-}
-);
+    // ================= MONTHLY =================
+    else {
 
-const raw=result.dataList||[];
+      const firstDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1
+      );
 
-return raw.map(item=>{
+      startAt = firstDay.toISOString().split("T")[0];
+      endAt = now.toISOString().split("T")[0];
 
-const powerObj=
-item.itemList?.find(
-i=>i.key==="TotalActiveACOutputPower"
-);
+      granularity = 2;
 
-return{
-time:new Date(Number(item.time)*1000).toISOString(),
-power:Number(powerObj?.value||0)
-};
+      // ✅ ENERGY (kWh)
+      measurePoint = "DailyActiveProduction";
+    }
 
-});
+    // ================= API CALL =================
 
-}catch(err){
+    const result = await api(
+      "/v1.0/device/history",
+      {
+        deviceSn: String(inverter.deviceSn),
+        startAt,
+        endAt,
+        granularity,
+        measurePoints: [measurePoint]
+      }
+    );
 
-console.log("Graph error:",err.message);
-return [];
+    const raw = result.dataList || [];
 
-}
+    // ================= FORMAT =================
+
+    return raw.map(item => {
+
+      const obj =
+        item.itemList?.find(
+          i => i.key === measurePoint
+        );
+
+      return {
+        time: new Date(Number(item.time) * 1000).toISOString(),
+
+        // 👉 today/yesterday = power (W)
+        // 👉 monthly = energy (kWh)
+        power: Number(obj?.value || 0)
+      };
+
+    });
+
+  } catch (err) {
+
+    console.log("Graph error:", err.message);
+    return [];
+
+  }
 
 }
 

@@ -12,6 +12,8 @@ import logo from "../assets/main logo.png";
 import epcLogo from "../assets/sunlogo.png";
 
 import buildIcon from "../assets/tower.png";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchdata } from "../store/createslice";
 
 
 /* ========================= */
@@ -21,12 +23,14 @@ import buildIcon from "../assets/tower.png";
 
 const capacityMap = {
 
-  "NLCILLIBRARY": 50.85,
-  "NLCILEDUCATIONOFFICE": 23.73,
-  "NLCILLDCOFFICEINV2": 145,
+  "NLCILLIBRARY50KWONGRID": 50.85,
+  "NLCILEDUCATIONOFFICE25KW": 23.73,
+  "NLCILLDCOFFICEINV225KW": 145,
 
   /* ✅ TPS-2 ADDED */
-  "TPS2EXPENSTIONBUILDINGSWITCHYARD": 35.03
+  "TPS2EXPESWITCHYARD": 35.03,
+  "NLCILPSTCBUILDING125KW":122.04,
+  
   
 
 };
@@ -74,7 +78,7 @@ const formatBuildingName = (name) => {
 
 
 export default function Buildings() {
-
+  const dispatch=useDispatch()
   const navigate = useNavigate();
 
   const [buildings, setBuildings] = useState([]);
@@ -93,83 +97,72 @@ export default function Buildings() {
   });
 
 
+const data=useSelector((state)=>state.userinfo.list)
+
+      /* ✅ SINGLE SOURCE FETCH */
+  useEffect(() => {
+
+    dispatch(fetchdata());
+
+    const interval = setInterval(() => {
+      dispatch(fetchdata());
+    }, 15000);
+
+    return () => clearInterval(interval);
+
+  }, [dispatch]);
 
 
-  /* ========================= */
-  /* FETCH BUILDINGS */
-  /* ========================= */
+  /* ✅ FILTER + MAP */
+  useEffect(() => {
 
-  const fetchBuildings = async () => {
+    if (!data || data.length === 0) return;
 
-    try {
+    const filtered = data.filter(b => {
 
-      const res = await fetch(`${API_BASE}/sub-buildings`);
-      const data = await res.json();
+      const name = b.name.toUpperCase();
 
-      const filtered =
-        data.filter(b => {
-
-          const name = b.name.toUpperCase();
-
-          return (
-            name.includes("NLCIL") ||
-            name.includes("TPS-2") ||
-            name.includes("NEYVELI")
-            
-          );
-
-        });
-
-      setBuildings(filtered);
-
-      setSelectedBuilding(prev => {
-
-        if (!prev && filtered.length)
-          return filtered[0];
-
-        const updated =
-          filtered.find(
-            b => b.id === prev?.id
-          );
-
-        return updated || filtered[0];
-
-      });
-
-
-      const map = {};
-
-      filtered.forEach(b => {
-
-        map[b.id] =
-          Number(b.currentPower || 0);
-
-      });
-
-      setCurrentMap(map);
-
-
-      setTime(
-        new Date().toLocaleTimeString(
-          "en-IN",
-          {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
-          }
-        )
+      return (
+        name.includes("NLCIL") ||
+        name.includes("TPS-2") ||
+        name.includes("NEYVELI")
       );
 
-    }
-    catch (err) {
+    });
 
-      console.log(err);
-
-    }
-
-  };
+    setBuildings(filtered);
 
 
+    setSelectedBuilding(prev => {
+
+      if (!prev && filtered.length) return filtered[0];
+
+      const updated =
+        filtered.find(b => b.id === prev?.id);
+
+      return updated || filtered[0];
+
+    });
+
+
+    const map = {};
+
+    filtered.forEach(b => {
+      map[b.id] = Number(b.currentPower || 0);
+    });
+
+    setCurrentMap(map);
+
+
+    setTime(
+      new Date().toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      })
+    );
+
+  }, [data]);
   /* ========================= */
   /* FETCH PEAK */
   /* ========================= */
@@ -243,20 +236,7 @@ export default function Buildings() {
   };
 
 
-  useEffect(() => {
 
-    fetchBuildings();
-
-    const interval =
-      setInterval(
-        fetchBuildings,
-        15000
-      );
-
-    return () =>
-      clearInterval(interval);
-
-  }, []);
 
 
   useEffect(() => {
@@ -397,11 +377,19 @@ Total Live Power
 <div className="building-grid">
 
 {buildings.map(b => {
+   const current = Number(currentMap[b.id] || 0);
+const isOffline = current === 0;
 
+const today = isOffline ? 0 : Number(b.today || 0);
+const live = isOffline ? 0 : current;
+
+// ❗ change panna koodathu
+const yesterday = Number(b.yesterday || 0);
+const total = Number(b.total || 0);
 const capacity =
-capacityMap[
-  normalizeName(b.name)
-];
+  capacityMap[
+    normalizeName(formatBuildingName(b.name))
+  ];
 
 const isActive =
 selectedBuilding?.id === b.id;
@@ -418,7 +406,9 @@ return (
 
 <div className="card-header">
 <img src={buildIcon} className="card-icon"/>
-<div className="online">ONLINE</div>
+<div className={`online ${isOffline ? "offline" : ""}`}>
+  ● {isOffline ? "OFFLINE" : "ONLINE"}
+</div>
 </div>
 
 <div className="building-name">
@@ -441,21 +431,21 @@ Plant Capacity {capacity} kW
 <div>
 <div className="energy-label">TODAY</div>
 <div className="energy-value green">
-{Number(b.today).toFixed(1)} kWh
+{today.toFixed(1)} kWh
 </div>
 </div>
 
 <div>
 <div className="energy-label">YESTERDAY</div>
 <div className="energy-value blue">
-{Number(b.yesterday).toFixed(1)} kWh
+{yesterday.toFixed(1)} kWh
 </div>
 </div>
 
 <div>
 <div className="energy-label">CUMULATIVE</div>
 <div className="energy-value cumulative">
-{Number(b.total || 0).toFixed(1)} kWh
+{total.toFixed(1)} kWh
 </div>
 </div>
 
@@ -466,7 +456,7 @@ Plant Capacity {capacity} kW
 Last update: {time}
 
 <div className="current-live">
-Live Power: {currentMap[b.id]?.toFixed(1)} kW
+Live Power: {live.toFixed(1)} kW
 </div>
 
 </div>
@@ -505,12 +495,7 @@ onClick={() => setGraphType("yesterday")}
 Yesterday
 </button>
 
-<button
-className={`graph-btn ${graphType === "monthly" ? "active-btn" : ""}`}
-onClick={() => setGraphType("monthly")}
->
-Monthly
-</button>
+
 
 </div>
 

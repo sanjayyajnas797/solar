@@ -20,19 +20,40 @@ import {
 const capacityMap = {
 
   /* NLCIL */
-  "NLCILLIBRARY": 50.85,
-  "NLCILEDUCATIONOFFICE": 23.73,
-  "NLCILLDCOFFICEINV2": 145,
+  "NLCILLIBRARY50KWONGRID": 50.85,
+  "NLCILEDUCATIONOFFICE25KW": 23.73,
+  "NLCILLDCOFFICEINV225KW": 145,
+   "NLCILPSTCBUILDING125KW":122.04,
 
-  "NLCBTPSOHCBUILDING": 23.73,
-  "NLCBTPSOFFICERSCLUB": 27.12,
+  "NLCBTPSOHCBUILDING25KW": 23.73,
+  "NLCBTPSOFFICERSCLUB33KW": 27.12,
   "NLCBTPSTAOFFICE": 23.73,
 
-  /* ✅ NTPL ADDED */
-  "NTPLSTROMWATERPUMPHOUSE": 20.34,
+   
+   "NTPLPUMPHOUSE20KW": 20.34,
   "TPS2EXPESWITCHYARD": 35.03,
-  "NLCBTPSNEWSCHOOLBUILDING":80.23
+  "NLCBTPSNEWSCHOOLBUILDING":80.23,
+
+ /* TYPE 3 */
+  "TYPE3BLOCK1": 25,
+  "TYPE3BLOCK2": 25,
+  "TYPE3BLOCK3": 25,
+  "TYPE3BLOCK4": 25,
+  "TYPE3BLOCK5CANTEEN": 25,
   
+
+  /* TYPE 4 */
+  "TYPE4BLOCK8": 27.12,
+  "TYPE4BLOCK9": 27.12,
+  "TYPE4BLOCK11": 27.12,
+  "TYPE4BLOCK10": 27.12,
+  "TYPE4BLOCK7": 27.12,
+  "TYPE4BLOCK2": 27.12,
+  "TYPE4BLOCK1": 27.12,
+  "TYPE4BLOCK3": 27.12,
+  "TYPE4BLOCK4": 27.12,
+  "TYPE4BLOCK5": 27.12,
+  "TYPE4BLOCK6": 27.12
 
 };
 
@@ -54,10 +75,22 @@ export default function PowerGraph({
 
   const [data, setData] = useState([]);
 
-  const normalized = normalizeName(buildingName);
+ const normalized = normalizeName(buildingName);
 
-  /* ✅ NOW NTPL capacity also works */
-  const capacity = capacityMap[normalized] || 0;
+/* remove KW */
+const clean = normalized.replace(/KW$/, "");
+
+/* try map */
+let capacity =
+  capacityMap[normalized] ||
+  capacityMap[clean];
+
+/* fallback from name */
+const match = buildingName.match(/(\d+)\s*kw/i);
+
+if (!capacity) {
+  capacity = match ? Number(match[1]) : 0;
+}
 
 
 
@@ -104,23 +137,22 @@ export default function PowerGraph({
         }
 
         const formatted =
-          graph.map(item => {
+  graph.map(item => {
 
-            const powerKW =
-              Number(item.power || 0) / 1000;
+   const powerKW = Number(item.power || 0) / 1000;
 
-            return {
+    return {
 
-              time: formatTime(item.time),
+      time: formatTime(item.time),
 
-              fullTime: item.time,
+      fullTime: item.time,
 
-              power: Number(powerKW.toFixed(2))
+      power: Number(powerKW.toFixed(2))
 
-            };
+    };
 
-          })
-          .filter(d => d.time !== "");
+  })
+  .filter(d => d.time !== "");
 
         setData(formatted);
 

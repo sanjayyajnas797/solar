@@ -8,14 +8,15 @@ import API_BASE from "../pages/config";
 import logo from "../assets/main logo.png";
 import epcLogo from "../assets/sunlogo.png";   // ✅ EPC LOGO ADDED
 import buildIcon from "../assets/tower.png";
-
+import { fetchdata } from "../store/createslice";
+import {useDispatch, useSelector} from 'react-redux'
 
 /* CAPACITY MAP */
 const capacityMap = {
 
-  "NLCBTPSOHCBUILDING": 23.73,
-  "NLCBTPSOFFICERSCLUB": 27.12,
-  "NLCBTPSTAOFFICE": 23.73,
+  "NLCBTPSOHCBUILDING25KW": 23.73,
+  "NLCBTPSOFFICERSCLUB33KW": 27.12,
+  "NLCBTPSTAOFFICE25KW": 23.73,
   "NLCBTPSNEWSCHOOLBUILDING": 149.16
 
 };
@@ -65,7 +66,7 @@ const normalizeName = name =>
 export default function Btps(){
 
   const navigate = useNavigate();
-
+  const dispatch=useDispatch()
   const [buildings,setBuildings] = useState([]);
   const [selectedBuilding,setSelectedBuilding] = useState(null);
 
@@ -80,65 +81,45 @@ export default function Btps(){
     name:"--",
     time:"--"
   });
+   
+  
 
+    const data=useSelector((state)=>state.userinfo.list)
+    
+    useEffect(() => {
+  if (!data || data.length === 0) return;
 
-  /* FETCH BUILDINGS */
-  const fetchBuildings = async()=>{
+  const btps = data.filter(b =>
+    b.name.toUpperCase().includes("BTPS")
+  );
 
-    try{
+  setBuildings(btps);
 
-      const res =
-        await fetch(`${API_BASE}/sub-buildings`);
+  setSelectedBuilding(prev => {
+    if (!prev && btps.length) return btps[0];
 
-      const data =
-        await res.json();
+    const updated = btps.find(b => b.id === prev?.id);
+    return updated || btps[0];
+  });
 
-      const btps =
-        data.filter(b =>
-          b.name.toUpperCase().includes("BTPS")
-        );
+  const map = {};
+  btps.forEach(b => {
+    map[b.id] = Number(b.currentPower || 0);
+  });
 
-      setBuildings(btps);
+  setCurrentMap(map);
 
+  setTime(
+    new Date().toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    })
+  );
 
-      setSelectedBuilding(prev=>{
+}, [data]);
 
-        if(!prev && btps.length)
-          return btps[0];
-
-        const updated =
-          btps.find(b=>b.id===prev?.id);
-
-        return updated || btps[0];
-
-      });
-
-
-      const map = {};
-
-      btps.forEach(b=>{
-        map[b.id] =
-          Number(b.currentPower || 0);
-      });
-
-      setCurrentMap(map);
-
-
-      setTime(
-        new Date().toLocaleTimeString("en-IN",{
-          hour:"2-digit",
-          minute:"2-digit",
-          second:"2-digit"
-        })
-      );
-
-    }
-    catch(err){
-      console.log("BTPS fetch error:",err);
-    }
-
-  };
-
+  
 
   /* FETCH PEAK */
   const fetchPeak = async()=>{
@@ -207,17 +188,15 @@ export default function Btps(){
   };
 
 
-  /* AUTO REFRESH */
-  useEffect(()=>{
+  useEffect(() => {
+  dispatch(fetchdata());
 
-    fetchBuildings();
+  const interval = setInterval(() => {
+    dispatch(fetchdata());
+  }, 15000);
 
-    const interval =
-      setInterval(fetchBuildings,15000);
-
-    return ()=>clearInterval(interval);
-
-  },[]);
+  return () => clearInterval(interval);
+}, [dispatch]);
 
 
   useEffect(()=>{
@@ -483,12 +462,7 @@ onClick={()=>setGraphType("yesterday")}
 Yesterday
 </button>
 
-<button
-className={`graph-btn ${graphType==="monthly"?"active-btn":""}`}
-onClick={()=>setGraphType("monthly")}
->
-Monthly
-</button>
+
 
 </div>
 

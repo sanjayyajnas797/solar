@@ -12,12 +12,14 @@ import Ntpl from "../assets/Ntpl.jpg";
 import epcLogo from "../assets/sunlogo.png";
 
 import buildIcon from "../assets/tower.png";
+import { useDispatch,useSelector } from "react-redux";
+import { fetchdata } from "../store/createslice";
 
 
 
 /* CAPACITY MAP — NTPL */
 const capacityMap = {
-  "NTPL STROM WATER PUMP HOUSE": 20.34,
+  "NTPL STORM WATER PUMP HOUSE 20KW": 20.34,
   "NTPL PARKING SHED 1 TO 6": 118.65,
   "NTPL SERVICE BUILDING": 110.74,
   "NTPL ADMINISTRATIVE BUILDING": 50.85
@@ -62,7 +64,9 @@ isDummy:true
 const formatBuildingName = (name) => {
 
 if (!name) return "";
-
+ if(name.toUpperCase().includes("NTPL STORM WATER")){
+  return "NTPL PUMP HOUSE 20KW"
+ }
 return name
 .toLowerCase()
 .split(" ")
@@ -84,7 +88,7 @@ return word.charAt(0).toUpperCase() + word.slice(1);
 
 
 export default function NtplPage(){
-
+const dispatch=useDispatch()
 const navigate = useNavigate();
 
 const [buildings,setBuildings] = useState([]);
@@ -104,29 +108,37 @@ time:"--"
 });
 
 
-
-/* FETCH BUILDINGS */
-const fetchBuildings = async()=>{
-
-try{
-
-const res =
-await fetch(`${API_BASE}/sub-buildings`);
-
-const data =
-await res.json();
+// ✅ REDUX DATA
+const data = useSelector((state)=>state.userinfo.list);
 
 
-/* ONLY NTPL REAL BUILDINGS */
+// ✅ FETCH ONLY ONCE + INTERVAL
+useEffect(() => {
+
+  dispatch(fetchdata());
+
+  const interval = setInterval(() => {
+    dispatch(fetchdata());
+  }, 15000);
+
+  return () => clearInterval(interval);
+
+}, [dispatch]);
+
+
+// ✅ FILTER + DUMMY + MAP
+useEffect(()=>{
+
+if(!data || data.length === 0) return;
+
 const realBuildings =
 data.filter(
 b=>b.name.toUpperCase().includes("NTPL")
 );
 
 
-/* ✅ ADD DUMMY BUILDINGS */
-const combined =
-[
+/* ✅ ADD DUMMY */
+const combined = [
 ...realBuildings,
 ...dummyBuildings.slice(
 0,
@@ -134,23 +146,17 @@ Math.max(0,4-realBuildings.length)
 )
 ];
 
-
 setBuildings(combined);
 
 
 /* AUTO SELECT */
 setSelectedBuilding(prev=>{
-
-if(!prev && combined.length)
-return combined[0];
+if(!prev && combined.length) return combined[0];
 
 const updated =
-combined.find(
-b=>b.id===prev?.id
-);
+combined.find(b=>b.id===prev?.id);
 
 return updated || combined[0];
-
 });
 
 
@@ -158,35 +164,22 @@ return updated || combined[0];
 const map={};
 
 combined.forEach(b=>{
-
 map[b.id]=Number(b.currentPower||0);
-
 });
 
 setCurrentMap(map);
 
 
-/* CLOCK */
+/* TIME */
 setTime(
-new Date().toLocaleTimeString(
-"en-IN",
-{
+new Date().toLocaleTimeString("en-IN",{
 hour:"2-digit",
 minute:"2-digit",
 second:"2-digit"
-}
-)
+})
 );
 
-}
-catch(err){
-
-console.log(err);
-
-}
-
-};
-
+},[data]);
 
 
 /* FETCH PEAK */
@@ -275,17 +268,6 @@ console.log(err);
 
 
 
-/* AUTO REFRESH */
-useEffect(()=>{
-
-fetchBuildings();
-
-const interval =
-setInterval(fetchBuildings,15000);
-
-return ()=>clearInterval(interval);
-
-},[]);
 
 
 
@@ -569,12 +551,7 @@ onClick={()=>setGraphType("yesterday")}
 Yesterday
 </button>
 
-<button
-className={`graph-btn ${graphType==="monthly"?"active-btn":""}`}
-onClick={()=>setGraphType("monthly")}
->
-Monthly
-</button>
+
 
 </div>
 
