@@ -120,7 +120,7 @@ export default function Login() {
 
 
         <div className="footer">
-          Secure SCADA Access • Authorized Users Onl
+          Secure SCADA Access • Authorized Users Only
         </div>
 
 
