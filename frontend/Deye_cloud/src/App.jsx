@@ -14,7 +14,7 @@ import { data } from "react-router-dom"
  import Nuppl from "./NUPPL/Nuppl";
  import Type4 from '../src/NUPPL/Type4'
  import ProtectedRoute from "./producted";
-//  import Type3 from '../src/NUPPL/Type3'
+ import Type3 from '../src/NUPPL/Type3'
  export default function App() {
 
    return (
@@ -62,7 +62,7 @@ import { data } from "react-router-dom"
          <Route path="/nuppl" element={<ProtectedRoute><Nuppl/></ProtectedRoute>} />
          <Route path="/btps" element={<ProtectedRoute><Btps/></ProtectedRoute>} />
         <Route path="/type4" element={<ProtectedRoute><Type4/></ProtectedRoute>}/>
-         {/* <Route path="/type3" element={<ProtectedRoute><Type3/></ProtectedRoute>}/> */}
+         <Route path="/type3" element={<ProtectedRoute><Type3/></ProtectedRoute>}/>
        </Routes>
 
     </BrowserRouter>
