@@ -59,7 +59,7 @@ export default function Login() {
         <img src={logo} className="login-logo"/>
 
         <div className="company-name">
-          Sun Industrial Automations & Solutions
+          SUN Industrial Automations & Solutions
         </div>
 
         <div className="company-sub">

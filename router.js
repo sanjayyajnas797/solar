@@ -8,13 +8,17 @@ const {
 
     getSubBuildings,
 
-    
+  getLast10DaysData,
 
     login,
 
     getWeather,
 
-    getGraph
+    getGraph,
+
+    
+
+   
 
 } = require("./service");
 
@@ -108,6 +112,49 @@ router.get(
 );
 
 
+
+// ================= CUSTOM DATE GRAPH =================
+
+router.get(
+    "/graph/:stationId",
+    async (req, res) => {
+        try {
+
+            const { stationId } = req.params;
+            const { date } = req.query;
+
+            const data =
+                await getGraph(
+                    "custom",      // 👈 new type
+                    stationId,
+                    date           // 👈 pass date
+                );
+
+            res.json(data);
+
+        }
+        catch (err) {
+
+            res.status(500).json({
+                error: err.message
+            });
+
+        }
+    }
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
 // WEATHER BY CAMPUS
 
 router.get("/weather/:campus", async(req,res)=>{
@@ -131,6 +178,33 @@ router.get("/weather/:campus", async(req,res)=>{
     }
 
 });
+
+
+
+
+// ================= LAST 10 DAYS =================
+router.get(
+  "/last10days/:stationId",
+  async (req, res) => {
+    try {
+
+      const data =
+        await getLast10DaysData(
+          req.params.stationId
+        );
+
+      res.json(data);
+
+    } catch (err) {
+
+      res.status(500).json({
+        error: err.message
+      });
+
+    }
+  }
+);
+
 
 
 

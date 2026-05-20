@@ -13,16 +13,34 @@ import {
   WiDaySunny,
   WiThermometer
 } from "react-icons/wi";
+import { FaHistory,FaBolt } from "react-icons/fa";
 
 import API_BASE from "./config";
 
 
 export default function Mainbuilding(){
 
+  // ENERGY FLOW SPEED BASED ON POWER
+const getWaveSpeed = (power) => {
+
+  if(power > 1200) return "2s";   // very high power
+  if(power > 800) return "3s";    // high
+  if(power > 400) return "4s";    // medium
+  if(power > 100) return "5s";    // low
+  return "6s";                    // very low
+
+};
+
 const navigate = useNavigate();
 
-const [campusList,setCampusList] = useState([]);
-const [weatherData,setWeatherData] = useState({});
+const [campusList,setCampusList] = useState(()=>{
+  const cache = localStorage.getItem("campusCache");
+  return cache ? JSON.parse(cache) : [];
+});
+const [weatherData,setWeatherData] = useState(()=>{
+  const cache = localStorage.getItem("weatherCache");
+  return cache ? JSON.parse(cache) : {};
+});
 const [updateTime,setUpdateTime] = useState("");
 
 const handleLogout=()=>{
@@ -50,12 +68,33 @@ return campusIcon;
 };
 
 const fetchWeather = async (campus) => {
+
   try {
-    const res = await fetch(`${API_BASE}/weather/${campus}`);
-    return await res.json();
-  } catch {
-    return { irradiance: 0, ambientTemp: 0 };
+
+    const res = await fetch(
+      `${API_BASE}/weather/${campus}`
+    );
+
+    const result = await res.json();
+
+    console.log(campus, result);
+
+    return result || {
+      irradiance: 0,
+      temperature: 0
+    };
+
+  } catch (err) {
+
+    console.log("Weather Fetch Error:", err);
+
+    return {
+      irradiance: 0,
+      temperature: 0
+    };
+
   }
+
 };
 
 // FETCH DATA
@@ -231,6 +270,8 @@ for(const c of list){
 setWeatherData(w);
 setCampusList(list);
 
+localStorage.setItem("campusCache", JSON.stringify(list));
+localStorage.setItem("weatherCache", JSON.stringify(w));
 setUpdateTime(
   new Date().toLocaleTimeString("en-IN",{
     hour:"2-digit",
@@ -330,26 +371,121 @@ return(
 </div>
 </div>
 
-<div className="flow-line"></div>
+<div 
+className="flow-line"
+style={{ "--wave-speed": getWaveSpeed(c.today) }}
+>
+  <svg viewBox="0 0 600 40" preserveAspectRatio="none">
+
+    {/* wave 1 */}
+    <path
+      className="wave wave1"
+      d="M0 20 Q 25 0 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+    />
+
+    {/* wave 2 */}
+    <path
+      className="wave wave2"
+      d="M0 20 Q 25 40 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+    />
+
+    {/* wave 3 */}
+    <path
+      className="wave wave3"
+      d="M0 20 Q 25 10 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+    />
+
+  </svg>
+
+  <div className="energy-particles"></div>
+
+</div>
 
 <div className="panel">
-<div className="label">TODAY</div>
+
+<div className="label icon-label">
+  <WiDaySunny className="data-icon today-icon" /> TODAY
+</div>
 <div className="value green">{c.today.toFixed(1)} kWh</div>
-
-<div className="label">YESTERDAY</div>
+<div className="label icon-label">
+  <FaHistory className="data-icon yesterday-icon" /> YESTERDAY
+</div>
 <div className="value blue">{c.yesterday.toFixed(1)} kWh</div>
+
 </div>
 
-<div className="flow-line"></div>
+<div 
+className="flow-line"
+style={{ "--wave-speed": getWaveSpeed(c.today) }}
+>
+  <svg viewBox="0 0 600 40" preserveAspectRatio="none">
 
-<div className="panel">
-<div className="label">CUMULATIVE</div>
-<div className="value cyan">{c.total.toLocaleString()} kWh</div>
+    {/* wave 1 */}
+    <path
+      className="wave wave1"
+      d="M0 20 Q 25 0 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+    />
+
+    {/* wave 2 */}
+    <path
+      className="wave wave2"
+      d="M0 20 Q 25 40 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+    />
+
+    {/* wave 3 */}
+    <path
+      className="wave wave3"
+      d="M0 20 Q 25 10 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+    />
+
+  </svg>
+
+  <div className="energy-particles"></div>
+
 </div>
 
-<div className="flow-line"></div>
+<div className="panel cumulative-panel">
 
-<div className="panel">
+<div className="label icon-label">
+<FaBolt className="data-icon cumulative-icon" /> CUMULATIVE
+</div>
+
+<div className="value cyan cumulative-value">
+{c.total.toLocaleString()} kWh
+</div>
+
+</div>
+<div 
+className="flow-line"
+style={{ "--wave-speed": getWaveSpeed(c.today) }}
+>
+  <svg viewBox="0 0 600 40" preserveAspectRatio="none">
+
+    {/* wave 1 */}
+    <path
+      className="wave wave1"
+      d="M0 20 Q 25 0 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+    />
+
+    {/* wave 2 */}
+    <path
+      className="wave wave2"
+      d="M0 20 Q 25 40 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+    />
+
+    {/* wave 3 */}
+    <path
+      className="wave wave3"
+      d="M0 20 Q 25 10 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+    />
+
+  </svg>
+
+  <div className="energy-particles"></div>
+
+</div>
+
+<div className="panel weather-panel">
 
 <div className="weather-row">
 <WiDaySunny className="icon sun"/>
@@ -363,7 +499,7 @@ return(
 <WiThermometer className="icon temp"/>
 <div>
 <div className="label">TEMPERATURE</div>
-<div className="value blue">{w.ambientTemp} °C</div>
+<div className="value blue">{w.temperature} °C</div>
 </div>
 </div>
 

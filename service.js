@@ -8,6 +8,8 @@ const jwt = require("jsonwebtoken");
 const http = require('http');
 const https = require("https");
 
+const { getMQTTWeather } = require('./mqtt');
+
 const axiosInstance = axios.create({
     httpAgent: new http.Agent({ keepAlive: true }),
     httpsAgent: new https.Agent({ keepAlive: true }),
@@ -24,32 +26,6 @@ const YESTERDAY_CACHE_DURATION = 86400000; // 24 hrs
 
 let DEVICE_CACHE = {};
 const DEVICE_CACHE_DURATION = 300000; // 5 mins
-// ================= WEATHER CACHE =================
-
-let WEATHER_CACHE = {};
-const WEATHER_CACHE_DURATION = 600000; // 10 minutes
-
-
-// ================= CAMPUS LOCATION =================
-
-const CAMPUS_LOCATION = {
-
-  // ✅ NLCIL – Neyveli (CORRECT)
-  NLCIL: { lat: 11.5485, lon: 79.4766 },
-
-  // ✅ BTPS – Barsingsar, Rajasthan (CORRECT)
-  BTPS: { lat: 28.0983, lon: 73.4278 },
-
-  // ✅ NTPL – Tuticorin (Thoothukudi) (CORRECT)
-  NTPL: { lat: 8.7642, lon: 78.1348 },
-
-  // ✅ NUPPL – kanpur (same region ok)
-  NUPPL: { lat: 26.4499, lon: 80.3319 },
-
-  // ✅ NLCIC – Neyveli (same)
-  NLCIC: { lat: 11.5485, lon: 79.4766 }
-
-};
 
 
 
@@ -100,134 +76,83 @@ async function getToken() {
 
     return TOKEN;
 }
-
-
-// ================= API HELPER =================
-    async function api(url, body) {
+async function api(url, data) {
   try {
     const token = await getToken();
 
     const res = await axiosInstance.post(
       `${config.BASE_URL}${url}`,
-      body,
+      data,
       {
-        params: { appId: config.APP_ID },
         headers: {
           Authorization: `Bearer ${token}`
         }
       }
     );
 
+    // 🔥 SAFETY CHECK
+    if (typeof res.data === "string") {
+      throw new Error("Invalid API response");
+    }
+
     return res.data;
 
   } catch (err) {
 
-    
-    if (err.response?.status === 401) {
-      console.log("Token expired → refreshing...");
+    if (
+      err.response &&
+      err.response.data &&
+      err.response.data.code === 2101017
+    ) {
+      console.log("🔄 Token expired, refreshing...");
 
-      
       TOKEN = null;
 
-     
       const newToken = await getToken();
 
-      const retry = await axiosInstance.post(
+      const res = await axiosInstance.post(
         `${config.BASE_URL}${url}`,
-        body,
+        data,
         {
-          params: { appId: config.APP_ID },
           headers: {
             Authorization: `Bearer ${newToken}`
           }
         }
       );
 
-      return retry.data;
+      return res.data;
     }
 
     console.log("API ERROR:", err.message);
-    return {};
+    throw err;
   }
 }
-// ================= WEATHER =================
-
+   
 async function getWeather(campus){
-
-try{
-
-campus = campus.toUpperCase();
-
-if(
-WEATHER_CACHE[campus] &&
-Date.now() - WEATHER_CACHE[campus].time < WEATHER_CACHE_DURATION
-){
-return WEATHER_CACHE[campus].data;
-}
-
-const location = CAMPUS_LOCATION[campus];
-
-if(!location)
-return {
-irradiance:0,
-ambientTemp:0,
-windSpeed:0
-};
-
-const res = await axiosInstance.get(
-`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current=temperature_2m,wind_speed_10m,shortwave_radiation`
-);
-
-const current = res.data.current;
-
-const weather = {
-
-irradiance:
-Math.round(current.shortwave_radiation || 0),
-
-ambientTemp:
-current.temperature_2m,
-
-windSpeed:
-current.wind_speed_10m
-
-};
-
-WEATHER_CACHE[campus] = {
-data:weather,
-time:Date.now()
-};
-
-return weather;
-
-}catch(err){
-
-
-
-return {
-irradiance:0,
-ambientTemp:0,
-windSpeed:0
-};
-
-}
-
+  return getMQTTWeather(campus);
 }
 
 
 // ================= GET STATIONS =================
 
 async function getStations() {
+  try {
 
-    const data =
-        await api(
-            "/v1.0/station/list",
-            { page: 1, size: 100 }
-        );
+    const data = await api(
+      "/v1.0/station/list",
+      { page: 1, size: 100 }
+    );
 
     return data.stationList || [];
-}
 
+  } catch (err) {
+
+    console.log("Stations failed, using cache");
+
+    return CACHE?.sub || []; // 🔥 fallback
+
+  }
+}
 
 // ================= GET DEVICES =================
 
@@ -271,8 +196,13 @@ async function getLatest(deviceSn) {
                 deviceList: [String(deviceSn)]
             }
         );
-           
-    return data.deviceDataList?.[0] || null;
+
+    const latest =
+        data.deviceDataList?.[0] || null;
+
+   
+
+    return latest;
 }
 
 
@@ -317,81 +247,139 @@ async function getYesterday(stationId) {
 }
 
 // ================= BUILDING =================
-
 async function getBuilding(station) {
 
-try{
+  try {
 
-// ⚡ PARALLEL FETCH
-const [devices, yesterday] = await Promise.all([
-    getDevices(station.id),
-    getYesterday(station.id)
-]);
+    const [devices, yesterday] = await Promise.all([
+      getDevices(station.id),
+      getYesterday(station.id)
+    ]);
 
-const inverter =
-devices.find(d=>d.deviceType==="INVERTER");
-
-if (!inverter)
-return {
-id: station.id,
-name: station.name,
-today: 0,
-yesterday: 0,
-total: 0,
-currentPower: 0
-};
-
-// ⚡ ONLY ONE API CALL
-const latest = await getLatest(inverter.deviceSn);
-
-const today =
-Number(
-latest?.dataList?.find(
-d=>d.key==="DailyActiveProduction"
-)?.value || 0
+   const inverters = devices.filter(d =>
+  d.deviceType === "INVERTER" ||
+  d.deviceType === "INV" ||
+  d.deviceType === 1
 );
 
-const powerRaw =
-Number(
-latest?.dataList?.find(
-d=>d.key==="TotalActiveACOutputPower"
-)?.value || 0
-);
 
-const currentPower =
-Number((powerRaw / 1000).toFixed(1));
+    let mpptData = {};
+   let today = 0;
+let total = 0;
+let currentPower = 0;
 
-const total =
-Number(
-latest?.dataList?.find(
-d=>d.key==="TotalActiveProduction"
-)?.value || 0
-);
+let deviceStatus = "OFFLINE";
+    let totalMPPTPower = 0; 
 
-return {
-id: station.id,
-name: station.name,
-today,
-yesterday,
-total,
-currentPower
-};
+    for (let i = 0; i < inverters.length; i++) {
 
-}catch(err){
+  const latest =
+    await getLatest(
+      inverters[i].deviceSn
+    );
 
-console.log("Building error:", err.message);
+  
 
-return {
-id: station.id,
-name: station.name,
-today: 0,
-yesterday: 0,
-total: 0,
-currentPower: 0
-};
+  // ✅ REAL CLOUD STATUS
+ // ✅ PRIORITY STATUS LOGIC
+
+     if (latest?.deviceState === 3) {
+
+  deviceStatus = "ALERT";
+
+}
+else if (latest?.deviceState === 1) {
+
+  deviceStatus = "ONLINE";
+
+}
+else {
+
+  deviceStatus = "OFFLINE";
 
 }
 
+      // ================= MPPT (PV1 → PV8) =================
+      for (let pv = 1; pv <= 8; pv++) {
+
+        const voltage =
+          Number(
+            latest?.dataList?.find(d => d.key === `DCVoltagePV${pv}`)?.value || 0
+          );
+
+        const current =
+          Number(
+            latest?.dataList?.find(d => d.key === `DCCurrentPV${pv}`)?.value || 0
+          );
+
+        const power = voltage * current; // 🔥 MAIN CALCULATION
+
+        if (voltage > 0 || current > 0) {
+
+          mpptData[`inv${i + 1}_pv${pv}`] = {
+            voltage,
+            current,
+            power: Number(power.toFixed(1))
+          };
+
+          totalMPPTPower += power; // 🔥 sum
+        }
+      }
+
+      // ================= PRODUCTION =================
+      today += Number(
+        latest?.dataList?.find(d => d.key === "DailyActiveProduction")?.value || 0
+      );
+
+      total += Number(
+        latest?.dataList?.find(d => d.key === "TotalActiveProduction")?.value || 0
+      );
+
+      const powerRaw =
+        Number(
+          latest?.dataList?.find(d => d.key === "TotalActiveACOutputPower")?.value || 0
+        );
+
+      currentPower += (powerRaw / 1000);
+    }
+
+    // 🔥 FINAL MPPT kW
+    const totalMPPTkW = totalMPPTPower / 1000;
+
+  
+
+    return {
+       id: station.id,
+  name: station.name,
+
+    status: deviceStatus,
+      today: Number(today.toFixed(1)),
+      yesterday,
+      total: Number(total.toFixed(1)),
+      currentPower: Number(currentPower.toFixed(1)),
+
+      // 🔥 THIS IS WHAT MANAGER WANTS
+      mpptTotalPower: Number(totalMPPTkW.toFixed(1)),
+
+      mppt: mpptData
+    };
+
+  } catch (err) {
+
+    console.log("Building error:", err.message);
+
+    return {
+      id: station.id,
+      name: station.name,
+      today: 0,
+      yesterday: 0,
+      total: 0,
+      currentPower: 0,
+      mpptTotalPower: 0,
+      mppt: {}
+    };
+
+  }
 }
 
 // ================= MAIN BUILDING =================
@@ -492,18 +480,25 @@ return CACHE.sub;
 }
 
 
-// ================= GRAPH =================
 
-async function getGraph(type, stationId) {
+
+// ================= GRAPH =================
+async function getGraph(type, stationId, date) {
 
   try {
 
     const devices = await getDevices(stationId);
 
-    const inverter =
-      devices.find(d => d.deviceType === "INVERTER");
+    // ✅ INCLUDE ALL POSSIBLE INVERTERS
+    const inverters = devices.filter(d =>
+      d.deviceType === "INVERTER" ||
+      d.deviceType === "INV" ||
+      d.deviceType === 1
+    );
 
-    if (!inverter) return [];
+    
+
+    if (!inverters.length) return [];
 
     const now = new Date();
 
@@ -512,34 +507,33 @@ async function getGraph(type, stationId) {
 
     // ================= TODAY =================
     if (type === "today") {
-
       startAt = now.toISOString().split("T")[0];
       endAt = startAt;
-
       granularity = 1;
-
-      // ✅ POWER (kW)
       measurePoint = "TotalActiveACOutputPower";
     }
 
     // ================= YESTERDAY =================
     else if (type === "yesterday") {
-
       const y = new Date();
       y.setDate(now.getDate() - 1);
 
       startAt = y.toISOString().split("T")[0];
       endAt = startAt;
-
       granularity = 1;
-
-      // ✅ POWER (kW)
       measurePoint = "TotalActiveACOutputPower";
     }
 
-    // ================= MONTHLY =================
-    else {
+    // ================= CUSTOM =================
+    else if (type === "custom") {
+      startAt = date;
+      endAt = date;
+      granularity = 1;
+      measurePoint = "TotalActiveACOutputPower";
+    }
 
+    // ================= MONTH =================
+    else {
       const firstDay = new Date(
         now.getFullYear(),
         now.getMonth(),
@@ -548,56 +542,68 @@ async function getGraph(type, stationId) {
 
       startAt = firstDay.toISOString().split("T")[0];
       endAt = now.toISOString().split("T")[0];
-
       granularity = 2;
-
-      // ✅ ENERGY (kWh)
       measurePoint = "DailyActiveProduction";
     }
 
-    // ================= API CALL =================
+    // 🔥 TIME BASED SUM (VERY IMPORTANT)
+    let timeMap = {};
 
-    const result = await api(
-      "/v1.0/device/history",
-      {
-        deviceSn: String(inverter.deviceSn),
-        startAt,
-        endAt,
-        granularity,
-        measurePoints: [measurePoint]
-      }
-    );
+    // ================= LOOP ALL INVERTERS =================
+    for (const inv of inverters) {
 
-    const raw = result.dataList || [];
+     
 
-    // ================= FORMAT =================
+      const result = await api(
+        "/v1.0/device/history",
+        {
+          deviceSn: String(inv.deviceSn),
+          startAt,
+          endAt,
+          granularity,
+          measurePoints: [measurePoint]
+        }
+      );
 
-    return raw.map(item => {
+      const raw = result.dataList || [];
 
-      const obj =
-        item.itemList?.find(
-          i => i.key === measurePoint
-        );
+      raw.forEach(item => {
 
-      return {
-        time: new Date(Number(item.time) * 1000).toISOString(),
+        const time =
+          new Date(Number(item.time) * 1000).toISOString();
 
-        // 👉 today/yesterday = power (W)
-        // 👉 monthly = energy (kWh)
-        power: Number(obj?.value || 0)
-      };
+        const obj =
+          item.itemList?.find(i => i.key === measurePoint);
 
-    });
+        const power = Number(obj?.value || 0);
+
+        // 🔥 SAME TIME → ADD ALL INVERTERS
+        if (!timeMap[time]) {
+          timeMap[time] = 0;
+        }
+
+        timeMap[time] += power;
+      });
+    }
+
+    // 🔥 FINAL DATA
+    const allData = Object.keys(timeMap).map(time => ({
+      time,
+      power: timeMap[time]
+    }));
+
+    // 🔥 REAL PEAK (ALL INVERTERS COMBINED)
+    const maxPower = Math.max(...Object.values(timeMap));
+
+    
+
+    return allData;
 
   } catch (err) {
-
     console.log("Graph error:", err.message);
     return [];
-
   }
-
 }
-
 
 // ================= LOGIN =================
 
@@ -637,6 +643,47 @@ console.log("Background refresh error:", err.message);
 },60000);
 
 
+
+
+// ================= LAST 10 DAYS =================
+async function getLast10DaysData(stationId) {
+  try {
+
+    const today = new Date();
+    const dates = [];
+
+    for (let i = 9; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+
+      dates.push(d.toISOString().split("T")[0]);
+    }
+
+    const result = await api(
+      "/v1.0/station/history",
+      {
+        stationId: Number(stationId),
+        startAt: dates[0],
+        endAt: dates[dates.length - 1],
+        granularity: 2
+      }
+    );
+
+    const raw = result.stationDataItems || [];
+
+    return raw.map(item => ({
+      date: item.time,
+      value: Number(item.generationValue || 0)
+    }));
+
+  } catch (err) {
+    console.log("Last10 error:", err.message);
+    return [];
+  }
+}
+
+
+
 // ================= EXPORT =================
 
 module.exports={
@@ -645,6 +692,9 @@ getMainBuildingData,
 getSubBuildings,
 getWeather,
 login,
-getGraph
+getGraph,
+ getLast10DaysData
+
+ 
 
 };

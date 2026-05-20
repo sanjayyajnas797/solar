@@ -1,32 +1,56 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import GaugeComponent from "react-gauge-component";
 import "../pages/Buildings.css";
-import PowerGraph from "../graph/graph";
+
 import API_BASE from "../pages/config";
 
 import logo from "../assets/main logo.png";
-import epcLogo from "../assets/sunlogo.png";   // ✅ EPC LOGO ADDED
-import buildIcon from "../assets/tower.png";
-import { fetchdata } from "../store/createslice";
-import {useDispatch, useSelector} from 'react-redux'
+import epcLogo from "../assets/sunlogo.png";
+import club from '../assets/club.png'
+import school from '../assets/school.jpg'
+import ta from '../assets/ta.png'
+import switchyard from '../assets/pstc.png'
 
+import { useDispatch, useSelector } from "react-redux";
+import { fetchdata } from "../store/createslice";
+
+import { FaBuilding, FaBolt } from "react-icons/fa";
+import { WiDaySunny } from "react-icons/wi";
+import { FaHistory } from "react-icons/fa";
+
+
+/* ========================= */
 /* CAPACITY MAP */
+/* ========================= */
+
 const capacityMap = {
 
   "NLCBTPSOHCBUILDING25KW": 23.73,
   "NLCBTPSOFFICERSCLUB33KW": 27.12,
   "NLCBTPSTAOFFICE25KW": 23.73,
-  "NLCBTPSNEWSCHOOLBUILDING": 149.16
+  "NLCBTPSNEWSCHOOLBUILDINGINV2":149.16,
+  "NLCBTPSNEWSCHOOLBUILDINGINV1":149.16,
+  "NLCBTPSEMPLOYEESCLUB":28.82,
+   "NLCBTPSNEWCISFBARRACKS":80.23,
+   "NLCBTPSTHERMALCANTEEN":67.24
 
 };
 
 
+/* ========================= */
 /* NORMALIZE */
+/* ========================= */
+
 const normalizeName = name =>
   name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-       const formatBtpsName = (name) => {
+
+/* ========================= */
+/* FORMAT NAME */
+/* ========================= */
+
+const formatBtpsName = (name) => {
 
   if (!name) return "";
 
@@ -47,7 +71,6 @@ const normalizeName = name =>
 
         if (!word) return "";
 
-        /* ✅ FORCE TA CAPITAL */
         if (word.toLowerCase() === "ta")
           return "TA";
 
@@ -63,31 +86,52 @@ const normalizeName = name =>
 
 };
 
+
+
 export default function Btps(){
 
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const dispatch=useDispatch()
-  const [buildings,setBuildings] = useState([]);
-  const [selectedBuilding,setSelectedBuilding] = useState(null);
 
-  const [graphType,setGraphType] = useState("today");
+  const data = useSelector((state)=>state.userinfo.list);
+
+  const [buildings,setBuildings] = useState([]);
+ 
+
+  const [displayToday,setDisplayToday] = useState(0);
+  const [displayYesterday,setDisplayYesterday] = useState(0);
+  const [displayLive,setDisplayLive] = useState(0);
+
 
   const [time,setTime] = useState("");
 
   const [currentMap,setCurrentMap] = useState({});
 
-  const [peak,setPeak] = useState({
-    value:0,
-    name:"--",
-    time:"--"
-  });
-   
-  
 
-    const data=useSelector((state)=>state.userinfo.list)
-    
-    useEffect(() => {
-  if (!data || data.length === 0) return;
+/* ========================= */
+/* FETCH DATA */
+/* ========================= */
+
+useEffect(() => {
+
+  dispatch(fetchdata());
+
+  const interval = setInterval(()=>{
+    dispatch(fetchdata());
+  },15000);
+
+  return ()=>clearInterval(interval);
+
+},[dispatch]);
+
+
+/* ========================= */
+/* FILTER BTPS */
+/* ========================= */
+
+useEffect(()=>{
+
+  if(!data || data.length===0) return;
 
   const btps = data.filter(b =>
     b.name.toUpperCase().includes("BTPS")
@@ -95,145 +139,97 @@ export default function Btps(){
 
   setBuildings(btps);
 
-  setSelectedBuilding(prev => {
-    if (!prev && btps.length) return btps[0];
-
-    const updated = btps.find(b => b.id === prev?.id);
-    return updated || btps[0];
-  });
-
+  
   const map = {};
-  btps.forEach(b => {
-    map[b.id] = Number(b.currentPower || 0);
+  btps.forEach(b=>{
+    map[b.id] = Number(b.currentPower||0);
   });
 
   setCurrentMap(map);
 
   setTime(
-    new Date().toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
+    new Date().toLocaleTimeString("en-IN",{
+      hour:"2-digit",
+      minute:"2-digit",
+      second:"2-digit"
     })
   );
 
-}, [data]);
-
-  
-
-  /* FETCH PEAK */
-  const fetchPeak = async()=>{
-
-    if(!selectedBuilding) return;
-
-    try{
-
-      const res =
-        await fetch(
-          `${API_BASE}/graph/${graphType}/${selectedBuilding.id}`
-        );
-
-      const graph =
-        await res.json();
-
-      if(!Array.isArray(graph) || !graph.length){
-
-        setPeak({
-          value:0,
-          name:formatBtpsName(selectedBuilding.name),
-          time:"--"
-        });
-
-        return;
-
-      }
-
-      let max = 0;
-      let peakTime = "--";
-
-      graph.forEach(point=>{
-
-        const power =
-          Number(point.power || 0)/1000;
-
-        if(power > max){
-
-          max = power;
-
-          const date =
-            new Date(point.time);
-
-          if(!isNaN(date))
-            peakTime =
-              date.toLocaleTimeString("en-IN",{
-                hour:"2-digit",
-                minute:"2-digit"
-              });
-
-        }
-
-      });
-
-      setPeak({
-        value:max,
-        name:formatBtpsName(selectedBuilding.name),
-        time:peakTime
-      });
-
-    }
-    catch(err){
-      console.log("Peak error:",err);
-    }
-
-  };
+},[data]);
 
 
-  useEffect(() => {
-  dispatch(fetchdata());
+/* ========================= */
+/* TOTALS */
+/* ========================= */
 
-  const interval = setInterval(() => {
-    dispatch(fetchdata());
-  }, 15000);
+const totalToday =
+buildings.reduce((sum,b)=>sum+Number(b.today||0),0);
 
-  return () => clearInterval(interval);
-}, [dispatch]);
+const totalYesterday =
+buildings.reduce((sum,b)=>sum+Number(b.yesterday||0),0);
 
-
-  useEffect(()=>{
-
-    if(selectedBuilding)
-      fetchPeak();
-
-  },[selectedBuilding,graphType]);
+const totalCurrent =
+Object.values(currentMap)
+.reduce((sum,val)=>sum+val,0);
 
 
-  /* TOTALS */
-  const totalToday =
-    buildings.reduce(
-      (sum,b)=>sum+Number(b.today||0),0
-    );
+/* ========================= */
+/* ANIMATION COUNTER */
+/* ========================= */
 
-  const totalYesterday =
-    buildings.reduce(
-      (sum,b)=>sum+Number(b.yesterday||0),0
-    );
+useEffect(()=>{
 
-  const totalCurrent =
-    Object.values(currentMap)
-    .reduce((sum,val)=>sum+val,0);
+let start = 0;
+const duration = 900;
+
+const animate = () => {
+
+start += 16;
+
+const progress = Math.min(start/duration,1);
+
+setDisplayToday((totalToday*progress).toFixed(1));
+setDisplayYesterday((totalYesterday*progress).toFixed(1));
+setDisplayLive((totalCurrent*progress).toFixed(1));
+
+if(progress<1){
+requestAnimationFrame(animate);
+}
+
+};
+
+animate();
+
+},[totalToday,totalYesterday,totalCurrent]);
 
 
-  return(
+const getBtpsIcon = (name) => {
+
+const n = normalizeName(name);
+
+if(n.includes("OHCBUILDING")) return switchyard;
+
+if(n.includes("OFFICERSCLUB")) return club;
+
+if(n.includes("TAOFFICE")) return ta;
+
+if(n.includes("NEWSCHOOL")) return school;
+
+return switchyard;
+
+};
+
+return(
 
 <div className="buildings-page">
 
 
 {/* HEADER */}
+
 <div className="second-header">
 
 <div className="secondheader-left">
 
-{/* CLIENT LOGO */}
 <img src={logo} className="second-logo"/>
 
 <div>
@@ -249,7 +245,6 @@ Solar Dashboard
 </div>
 
 
-{/* ✅ EPC SECTION ADDED */}
 <div className="header-supplier-block">
 
 <img src={epcLogo} className="second-logo"/>
@@ -268,14 +263,14 @@ SUN Industrial Automations & Solutions Pvt Ltd
 
 </div>
 
-
 </div>
 
 
 <div className="secondheader-right">
 
 <div className="secondlive-box">
-● LIVE SYSTEM
+<div className="live-dot-buildings"></div>
+<span>LIVE SYSTEM</span>
 </div>
 
 <div className="second-updated">
@@ -296,43 +291,184 @@ onClick={()=>navigate("/dashboard")}
 
 
 {/* SUMMARY */}
+
 <div className="summary">
 
-<div className="summary-card">
-<div className="summary-label">Total Buildings</div>
-<div className="summary-value">
+{/* TOTAL BUILDINGS */}
+<div className="summary-card buildings-card">
+
+<div className="summary-left">
+
+<div className="summary-icon">
+<FaBuilding/>
+</div>
+
+<div className="summary-label">
+Total Buildings
+</div>
+
+<div className="summary-number building-count">
 {buildings.length}
 </div>
+
+</div>
+
+<div className="summary-right skyline-box">
+
+<div className="skyline">
+<div className="sky-building b1"></div>
+<div className="sky-building b2"></div>
+<div className="sky-building b3"></div>
+</div>
+
+<div className="power-line"></div>
+
+</div>
+
 </div>
 
 
+{/* TODAY */}
 <div className="summary-card">
-<div className="summary-label">Today Production</div>
-<div className="summary-value green">
-{totalToday.toFixed(1)} kWh
+
+<div className="summary-left">
+
+<div className="summary-header">
+
+<div className="summary-icon">
+<WiDaySunny/>
 </div>
+
+<div className="summary-label">
+Today Production
+</div>
+
+</div>
+
+<div className="summary-number">
+{displayToday} kWh
+</div>
+
+</div>
+
+<div className="summary-right">
+
+<GaugeComponent
+type="semicircle"
+value={totalToday}
+minValue={0}
+maxValue={1500}
+arc={{
+subArcs:[
+{limit:500,color:"#ff3d00"},
+{limit:1000,color:"#FFC107"},
+{limit:1500,color:"#00e676"}
+]
+}}
+pointer={{
+color:"#ffffff",
+length:0.7,
+width:8
+}}
+labels={{
+valueLabel:{formatTextValue:()=>""}
+}}
+/>
+
+</div>
+
 </div>
 
 
+{/* YESTERDAY */}
 <div className="summary-card">
-<div className="summary-label">Yesterday Production</div>
-<div className="summary-value blue">
-{totalYesterday.toFixed(1)} kWh
+
+<div className="summary-left">
+
+<div className="summary-header">
+
+<div className="summary-icon">
+<FaHistory/>
 </div>
+
+<div className="summary-label">
+Yesterday Production
+</div>
+
+</div>
+
+<div className="summary-number">
+{displayYesterday} kWh
+</div>
+
+</div>
+
+<div className="summary-right">
+
+<GaugeComponent
+type="semicircle"
+value={totalYesterday}
+minValue={0}
+maxValue={1500}
+arc={{
+subArcs:[
+{limit:500,color:"#EA4228"},
+{limit:1000,color:"#F5CD19"},
+{limit:1500,color:"#2196f3"}
+]
+}}
+labels={{
+valueLabel:{formatTextValue:()=>""}
+}}
+/>
+
+</div>
+
 </div>
 
 
-
-
-
+{/* LIVE POWER */}
 <div className="summary-card current-card">
+
+<div className="summary-left">
+
+<div className="summary-header">
+
+<div className="summary-icon">
+<FaBolt/>
+</div>
 
 <div className="summary-label">
 Total Live Power
 </div>
 
-<div className="summary-value current-text">
-{totalCurrent.toFixed(1)} kW
+</div>
+
+<div className="summary-number">
+{displayLive} kW
+</div>
+
+</div>
+
+<div className="summary-right">
+
+<GaugeComponent
+type="semicircle"
+value={totalCurrent}
+minValue={0}
+maxValue={50}
+arc={{
+subArcs:[
+{limit:10,color:"#EA4228"},
+{limit:30,color:"#F5CD19"},
+{limit:50,color:"#00e676"}
+]
+}}
+labels={{
+valueLabel:{formatTextValue:()=>""}
+}}
+/>
+
 </div>
 
 </div>
@@ -342,35 +478,64 @@ Total Live Power
 
 
 {/* BUILDINGS */}
+
 <div className="building-grid">
 
 {buildings.map(b=>{
 
-const normalized =
-normalizeName(b.name);
-
 const capacity =
-capacityMap[normalized];
+capacityMap[normalizeName(b.name)];
+const current = Number(currentMap[b.id] || 0);
 
-const isActive =
-selectedBuilding?.id === b.id;
 
+
+  const isOffline =
+  b.status === "OFFLINE";
+
+const isAlert =
+  b.status === "ALERT";
 
 return(
 
 <div
 key={b.id}
-onClick={() => {
-  setSelectedBuilding(b);
+onClick={() =>{
+   navigate(`/building/${b.id}`, {
+  state: {
+   name: formatBtpsName(b.name),
+    today: b.today,
+    yesterday: b.yesterday,
+    cumulative: b.total,
+     currentPower: current,
+      capacity: capacity
+  }
+});
 }}
-className={`building-card ${isActive?"active":""}`}
+className="building-card"
 >
 
 <div className="card-header">
 
-<img src={buildIcon} className="card-icon"/>
+<img
+src={getBtpsIcon(b.name)}
+className="card-icon"
+/>
 
-<div className="online">ONLINE</div>
+<div
+  className={`online
+  ${isOffline ? "offline" : ""}
+  ${isAlert ? "alert" : ""}`}
+>
+
+  {
+    isAlert
+      ? "ALERT"
+      : isOffline
+      ? "OFFLINE"
+      : "ONLINE"
+  }
+
+</div>
 
 </div>
 
@@ -382,9 +547,11 @@ className={`building-card ${isActive?"active":""}`}
 </span>
 
 {capacity &&
+
 <span className="capacity-inline">
 Plant Capacity {capacity} kW
 </span>
+
 }
 
 </div>
@@ -393,24 +560,35 @@ Plant Capacity {capacity} kW
 <div className="energy-row">
 
 <div>
+
 <div className="energy-label">TODAY</div>
+
 <div className="energy-value green">
 {Number(b.today||0).toFixed(1)} kWh
 </div>
+
 </div>
 
+
 <div>
+
 <div className="energy-label">YESTERDAY</div>
+
 <div className="energy-value blue">
 {Number(b.yesterday||0).toFixed(1)} kWh
 </div>
+
 </div>
 
+
 <div>
+
 <div className="energy-label">CUMULATIVE</div>
+
 <div className="energy-value cumulative">
-{Number(b.total || 0).toFixed(1)} kWh
+{Number(b.total||0).toFixed(1)} kWh
 </div>
+
 </div>
 
 </div>
@@ -421,7 +599,7 @@ Plant Capacity {capacity} kW
 Last update: {time}
 
 <div className="current-live">
-Live Power: {(currentMap[b.id] || 0).toFixed(1)} kW
+Live Power: {(currentMap[b.id]||0).toFixed(1)} kW
 </div>
 
 </div>
@@ -434,52 +612,6 @@ Live Power: {(currentMap[b.id] || 0).toFixed(1)} kW
 
 </div>
 
-
-
-{/* GRAPH */}
-{selectedBuilding &&(
-
-<div className="graph-section">
-
-<div className="graph-title">
-Energy Trend - {formatBtpsName(selectedBuilding.name)}
-</div>
-
-
-<div className="graph-buttons">
-
-<button
-className={`graph-btn ${graphType==="today"?"active-btn":""}`}
-onClick={()=>setGraphType("today")}
->
-Today
-</button>
-
-<button
-className={`graph-btn ${graphType==="yesterday"?"active-btn":""}`}
-onClick={()=>setGraphType("yesterday")}
->
-Yesterday
-</button>
-
-
-
-</div>
-
-
-<div className="graph-box">
-
-<PowerGraph
-stationId={selectedBuilding.id}
-type={graphType}
-buildingName={formatBtpsName(selectedBuilding.name)}
-/>
-
-</div>
-
-</div>
-
-)}
 
 </div>
 
