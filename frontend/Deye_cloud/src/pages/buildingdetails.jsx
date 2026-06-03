@@ -19,7 +19,7 @@ import {
 
 import solarpanel from "../assets/sol.webp";
 import inverter from "../assets/inverter.png";
-import grid from "../assets/sanj.png";
+import grid from "../assets/tower.avif";
 import epc from '../assets/sunlogo.png'
 import btps from '../assets/nlc.png'
 

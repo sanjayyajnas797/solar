@@ -50,6 +50,8 @@ client.on("connect", () => {
 
   client.subscribe("rajashthan/rx");
 
+   client.subscribe("nuppl/rx"); 
+
   console.log("Subscribed All Topics ✅");
 
 });
@@ -83,11 +85,25 @@ client.on("message", (topic, message) => {
       latestWeather.NLCIL = weather;
       latestWeather.NLCIC = weather;
       latestWeather.NTPL = weather;
-      latestWeather.NUPPL = weather;
+     
 
       
 
     }
+
+  if (topic === "nuppl/rx") {
+
+  latestWeather.NUPPL = {
+
+    irradiance: status.Param_1 || 0,
+
+    temperature: (status.Param_2 || 0) / 10
+
+  };
+
+ 
+
+}
 
     // ================= BTPS =================
 
@@ -109,6 +125,8 @@ client.on("message", (topic, message) => {
     }
 
   }
+
+  
   catch (err) {
 
     console.log("MQTT Parse Error ❌", err.message);
