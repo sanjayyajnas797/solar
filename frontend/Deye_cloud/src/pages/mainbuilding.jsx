@@ -384,7 +384,8 @@ const irradiance =
 const temperature =
     isOnline ? w.temperature : 0;
 
-    const giiOnline = giiData.online;
+   const giiOnline =
+    giiData.horizontal_irradiance > 0;
 return(
 
 <div className="scada-row" key={i}>
