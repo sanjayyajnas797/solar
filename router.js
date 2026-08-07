@@ -26,7 +26,7 @@ const {
 
 } = require("./service");
 
-const { getGIIStatus } = require("./mqttWeather");
+const { getGIIStatus } = require("./mqtt");
 
 const db = require("./db");
 

@@ -225,11 +225,7 @@ AND DATE(created_at AT TIME ZONE 'Asia/Kolkata')
 ORDER BY created_at ASC;
 `, [campus, fromDate, toDate]);
 
-    console.table(rows.slice(0,5));
-    console.log("Campus :", campus);
-    console.log("From :", fromDate);
-    console.log("To :", toDate);
-    console.table(rows.slice(-10));
+    
 
     // ==========================================
     // FIRST CALCULATE CUMULATIVE USING ALL DATA

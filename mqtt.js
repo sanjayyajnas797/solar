@@ -94,12 +94,7 @@ client.on("connect", () => {
 
 async function saveWeather(campus, irradiance, temperature,  mqttTimestamp) {
 
-    console.log("===============");
-  console.log("SAVE WEATHER CALLED");
-  console.log("Campus :", campus);
-  console.log("Irradiance :", irradiance);
-  console.log("Temperature :", temperature);
-  console.log("MQTT Timestamp :", mqttTimestamp);
+  
 
 
   if (irradiance <= 0) {
@@ -136,7 +131,7 @@ to_char(
     mqttTimestamp
 ]);
 
-console.log(result.rows[0]);
+
   
   } catch (err) {
     console.log("DB Insert Error ❌", err.message);
