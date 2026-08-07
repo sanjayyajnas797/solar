@@ -3,6 +3,6 @@
 // CURRENT → LOCAL BACKEND
 // const API_BASE = "http://13.203.219.55:5000/api";
 // const API_BASE="http://localhost:5000/api";
-const API_BASE = "https://railway-dashboard.onrender.com/api";
+const API_BASE = "https://solar-backend-a794.onrender.com/api";
 
 export default API_BASE;
