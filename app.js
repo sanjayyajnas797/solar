@@ -18,6 +18,10 @@
  app.use("/api", routes);
  const db=require('./db')
 
+ app.get("/test", (req, res) => {
+  res.json({ status: "OK" });
+});
+
  app.get("/", (req, res) => {
     res.send("Backend running ✅");
  });
