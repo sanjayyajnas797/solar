@@ -6,6 +6,7 @@ import MainLogo from "../assets/main logo.png";
 import SunLogo from "../assets/sunlogo.png";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import API_BASE from './config'
 
 export default function WmsReport() {
 
@@ -41,40 +42,30 @@ const generateReport = async () => {
 
 if (campus === "GII") {
 
-    res = await axios.get(
-
-        "http://localhost:5000/api/weather/gii-report",
-
-        {
-
-          params:{
-    from:fromDate,
-    to:toDate,
-    interval
-}
-
+   res = await axios.get(
+    `${API_BASE}/weather/gii-report`,
+    {
+        params: {
+            from: fromDate,
+            to: toDate,
+            interval
         }
-
-    );
+    }
+);
 
 }
 else {
 
-    res = await axios.get(
-
-        `http://localhost:5000/api/weather/report/${campus}`,
-
-        {
-
-            params:{
-    from:fromDate,
-    to:toDate,
-    interval
-}
-
+   res = await axios.get(
+    `${API_BASE}/weather/report/${campus}`,
+    {
+        params: {
+            from: fromDate,
+            to: toDate,
+            interval
         }
-
-    );
+    }
+);
 
 }
 

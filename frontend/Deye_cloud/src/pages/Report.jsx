@@ -6,6 +6,7 @@ import { saveAs } from "file-saver";
 import mainlogo from "../assets/main logo.png";
 import sunlogo from "../assets/sunlogo.png";
 import { useNavigate } from "react-router-dom";
+import API_BASE from './config'
 function Report() {
 
     const navigate = useNavigate();
@@ -616,10 +617,7 @@ const footer = sheet.getCell(`C${currentRow}`);
 
         try {
 
-            const res = await axios.get(
-                "http://localhost:5000/api/sub-buildings"
-            );
-
+            const res = await axios.get(`${API_BASE}/sub-buildings`);
             const list = res.data.filter(
 
                 item => item.campus === campus
@@ -685,8 +683,8 @@ const generateReport = async () => {
         if (isCampusReport) {
 
             const res = await axios.get(
-                `http://localhost:5000/api/report/campus/${campus}?from=${fromDate}&to=${toDate}`
-            );
+    `${API_BASE}/report/campus/${campus}?from=${fromDate}&to=${toDate}`
+);
 
             setCampusSummary(res.data);
 
@@ -701,8 +699,8 @@ const generateReport = async () => {
         else {
 
             const res = await axios.get(
-                `http://localhost:5000/api/report/${building}?from=${fromDate}&to=${toDate}`
-            );
+    `${API_BASE}/report/${building}?from=${fromDate}&to=${toDate}`
+);
 
             setBuildingReport(res.data);
 
