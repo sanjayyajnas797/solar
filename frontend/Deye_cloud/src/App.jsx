@@ -13,6 +13,10 @@
   import ProtectedRoute from "./producted";
   import Type3 from '../src/NUPPL/Type3'
   import BuildingDetails from "./pages/buildingdetails";
+  import FtsInverterDetails from "./NLCIC/FtsInverterDetails";
+  import Ftsshow from "./NLCIC/Ftsshow";
+  import Report from "./pages/Report";
+  import WmsReport from "./pages/wmsreport";
   export default function App() {
 
    return (
@@ -62,6 +66,21 @@
         <Route path="/type4" element={<ProtectedRoute><Type4/></ProtectedRoute>}/>
          <Route path="/type3" element={<ProtectedRoute><Type3/></ProtectedRoute>}/>
          <Route path="/building/:id" element={<ProtectedRoute><BuildingDetails/></ProtectedRoute>}/>
+         <Route path="/report" element={<Report />} />
+         <Route
+  path="/fts-inverter/:id"
+  element={<FtsInverterDetails />}
+/>
+   <Route path="/fts-show/:id" element={<Ftsshow/>}></Route>
+   <Route
+  path="/wms-report"
+  element={
+    <ProtectedRoute>
+      <WmsReport />
+    </ProtectedRoute>
+  }
+/>
+
        </Routes>
 
     </BrowserRouter>

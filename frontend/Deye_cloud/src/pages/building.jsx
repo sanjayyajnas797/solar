@@ -372,8 +372,8 @@ Today Production
 </div>
 </div>
 
-<div className="summary-number">
-{displayToday} kWh
+<div className="summary-number summary-number-live">
+    {displayToday} kWh
 </div>
 
 </div>
@@ -421,8 +421,8 @@ Yesterday Production
 </div>
 </div>
 
-<div className="summary-number">
-{displayYesterday} kWh
+<div className="summary-number summary-number-live">
+    {displayYesterday} kWh
 </div>
 
 </div>
@@ -467,8 +467,8 @@ Total Live Power
 </div>
 </div>
 
-<div className="summary-number">
-{displayLive} kW
+<div className="summary-number summary-number-live">
+    {displayLive} kW
 </div>
 
 </div>

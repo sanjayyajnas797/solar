@@ -11,21 +11,22 @@ margin:0;
 padding:0;
 font-family:Segoe UI, Arial, sans-serif;
 
-background:linear-gradient(180deg,#1f2137 0%,#0f1729 100%);
+background:linear-gradient(180deg,#0c3161dc 0%,#0e2453 100%);
 
 min-height:100vh;
-color:#e6f1ff;
+color:#faffe6;
 overflow-x:hidden;
 }
 .buildings-page{
-min-height:100vh;
-color:#e6f1ff;
-padding-top:100px;
 
-background:
-radial-gradient(circle at 20% 20%, rgba(70,80,150,0.25), transparent 40%),
-radial-gradient(circle at 80% 10%, rgba(90,60,160,0.25), transparent 40%),
-linear-gradient(180deg,#1f2137 0%,#0f1729 100%);
+    min-height:100vh;
+    color:#183b56;
+    padding-top:100px;
+
+    background:
+    radial-gradient(circle at top left,#9be7ff55 0%,transparent 35%),
+    radial-gradient(circle at top right,#80deea55 0%,transparent 35%),
+    linear-gradient(180deg,#86b4c7 0%,#7aabc4 45%,#527f94 100%);
 }
 
 
@@ -387,14 +388,14 @@ width:100%;
 
 .summary-card{
 
-background:#161b2e;
+background:#16282e;
 
 border:1px solid rgba(255,255,255,0.06);
 
 box-shadow:
 0 6px 20px rgba(0,0,0,0.4);
 
-color:#e6f1ff;
+color:#fffbe6d0;
 
 padding:24px;
 
@@ -547,45 +548,49 @@ gap:25px;
 
 .building-card{
 
+    background:linear-gradient(145deg,#f7f5f2fb,#eff1f3);
 
-background:#161b2e;
+    border:1px solid #152938;
 
-border:1px solid rgba(255,255,255,0.06);
+    border-radius:18px;
 
-box-shadow:
-0 6px 20px rgba(0,0,0,0.45);
+    padding:22px;
 
-color:#e6f1ff;
+    color:#183b56;
 
-padding:22px;
+    box-shadow:
+        0 12px 35px rgba(132, 180, 221, 0.12),
+        0 2px 8px rgba(0,0,0,.05);
 
-border-radius:16px;
+    transition:.35s ease;
 
-box-shadow:0 4px 18px rgba(0,0,0,0.08);
+    position:relative;
 
-cursor:pointer;
-
-transition:.25s;
-
-border:2px solid transparent;
-
-position:relative;
-
+    overflow:hidden;
 }
 
+.building-card::before{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+    left:0;
+
+    width:100%;
+    height:5px;
+
+    background:linear-gradient(90deg,#00c6ff,#00e676,#ffc107);
+
+}
 
 .building-card:hover{
 
-transform:scale(1.03);
+    transform:translateY(-8px);
 
-}
-
-
-.building-card.active{
-
-transform:scale(1.05);
-
-border:2px solid #00bcd4;
+    box-shadow:
+        0 18px 45px rgba(0,100,180,.18);
 
 }
 
@@ -620,7 +625,8 @@ border-radius:20px;
 color:#9aa6c0;
 }
 .building-title{
-color:#ffffff;
+    color:#183b56;
+    font-weight:700;
 }
 /* CARD HEADER */
 
@@ -681,17 +687,15 @@ transform:translateY(0px);
 
 .online{
 
-color:#00e676;
+    background:#e7fff3;
 
-font-size:12px;
+    color:#00a651;
 
-display:flex;
+    padding:4px 10px;
 
-align-items:center;
+    border-radius:20px;
 
-gap:6px;
-
-font-weight:600;
+    font-weight:700;
 
 }
 
@@ -786,13 +790,12 @@ margin-top:12px;
 }
 
 .energy-label{
-
-font-size:11px;
-
-color:#777;
-
+    color:#6b7280;
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.5px;
 }
-
 .energy-value{
 
 font-size:18px;
@@ -1020,8 +1023,17 @@ font-size:16px;
 }
 
 .capacity-inline{
-font-size:10px;
-padding:3px 10px;
+
+    background:linear-gradient(135deg,#ffd54f,#ffb300);
+
+    color:#2b2b2b;
+
+    font-weight:700;
+
+    border-radius:20px;
+
+    padding:6px 14px;
+
 }
 
 .energy-row{
@@ -1644,17 +1656,46 @@ backface-visibility:hidden;
 
 .energy-value.green{
 
-color:#00e676;
-
-text-shadow:
-0 0 1px rgba(0,255,150,0.25),
-0 0 4px rgba(0,255,150,0.35);
-
-animation:valueGlowGreen 6s ease-in-out infinite;
+    color:#16a34a;
+    text-shadow:none;
+    animation:none;
+    font-weight:700;
 
 }
 
-@keyframes valueGlowGreen{
+/* ===== SUMMARY VALUES ONLY ===== */
+
+.summary-number-live{
+    font-size:24px;
+    font-weight:700;
+    text-shadow:
+        0 0 6px rgba(0,255,180,.55),
+        0 0 14px rgba(0,255,180,.30);
+
+    animation:summaryGlow 3s ease-in-out infinite;
+}
+
+@keyframes summaryGlow{
+
+    0%{
+        text-shadow:
+            0 0 4px rgba(0,255,180,.35);
+    }
+
+    50%{
+        text-shadow:
+            0 0 10px rgba(0,255,180,.8),
+            0 0 22px rgba(0,255,180,.45);
+    }
+
+    100%{
+        text-shadow:
+            0 0 4px rgba(0,255,180,.35);
+    }
+
+}
+
+/* @keyframes valueGlowGreen{
 
 0%{
 text-shadow:
@@ -1674,7 +1715,7 @@ text-shadow:
 0 0 4px rgba(0,255,150,0.35);
 }
 
-}
+} */
 
 
 .graph-loading{

@@ -880,6 +880,7 @@ filter:drop-shadow(0 0 6px #ffd500);
 
 animation:todayRotate 8s linear infinite;
 
+
 }
 
 @keyframes todayRotate{
@@ -1134,5 +1135,108 @@ text-shadow:
 transform:scale(1);
 text-shadow:none;
 }
+
+}
+.weather-title{
+    text-align: center;
+    color: #00ffd5;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 8px #00ffd5;
+}
+
+.report-btn{
+
+    padding:10px 22px;
+
+    border:none;
+
+    border-radius:30px;
+
+    background:linear-gradient(135deg,#00d4ff,#007bff);
+
+    color:#fff;
+
+    font-size:15px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    box-shadow:0 0 18px rgba(0,212,255,.45);
+
+    transition:.3s;
+
+}
+
+.report-btn:hover{
+
+    transform:translateY(-2px);
+
+    box-shadow:0 0 28px rgba(0,212,255,.7);
+
+}
+
+/* ===== GII PANEL ===== */
+
+.gii-panel{
+    width:240px;              /* GHI widthக்கு close */
+    min-height:136px;         /* GHI heightக்கு close */
+    padding:12px 14px;
+}
+
+.gii-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:8px 0;
+}
+
+.gii-item .icon{
+    font-size:22px;
+    min-width:24px;
+}
+
+.gii-item div{
+    flex:1;
+}
+
+.gii-label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:#b9e7ef;
+    line-height:1.1;
+    margin-bottom:2px;
+}
+
+.gii-value{
+    display:block;
+    font-size:16px;
+    font-weight:700;
+}
+
+.gii-value.green{
+    color:#00ff88;
+}
+
+.gii-value.blue{
+    color:#4da3ff;
+}
+
+.value.offline{
+    color:#ff5757;
+    font-weight:700;
+    font-size:15px;
+    animation:blink 1.2s infinite;
+}
+
+@keyframes blink{
+
+    50%{
+        opacity:.45;
+    }
 
 }

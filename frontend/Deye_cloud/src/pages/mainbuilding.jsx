@@ -43,6 +43,12 @@ const [weatherData,setWeatherData] = useState(()=>{
 });
 const [updateTime,setUpdateTime] = useState("");
 
+const [giiData,setGiiData]=useState({
+    horizontal_irradiance:0,
+    inclined_irradiance:0,
+    temperature:0
+});
+
 const handleLogout=()=>{
   localStorage.removeItem("token");
   navigate("/");
@@ -100,6 +106,12 @@ const fetchWeather = async (campus) => {
 // FETCH DATA
 const fetchData = async()=>{
 try{
+
+  const giiRes = await fetch(`${API_BASE}/gii/latest`);
+
+const gii = await giiRes.json();
+
+setGiiData(gii);
 
 const resSub = await fetch(`${API_BASE}/sub-buildings`);
 const buildings = await resSub.json();
@@ -266,7 +278,7 @@ const w = {};
 for(const c of list){
   w[c.name] = await fetchWeather(c.name);
 }
-
+w.LIBRARY = await fetchWeather("LIBRARY");
 setWeatherData(w);
 setCampusList(list);
 
@@ -326,6 +338,13 @@ SUN Industrial Automations & Solutions Pvt Ltd
 
 <div className="header-right">
 
+  <button
+    className="report-btn"
+    onClick={() => navigate("/report")}
+>
+    📄 REPORT
+</button>
+
 <div className="live-container">
 <span className="live-dot"></span>
 <span className="live-text">LIVE SYSTEM</span>
@@ -350,8 +369,22 @@ Logout
 
 {campusList.map((c,i)=>{
 
-const w=weatherData[c.name]||{};
+const w = weatherData[c.name] || {};
 
+const showWeather =
+    !(c.name === "NLCIC" || c.name === "NTPL");
+
+// MQTT ONLINE CHECK
+const isOnline =
+    showWeather && w.online;
+
+const irradiance =
+    isOnline ? w.irradiance : 0;
+
+const temperature =
+    isOnline ? w.temperature : 0;
+
+    const giiOnline = giiData.online;
 return(
 
 <div className="scada-row" key={i}>
@@ -455,43 +488,123 @@ style={{ "--wave-speed": getWaveSpeed(c.today) }}
 </div>
 
 </div>
-<div 
-className="flow-line"
-style={{ "--wave-speed": getWaveSpeed(c.today) }}
->
-  <svg viewBox="0 0 600 40" preserveAspectRatio="none">
+{
+c.name === "NLCIL" ? (
 
-    {/* wave 1 */}
-    <path
-      className="wave wave1"
-      d="M0 20 Q 25 0 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
-    />
 
-    {/* wave 2 */}
-    <path
-      className="wave wave2"
-      d="M0 20 Q 25 40 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
-    />
+    
+<div className="panel weather-panel gii-panel">
 
-    {/* wave 3 */}
-    <path
-      className="wave wave3"
-      d="M0 20 Q 25 10 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
-    />
+    <div className="weather-title">GII</div>
 
-  </svg>
+    <div className="gii-item">
+    <WiDaySunny className="icon sun" />
+    <div>
+        <span className="gii-label">
+            Horizontal Irradiance
+        </span>
 
-  <div className="energy-particles"></div>
+       <span className="gii-value green">
+{
+    giiOnline
+        ? `${giiData.horizontal_irradiance} W/m²`
+        : "NO LIVE DATA"
+}
+</span>
+    </div>
+</div>
+
+   <div className="gii-item">
+    <WiThermometer className="icon temp" />
+    <div>
+        <span className="gii-label">
+            Module Temperature
+        </span>
+
+       <span className="gii-value blue">
+{
+    giiOnline
+        ? `${giiData.temperature} °C`
+        : "--"
+}
+</span>
+    </div>
+</div>
+
+    <div className="gii-item">
+    <WiDaySunny className="icon sun" />
+    <div>
+        <span className="gii-label">
+            Inclined Irradiance
+        </span>
+
+      <span className="gii-value green">
+{
+    giiOnline
+        ? `${giiData.inclined_irradiance} W/m²`
+        : "NO LIVE DATA"
+}
+</span>
+    </div>
+</div>
 
 </div>
 
+
+           
+
+) : (
+
+<div
+className="flow-line"
+style={{ "--wave-speed": getWaveSpeed(c.today) }}
+>
+
+<svg viewBox="0 0 600 40" preserveAspectRatio="none">
+
+<path
+className="wave wave1"
+d="M0 20 Q 25 0 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+/>
+
+<path
+className="wave wave2"
+d="M0 20 Q 25 40 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+/>
+
+<path
+className="wave wave3"
+d="M0 20 Q 25 10 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 400 20 T 450 20 T 500 20 T 550 20 T 600 20"
+/>
+
+</svg>
+
+<div className="energy-particles"></div>
+
+</div>
+
+)
+}
 <div className="panel weather-panel">
+     {c.name === "NLCIL" && (
+        <div className="weather-title">GHI</div>
+    )}
 
 <div className="weather-row">
 <WiDaySunny className="icon sun"/>
 <div>
 <div className="label">IRRADIANCE</div>
-<div className="value green">{w.irradiance} W/m²</div>
+<div className="value green">
+    {
+        showWeather
+            ? (
+                isOnline
+                    ? `${irradiance} W/m²`
+                    : "NO LIVE DATA"
+              )
+            : "0 W/m²"
+    }
+</div>
 </div>
 </div>
 
@@ -499,7 +612,17 @@ style={{ "--wave-speed": getWaveSpeed(c.today) }}
 <WiThermometer className="icon temp"/>
 <div>
 <div className="label">TEMPERATURE</div>
-<div className="value blue">{w.temperature} °C</div>
+<div className="value blue">
+    {
+        showWeather
+            ? (
+                isOnline
+                    ? `${temperature} °C`
+                    : "--"
+              )
+            : "0 °C"
+    }
+</div>
 </div>
 </div>
 

@@ -256,130 +256,195 @@ async function getBuilding(station) {
       getYesterday(station.id)
     ]);
 
-   const inverters = devices.filter(d =>
-  d.deviceType === "INVERTER" ||
-  d.deviceType === "INV" ||
-  d.deviceType === 1
-);
-
+    const inverters = devices.filter(d =>
+      d.deviceType === "INVERTER" ||
+      d.deviceType === "INV" ||
+      d.deviceType === 1
+    );
 
     let mpptData = {};
-   let today = 0;
-let total = 0;
-let currentPower = 0;
+    let today = 0;
+    let total = 0;
+    let currentPower = 0;
 
-let deviceStatus = "OFFLINE";
-    let totalMPPTPower = 0; 
+    let deviceStatus = "OFFLINE";
+    let totalMPPTPower = 0;
 
     for (let i = 0; i < inverters.length; i++) {
 
-  const latest =
-    await getLatest(
-      inverters[i].deviceSn
-    );
+      const latest = await getLatest(
+        inverters[i].deviceSn
+      );
 
-  
+      // ================= STATUS =================
 
-  // ✅ REAL CLOUD STATUS
- // ✅ PRIORITY STATUS LOGIC
+      if (latest?.deviceState === 3) {
 
-     if (latest?.deviceState === 3) {
+        deviceStatus = "ALERT";
 
-  deviceStatus = "ALERT";
+      }
+      else if (latest?.deviceState === 1) {
 
-}
-else if (latest?.deviceState === 1) {
+        deviceStatus = "ONLINE";
 
-  deviceStatus = "ONLINE";
+      }
+      else {
 
-}
-else {
+        deviceStatus = "OFFLINE";
 
-  deviceStatus = "OFFLINE";
+      }
 
-}
+      // ================= MPPT =================
 
-      // ================= MPPT (PV1 → PV8) =================
       for (let pv = 1; pv <= 8; pv++) {
 
-        const voltage =
-          Number(
-            latest?.dataList?.find(d => d.key === `DCVoltagePV${pv}`)?.value || 0
-          );
+        const voltage = Number(
+          latest?.dataList?.find(
+            d => d.key === `DCVoltagePV${pv}`
+          )?.value || 0
+        );
 
-        const current =
-          Number(
-            latest?.dataList?.find(d => d.key === `DCCurrentPV${pv}`)?.value || 0
-          );
+        const current = Number(
+          latest?.dataList?.find(
+            d => d.key === `DCCurrentPV${pv}`
+          )?.value || 0
+        );
 
-        const power = voltage * current; // 🔥 MAIN CALCULATION
+        const power = voltage * current;
 
         if (voltage > 0 || current > 0) {
 
           mpptData[`inv${i + 1}_pv${pv}`] = {
+
             voltage,
             current,
             power: Number(power.toFixed(1))
+
           };
 
-          totalMPPTPower += power; // 🔥 sum
+          totalMPPTPower += power;
+
         }
+
       }
 
       // ================= PRODUCTION =================
+
       today += Number(
-        latest?.dataList?.find(d => d.key === "DailyActiveProduction")?.value || 0
+        latest?.dataList?.find(
+          d => d.key === "DailyActiveProduction"
+        )?.value || 0
       );
 
       total += Number(
-        latest?.dataList?.find(d => d.key === "TotalActiveProduction")?.value || 0
+        latest?.dataList?.find(
+          d => d.key === "TotalActiveProduction"
+        )?.value || 0
       );
 
-      const powerRaw =
-        Number(
-          latest?.dataList?.find(d => d.key === "TotalActiveACOutputPower")?.value || 0
-        );
+      const powerRaw = Number(
+        latest?.dataList?.find(
+          d => d.key === "TotalActiveACOutputPower"
+        )?.value || 0
+      );
 
-      currentPower += (powerRaw / 1000);
+      currentPower += powerRaw / 1000;
+
     }
 
-    // 🔥 FINAL MPPT kW
     const totalMPPTkW = totalMPPTPower / 1000;
 
-  
+    // ================= CAMPUS FIND =================
+
+    let campus = "OTHERS";
+
+    const upperName = station.name.toUpperCase();
+
+    if (upperName.includes("NLCIL")) {
+
+      campus = "NLCIL";
+
+    }
+    else if (upperName.includes("NLCIC")) {
+
+      campus = "NLCIC";
+
+    }
+    else if (upperName.includes("NTPL")) {
+
+      campus = "NTPL";
+
+    }
+    else if (upperName.includes("NUPPL")) {
+
+      campus = "NUPPL";
+
+    }
+    else if (upperName.includes("BTPS")) {
+
+      campus = "BTPS";
+
+    }
 
     return {
-       id: station.id,
-  name: station.name,
 
-    status: deviceStatus,
+      id: station.id,
+
+      stationId: station.id,   // 👈 NEW
+
+      campus,                  // 👈 NEW
+
+      name: station.name,
+
+      status: deviceStatus,
+
       today: Number(today.toFixed(1)),
+
       yesterday,
+
       total: Number(total.toFixed(1)),
+
       currentPower: Number(currentPower.toFixed(1)),
 
-      // 🔥 THIS IS WHAT MANAGER WANTS
       mpptTotalPower: Number(totalMPPTkW.toFixed(1)),
 
       mppt: mpptData
+
     };
 
-  } catch (err) {
+  }
+  catch (err) {
 
     console.log("Building error:", err.message);
 
     return {
+
       id: station.id,
+
+      stationId: station.id,
+
+      campus: "OTHERS",
+
       name: station.name,
+
+      status: "OFFLINE",
+
       today: 0,
+
       yesterday: 0,
+
       total: 0,
+
       currentPower: 0,
+
       mpptTotalPower: 0,
+
       mppt: {}
+
     };
 
   }
+
 }
 
 // ================= MAIN BUILDING =================
@@ -682,7 +747,216 @@ async function getLast10DaysData(stationId) {
   }
 }
 
+// ================= REPORT DATE RANGE =================
 
+async function getReportData(stationId, fromDate, toDate) {
+
+    try {
+
+        
+
+        let allItems = [];
+
+        let currentStart = new Date(fromDate);
+        const finalEnd = new Date(toDate);
+
+        while (currentStart <= finalEnd) {
+
+            let currentEnd = new Date(currentStart);
+
+            // Maximum 31 days
+            currentEnd.setDate(currentEnd.getDate() + 30);
+
+            if (currentEnd > finalEnd) {
+                currentEnd = new Date(finalEnd);
+            }
+
+            const startStr = currentStart.toISOString().split("T")[0];
+            const endStr = currentEnd.toISOString().split("T")[0];
+
+         
+            const result = await api(
+                "/v1.0/station/history",
+                {
+                    stationId: Number(stationId),
+                    startAt: startStr,
+                    endAt: endStr,
+                    granularity: 2
+                }
+            );
+
+         
+
+            if (Array.isArray(result.stationDataItems)) {
+                allItems.push(...result.stationDataItems);
+            }
+
+            currentStart = new Date(currentEnd);
+            currentStart.setDate(currentStart.getDate() + 1);
+
+        }
+
+      
+
+        // ================= CREATE LOOKUP =================
+
+        const reportMap = {};
+
+        allItems.forEach(item => {
+
+            const dateKey =
+                `${item.year}-${String(item.month).padStart(2, "0")}-${String(item.day).padStart(2, "0")}`;
+
+            reportMap[dateKey] = {
+
+                generation: Number(item.generationValue || 0),
+
+                consumption: Number(item.consumptionValue || 0),
+
+                revenue: Number(item.revenue || 0),
+
+                co2: Number(item.co2Reduction || 0)
+
+            };
+
+        });
+
+        // ================= FINAL REPORT =================
+
+        const report = [];
+
+        let current = new Date(fromDate);
+        const end = new Date(toDate);
+
+        while (current <= end) {
+
+            const dateKey = current.toISOString().split("T")[0];
+
+            report.push({
+
+                date: dateKey,
+
+                generation: reportMap[dateKey]?.generation ?? 0,
+
+                consumption: reportMap[dateKey]?.consumption ?? 0,
+
+                revenue: reportMap[dateKey]?.revenue ?? 0,
+
+                co2: reportMap[dateKey]?.co2 ?? 0
+
+            });
+
+            current.setDate(current.getDate() + 1);
+
+        }
+
+       
+
+        return report;
+
+    }
+    catch (err) {
+
+        console.log("Report API Error :", err);
+
+        return [];
+
+    }
+
+}
+
+// ================= CAMPUS CONSOLIDATED REPORT =================
+
+async function getCampusReport(campus, fromDate, toDate) {
+
+    try {
+
+        const buildings = await getSubBuildings();
+
+        const campusBuildings = buildings.filter(
+            b => b.campus === campus
+        );
+
+        // ================= LOAD ALL BUILDINGS PARALLEL =================
+
+        const reports = await Promise.all(
+
+            campusBuildings.map(async (building) => {
+
+                console.log("Loading :", building.name);
+
+                const report = await getReportData(
+                    building.stationId,
+                    fromDate,
+                    toDate
+                );
+
+                return {
+
+                    building,
+                    report
+
+                };
+
+            })
+
+        );
+
+        // ================= CONSOLIDATE REPORT =================
+
+        const reportMap = {};
+
+        reports.forEach(({ building, report }) => {
+
+            report.forEach(item => {
+
+                if (!reportMap[item.date]) {
+
+                    reportMap[item.date] = {
+
+                        date: item.date,
+
+                        totalGeneration: 0,
+
+                        buildings: {}
+
+                    };
+
+                }
+
+                // Building Wise Generation
+
+                reportMap[item.date].buildings[building.name] =
+                    Number(item.generation);
+
+                // Campus Total Generation
+
+                reportMap[item.date].totalGeneration +=
+                    Number(item.generation);
+
+            });
+
+        });
+
+        // ================= RETURN SORTED =================
+
+        return Object.values(reportMap).sort(
+
+            (a, b) => new Date(a.date) - new Date(b.date)
+
+        );
+
+    }
+
+    catch (err) {
+
+        console.log("Campus Report Error :", err.message);
+
+        return [];
+
+    }
+
+}
 
 // ================= EXPORT =================
 
@@ -693,7 +967,9 @@ getSubBuildings,
 getWeather,
 login,
 getGraph,
- getLast10DaysData
+ getLast10DaysData,
+ getReportData,
+ getCampusReport
 
  
 

@@ -16,11 +16,19 @@ const {
 
     getGraph,
 
+    getReportData,
+
+    getCampusReport
+
     
 
    
 
 } = require("./service");
+
+const { getGIIStatus } = require("./mqttWeather");
+
+const db = require("./db");
 
 
 // LOGIN
@@ -180,6 +188,58 @@ router.get("/weather/:campus", async(req,res)=>{
 });
 
 
+// ================= GII STATUS =================
+
+router.get("/gii/latest", async (req, res) => {
+
+    try {
+
+        const { rows } = await db.query(`
+            SELECT
+                horizontal_irradiance,
+                inclined_irradiance,
+                temperature
+            FROM gii_weather_logs
+            ORDER BY id DESC
+            LIMIT 1
+        `);
+
+        const status = getGIIStatus();
+
+        if (rows.length === 0) {
+
+            return res.json({
+                horizontal_irradiance: 0,
+                inclined_irradiance: 0,
+                temperature: 0,
+                online: false
+            });
+
+        }
+
+        res.json({
+
+            horizontal_irradiance: rows[0].horizontal_irradiance,
+
+            inclined_irradiance: rows[0].inclined_irradiance,
+
+            temperature: rows[0].temperature,
+
+            online: status.online
+
+        });
+
+    }
+    catch (err) {
+
+        res.status(500).json({
+            error: err.message
+        });
+
+    }
+
+});
+
 
 
 // ================= LAST 10 DAYS =================
@@ -205,6 +265,38 @@ router.get(
   }
 );
 
+// ================= REPORT DATE RANGE =================
+
+router.get(
+  "/report/:stationId",
+  async (req, res) => {
+
+    try {
+
+      const { stationId } = req.params;
+
+      const { from, to } = req.query;
+
+      const data =
+        await getReportData(
+          stationId,
+          from,
+          to
+        );
+
+      res.json(data);
+
+    }
+    catch (err) {
+
+      res.status(500).json({
+        error: err.message
+      });
+
+    }
+
+  }
+);
 
 
 

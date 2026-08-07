@@ -314,13 +314,13 @@ useEffect(() => {
     <div className="building-details-page">
 
       {/* HEADER */}
-      <div className="bd-header">
+     <div className="bd-header bd-header-compact">
 
   {/* LEFT SECTION */}
-  <div className="bd-header-left-side">
+<div className="bd-header-left-side bd-header-left-compact">
 
     {/* LOGO */}
-    <div className="bd-company-logo">
+   <div className="bd-company-logo bd-company-logo-compact">
       <img
   src={btps}
   alt="btps"
@@ -344,7 +344,7 @@ useEffect(() => {
     {/* EPC */}
     <div className="bd-epc-box">
 
-      <div className="bd-epc-logo">
+     <div className="bd-epc-logo bd-epc-logo-compact">
        <img
   src={epc}
   alt="epc"

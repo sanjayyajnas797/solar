@@ -1,25 +1,25 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import "../pages/Buildings.css";
+import "../NLCIC/Fts.css"
 import API_BASE from "../pages/config";
 
 import mainlogo from "../assets/main logo.png";
 import epcLogo from "../assets/sunlogo.png";
-import buildIcon from "../assets/tower.png";
+import buildIcon from "../assets/solar inverter 1.png";
 
 /* CAPACITY MAP */
 const capacityMap = {
-  "NLCIC ADMIN BUILDING": 120,
-  "NLCIC CONTROL ROOM": 85,
-  "NLCIC OFFICE BLOCK": 60
+  "INV-1": 120,
+  "INV-2": 85,
+  "INV-3": 60
 };
 
 /* DUMMY BUILDINGS */
 const dummyBuildings = [
-  { id: "dummy-1", name: "NLCIC Admin Building", isDummy: true },
-  { id: "dummy-2", name: "NLCIC Control Room", isDummy: true },
-  { id: "dummy-3", name: "NLCIC Office Block", isDummy: true }
+  { id: "inv-1", name: "INV-1", isDummy: true },
+  { id: "inv-2", name: "INV-2", isDummy: true },
+  { id: "inv-3", name: "INV-3", isDummy: true }
 ];
 
 /* FORMAT */
@@ -96,7 +96,7 @@ export default function NlcicPage() {
 
   return (
 
-    <div className="buildings-page">
+    <div className="fts-page">
 
       {/* HEADER */}
       <div className="second-header">
@@ -141,26 +141,26 @@ export default function NlcicPage() {
       </div>
 
       {/* SUMMARY */}
-      <div className="summary">
+      <div className="fts-summary">
 
-        <div className="summary-card">
+       <div className="fts-summary-card">
           <div className="summary-label">Total Buildings</div>
           <div className="summary-value">{buildings.length}</div>
         </div>
 
-        <div className="summary-card">
+       <div className="fts-summary-card">
           <div className="summary-label">Today Production</div>
           <div className="summary-value">0.0 kWh</div>
         </div>
 
-        <div className="summary-card">
+       <div className="fts-summary-card">
           <div className="summary-label">Yesterday Production</div>
           <div className="summary-value">0.0 kWh</div>
         </div>
 
         {/* ❌ PEAK CARD REMOVED */}
 
-        <div className="summary-card">
+       <div className="fts-summary-card">
           <div className="summary-label">Live Power</div>
           <div className="summary-value">0.0 kW</div>
         </div>
@@ -168,7 +168,7 @@ export default function NlcicPage() {
       </div>
 
       {/* BUILDINGS */}
-      <div className="building-grid">
+      <div className="fts-grid">
 
         {buildings.map(b => {
 
@@ -182,23 +182,29 @@ export default function NlcicPage() {
 
             <div
               key={b.id}
-              onClick={() => setSelectedBuilding(b)}
-              className={`building-card ${isActive ? "active" : ""}`}
+             onClick={() => {
+  navigate(`/fts-show/${b.id}`)
+}}
+              className={`fts-card ${isActive ? "active" : ""}`}
             >
 
-              <div className="card-header">
-                <img src={buildIcon} className="card-icon" />
-                <div className="not-connected">NOT CONNECTED</div>
+              <div className="fts-card-header">
+                <img src={buildIcon} className="fts-card-icon" />
+                <div className="fts-not-connected">NOT CONNECTED</div>
               </div>
 
-              <div className="building-name">
+              <div className="fts-name">
 
-                <span className="building-title">
-                  {formatBuildingName(b.name)}
-                </span>
+                <div className="fts-title">
+  {b.name}
+</div>
+
+<div className="fts-subtitle">
+  Solar Inverter Monitoring
+</div>
 
                 {capacity &&
-                  <span className="capacity-inline">
+                 <span className="fts-capacity">
                     Plant Capacity {capacity} kW
                   </span>
                 }
@@ -206,31 +212,42 @@ export default function NlcicPage() {
               </div>
 
               {/* ✅ CUMULATIVE ADDED */}
-              <div className="energy-row">
+              <div className="fts-energy-row">
 
-                <div>
-                  <div className="energy-label">TODAY</div>
-                  <div className="energy-value">0.0 kWh</div>
-                </div>
+  <div>
+    <div className="fts-energy-label">TODAY</div>
+    <div className="fts-energy-value today">
+      202.8 kWh
+    </div>
+  </div>
 
-                <div>
-                  <div className="energy-label">YESTERDAY</div>
-                  <div className="energy-value">0.0 kWh</div>
-                </div>
+  <div>
+    <div className="fts-energy-label">YESTERDAY</div>
+    <div className="fts-energy-value yesterday">
+      272.8 kWh
+    </div>
+  </div>
 
-                <div>
-                  <div className="energy-label">CUMULATIVE</div>
-                  <div className="energy-value cumulative">0.0 kWh</div>
-                </div>
+  <div>
+    <div className="fts-energy-label">CUMULATIVE</div>
+    <div className="fts-energy-value cumulative">
+      32650.1 kWh
+    </div>
+  </div>
 
-              </div>
+</div>
 
-              <div className="card-footer">
-                Last update: {time}
-                <div className="current-live">
-                  Live Power: 0.0 kW
-                </div>
-              </div>
+ 
+
+<div className="fts-extra">
+
+
+
+  <div className="fts-live-power">
+    Live Power : 0.0 kW
+  </div>
+
+</div>
 
             </div>
 
