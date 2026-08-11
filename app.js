@@ -35,25 +35,32 @@
 
 // const db = require("./db");
 
-// (async () => {
+// async function checkGII() {
+//     try {
 
-// const { rows } = await db.query(`
-// SELECT
+//         const { rows } = await db.query(`
+//           SELECT
 //     id,
-//     campus,
-//     irradiance,
-//     temperature,
+//     created_at,
 //     mqtt_timestamp,
-//     to_char(
-//         created_at AT TIME ZONE 'Asia/Kolkata',
-//         'YYYY-MM-DD HH24:MI:SS'
-//     ) AS created_at
-// FROM weather_logs
-// WHERE campus = 'BTPS'
-// AND created_at >= NOW() - INTERVAL '1 hour'
-// ORDER BY created_at;
-// `);
+//     horizontal_irradiance,
+//     inclined_irradiance,
+//     temperature
+// FROM gii_weather_logs
+// ORDER BY id DESC
+// LIMIT 10;
+//         `);
 
-// console.table(rows);
+//         console.table(rows);
 
-// })();
+//         process.exit(0);
+
+//     } catch (err) {
+
+//         console.error("❌ DB ERROR:", err.message);
+
+//         process.exit(1);
+//     }
+// }
+
+// checkGII();

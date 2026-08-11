@@ -428,6 +428,11 @@ async function processGII(
         now.getTime() -
         giiCalculation.intervalStart.getTime();
 
+        console.log(
+    `⏱️ GII PROCESS | H:${horizontal} I:${inclined} | Elapsed:${Math.floor(elapsed / 1000)} sec`
+);
+
+
 
     if (elapsed >= FIFTEEN_MINUTES) {
 
@@ -630,6 +635,8 @@ client.on("message", async (topic, message) => {
             // ---------------------------------------------
             // BOTH AVAILABLE
             // ---------------------------------------------
+
+      
 
             if (
                 giiBuffer.horizontal !== null &&
