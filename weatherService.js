@@ -1,12 +1,14 @@
 const db = require("./db");
 
-// ================= Latest Logs =================
+// =====================================================
+// LATEST LOGS
+// =====================================================
 
 async function getWeatherLogs() {
 
     const { rows } = await db.query(`
         SELECT *
-        FROM weather_logs
+        FROM gii_weather_logs
         ORDER BY id DESC
         LIMIT 100
     `);
@@ -14,177 +16,259 @@ async function getWeatherLogs() {
     return rows;
 }
 
-// ================= Today Summary =================
+
+// =====================================================
+// TODAY SUMMARY
+// =====================================================
 
 async function getTodaySummary() {
 
     const { rows } = await db.query(`
         SELECT
-            campus,
             COUNT(*) AS total_records,
-            AVG(irradiance) AS avg_irradiance,
-            MAX(irradiance) AS max_irradiance,
+
+            AVG(horizontal_irradiance) AS avg_horizontal,
+            MAX(horizontal_irradiance) AS max_horizontal,
+
+            AVG(inclined_irradiance) AS avg_inclined,
+            MAX(inclined_irradiance) AS max_inclined,
+
             AVG(temperature) AS avg_temperature,
             MAX(temperature) AS max_temperature
-        FROM weather_logs
-        WHERE DATE(created_at AT TIME ZONE 'Asia/Kolkata') = CURRENT_DATE
-        GROUP BY campus
-        ORDER BY campus
+
+        FROM gii_weather_logs
+
+        WHERE DATE(
+            created_at AT TIME ZONE 'Asia/Kolkata'
+        ) = CURRENT_DATE
     `);
 
-    return rows;
+    return rows[0];
 }
 
-// ================= Daily Cumulative =================
+
+// =====================================================
+// GII DAILY CUMULATIVE
+// =====================================================
 
 async function getDailyCumulative() {
 
     const { rows } = await db.query(`
         SELECT
-            campus,
             created_at,
             mqtt_timestamp,
-            irradiance
-        FROM weather_logs
-        WHERE campus IS NOT NULL
-        ORDER BY campus, mqtt_timestamp ASC
+            horizontal_irradiance,
+            inclined_irradiance
+
+        FROM gii_weather_logs
+
+        WHERE DATE(
+            created_at AT TIME ZONE 'Asia/Kolkata'
+        ) = CURRENT_DATE
+
+        ORDER BY mqtt_timestamp ASC
     `);
 
-    const summary = {};
+
+    let horizontalCumulative = 0;
+    let inclinedCumulative = 0;
+
+    const result = [];
+
 
     for (let i = 0; i < rows.length; i++) {
 
         const current = rows[i];
 
-        const date = new Date(current.created_at)
-            .toLocaleDateString("en-CA", {
-                timeZone: "Asia/Kolkata"
-            });
+        let horizontalEnergy = 0;
+        let inclinedEnergy = 0;
 
-        const key = `${current.campus}_${date}`;
 
-        if (!summary[key]) {
-
-            summary[key] = {
-                campus: current.campus,
-                date,
-                cumulative_irradiance: 0
-            };
-
-        }
+        // ---------------------------------------------
+        // Calculate energy between two readings
+        // ---------------------------------------------
 
         if (i > 0) {
 
             const previous = rows[i - 1];
 
-            // Same campus only
-            if (previous.campus === current.campus) {
 
-                const previousDate = new Date(previous.created_at)
-                    .toLocaleDateString("en-CA", {
-                        timeZone: "Asia/Kolkata"
-                    });
+            const currentTime =
+                Number(current.mqtt_timestamp);
 
-                // Same day only
-                if (previousDate === date) {
+            const previousTime =
+                Number(previous.mqtt_timestamp);
 
-                    const interval =
-                        current.mqtt_timestamp -
-                        previous.mqtt_timestamp;
 
-                    if (interval > 0 && interval <= 30) {
+            const diff =
+                currentTime - previousTime;
 
-                        summary[key].cumulative_irradiance +=
-                            (current.irradiance * interval) / 3600;
 
-                    }
+            // Accept normal 15-minute interval
+            // Allow maximum 20 minutes
+            if (diff > 0 && diff <= 1200) {
 
-                }
+                // Trapezoidal calculation
 
+                horizontalEnergy =
+                    (
+                        Number(previous.horizontal_irradiance) +
+                        Number(current.horizontal_irradiance)
+                    ) / 2
+                    * diff / 3600;
+
+
+                inclinedEnergy =
+                    (
+                        Number(previous.inclined_irradiance) +
+                        Number(current.inclined_irradiance)
+                    ) / 2
+                    * diff / 3600;
             }
-
         }
 
+
+        horizontalCumulative += horizontalEnergy;
+
+        inclinedCumulative += inclinedEnergy;
+
+
+        result.push({
+
+            time: current.created_at,
+
+            horizontal:
+                Number(current.horizontal_irradiance),
+
+            inclined:
+                Number(current.inclined_irradiance),
+
+            horizontalCumulative:
+                Number(
+                    horizontalCumulative.toFixed(2)
+                ),
+
+            inclinedCumulative:
+                Number(
+                    inclinedCumulative.toFixed(2)
+                )
+        });
     }
 
-    return Object.values(summary).map(item => ({
 
-        campus: item.campus,
-
-        date: item.date,
-
-        cumulative_irradiance:
-            Number(item.cumulative_irradiance.toFixed(2))
-
-    }));
-
+    return result;
 }
 
-function filterByInterval(fullReport, interval) {
 
+// =====================================================
+// INTERVAL FILTER
+// =====================================================
+
+function filterByInterval(
+    fullReport,
+    interval = "15"
+) {
+
+    // 15 minute is now the default
     if (interval === "10") {
         return fullReport;
     }
 
+
     const bucketMinutes = {
+
         "15": 15,
+
         "30": 30,
+
         "60": 60
+
     }[interval];
 
+
+    // Invalid interval
+    if (!bucketMinutes) {
+        return fullReport;
+    }
+
+
     const report = [];
+
     const buckets = new Map();
+
 
     for (const row of fullReport) {
 
         const d = new Date(row.time);
 
-        // Bucket Start
+
+        // ---------------------------------------------
+        // Bucket start
+        // ---------------------------------------------
+
         const bucket = new Date(d);
 
         bucket.setSeconds(0);
+
         bucket.setMilliseconds(0);
+
 
         if (bucketMinutes === 60) {
 
             bucket.setMinutes(0);
 
-        } else {
+        }
+        else {
 
-            const m =
-                Math.floor(d.getMinutes() / bucketMinutes) *
-                bucketMinutes;
+            const minutes =
+                Math.floor(
+                    d.getMinutes() /
+                    bucketMinutes
+                ) * bucketMinutes;
 
-            bucket.setMinutes(m);
-
+            bucket.setMinutes(minutes);
         }
 
-        const key = bucket.getTime();
+
+        const key =
+            bucket.getTime();
+
 
         const diff =
-            Math.abs(d.getTime() - key);
+            Math.abs(
+                d.getTime() - key
+            );
+
 
         if (!buckets.has(key)) {
 
             buckets.set(key, {
+
                 row,
+
                 diff
+
             });
 
-        } else {
+        }
+        else {
 
-            if (diff < buckets.get(key).diff) {
+            if (
+                diff <
+                buckets.get(key).diff
+            ) {
 
                 buckets.set(key, {
+
                     row,
+
                     diff
+
                 });
-
             }
-
         }
-
     }
+
 
     return Array
         .from(buckets.values())
@@ -194,257 +278,266 @@ function filterByInterval(fullReport, interval) {
                 new Date(a.time) -
                 new Date(b.time)
         );
-
 }
 
-// ================= Detailed Report =================
 
-// ================= Detailed Report =================
-
-async function getDetailedReport(
-    campus,
-    fromDate,
-    toDate,
-    interval = "10"
-){
-
-    const { rows } = await db.query(`
-SELECT
-    to_char(
-        created_at AT TIME ZONE 'Asia/Kolkata',
-        'YYYY-MM-DD HH24:MI:SS'
-    ) AS created_at,
-    mqtt_timestamp,
-    irradiance,
-    temperature
-FROM weather_logs
-WHERE campus = $1
-AND created_at <= NOW()
-AND DATE(created_at AT TIME ZONE 'Asia/Kolkata')
-    BETWEEN $2::date AND $3::date
-ORDER BY created_at ASC;
-`, [campus, fromDate, toDate]);
-
-    
-
-    // ==========================================
-    // FIRST CALCULATE CUMULATIVE USING ALL DATA
-    // ==========================================
-
-    const fullReport = [];
-
-    let cumulative = 0;
-
-    for(let i=0;i<rows.length;i++){
-
-        const current = rows[i];
-
-        let energy = 0;
-
-        if(i > 0){
-
-            const previous = rows[i-1];
-
-            const currentDate = current.created_at.split(" ")[0];
-            const previousDate = previous.created_at.split(" ")[0];
-
-            if(currentDate === previousDate){
-
-                const diff =
-                    current.mqtt_timestamp -
-                    previous.mqtt_timestamp;
-
-                if(diff > 0 && diff <= 30){
-
-                    energy =
-                        (current.irradiance * diff) / 3600;
-
-                }
-
-            }else{
-
-                cumulative = 0;
-
-            }
-
-        }
-
-        cumulative += energy;
-
-        fullReport.push({
-
-            time: current.created_at,
-
-            irradiance: current.irradiance,
-
-            temperature: current.temperature,
-
-            cumulative: Number(cumulative.toFixed(2))
-
-        });
-
-    }
-
-    // ==========================================
-    // FILTER ONLY FOR DISPLAY
-    // ==========================================
-const report =
-    filterByInterval(
-        fullReport,
-        interval
-    );
-
-    // ==========================================
-    // SUMMARY
-    // ==========================================
-
-    const summary = {
-
-        campus,
-
-        date: fromDate,
-
-        records: report.length,
-
-        totalEnergy:
-            report.length > 0
-                ? report[report.length - 1].cumulative
-                : 0
-
-    };
-
-    return {
-
-        summary,
-
-        rows: report
-
-    };
-
-}
-
-// ================= GII Detailed Report =================
+// =====================================================
+// GII DETAILED REPORT
+// =====================================================
 
 async function getGIIDetailedReport(
+
     fromDate,
+
     toDate,
-    interval = "10"
+
+    interval = "15"
+
 ) {
 
+
     const { rows } = await db.query(`
-SELECT
-    to_char(
-        created_at AT TIME ZONE 'Asia/Kolkata',
-        'YYYY-MM-DD HH24:MI:SS'
-    ) AS created_at,
 
-    mqtt_timestamp,
+        SELECT
 
-    horizontal_irradiance,
+            to_char(
+                created_at AT TIME ZONE 'Asia/Kolkata',
+                'YYYY-MM-DD HH24:MI:SS'
+            ) AS created_at,
 
-    inclined_irradiance,
+            mqtt_timestamp,
 
-    temperature
+            horizontal_irradiance,
 
-FROM gii_weather_logs
+            inclined_irradiance,
 
-WHERE DATE(created_at AT TIME ZONE 'Asia/Kolkata')
-BETWEEN $1::date
-AND $2::date
+            temperature
 
-ORDER BY created_at ASC;
-`, [fromDate, toDate]);
+        FROM gii_weather_logs
 
-    // ==========================================
-    // CALCULATE USING ALL ROWS
-    // ==========================================
+        WHERE DATE(
+            created_at AT TIME ZONE 'Asia/Kolkata'
+        )
+        BETWEEN $1::date AND $2::date
+
+        ORDER BY mqtt_timestamp ASC;
+
+    `, [
+        fromDate,
+        toDate
+    ]);
+
+
+    // =================================================
+    // CALCULATE CUMULATIVE
+    // USING ALL 15-MINUTE DATABASE ROWS
+    // =================================================
 
     const fullReport = [];
 
+
     let horizontalCumulative = 0;
+
     let inclinedCumulative = 0;
 
-    for (let i = 0; i < rows.length; i++) {
+
+    for (
+        let i = 0;
+        i < rows.length;
+        i++
+    ) {
 
         const current = rows[i];
 
+
         let horizontalEnergy = 0;
+
         let inclinedEnergy = 0;
+
+
+        // =================================================
+        // BETWEEN CURRENT AND PREVIOUS READING
+        // =================================================
 
         if (i > 0) {
 
-            const previous = rows[i - 1];
+            const previous =
+                rows[i - 1];
+
 
             const currentDate =
-                current.created_at.split(" ")[0];
+                current.created_at
+                    .split(" ")[0];
+
 
             const previousDate =
-                previous.created_at.split(" ")[0];
+                previous.created_at
+                    .split(" ")[0];
 
-            if (currentDate === previousDate) {
+
+            // Same day only
+            if (
+                currentDate ===
+                previousDate
+            ) {
+
+
+                const currentTimestamp =
+                    Number(
+                        current.mqtt_timestamp
+                    );
+
+
+                const previousTimestamp =
+                    Number(
+                        previous.mqtt_timestamp
+                    );
+
 
                 const diff =
-                    current.mqtt_timestamp -
-                    previous.mqtt_timestamp;
+                    currentTimestamp -
+                    previousTimestamp;
 
-                if (diff > 0 && diff <= 30) {
+
+                // =================================================
+                // 15 MIN DATA
+                //
+                // Normal:
+                // 900 seconds
+                //
+                // Allow up to:
+                // 1200 seconds = 20 minutes
+                // =================================================
+
+                if (
+                    diff > 0 &&
+                    diff <= 1200
+                ) {
+
+
+                    // ---------------------------------------------
+                    // Horizontal
+                    // ---------------------------------------------
 
                     horizontalEnergy =
-                        (current.horizontal_irradiance * diff) / 3600;
+
+                        (
+                            Number(
+                                previous.horizontal_irradiance
+                            ) +
+
+                            Number(
+                                current.horizontal_irradiance
+                            )
+
+                        ) / 2
+
+                        * diff
+
+                        / 3600;
+
+
+                    // ---------------------------------------------
+                    // Inclined
+                    // ---------------------------------------------
 
                     inclinedEnergy =
-                        (current.inclined_irradiance * diff) / 3600;
 
+                        (
+                            Number(
+                                previous.inclined_irradiance
+                            ) +
+
+                            Number(
+                                current.inclined_irradiance
+                            )
+
+                        ) / 2
+
+                        * diff
+
+                        / 3600;
                 }
 
             }
             else {
 
+                // New day
                 horizontalCumulative = 0;
+
                 inclinedCumulative = 0;
-
             }
-
         }
 
-        horizontalCumulative += horizontalEnergy;
-        inclinedCumulative += inclinedEnergy;
+
+        // =================================================
+        // ADD ENERGY
+        // =================================================
+
+        horizontalCumulative +=
+            horizontalEnergy;
+
+
+        inclinedCumulative +=
+            inclinedEnergy;
+
+
+        // =================================================
+        // REPORT ROW
+        // =================================================
 
         fullReport.push({
 
-            time: current.created_at,
+            time:
+                current.created_at,
+
 
             horizontal:
-                current.horizontal_irradiance,
+                Number(
+                    current.horizontal_irradiance
+                ),
+
 
             temperature:
-                current.temperature,
+                Number(
+                    current.temperature
+                ),
+
 
             inclined:
-                current.inclined_irradiance,
+                Number(
+                    current.inclined_irradiance
+                ),
+
 
             horizontalCumulative:
-                Number(horizontalCumulative.toFixed(2)),
+                Number(
+                    horizontalCumulative.toFixed(2)
+                ),
+
 
             inclinedCumulative:
-                Number(inclinedCumulative.toFixed(2))
-
+                Number(
+                    inclinedCumulative.toFixed(2)
+                )
         });
-
     }
 
-    // ==========================================
-    // FILTER ONLY DISPLAY
-    // ==========================================
 
-   const report =
-    filterByInterval(
-        fullReport,
-        interval
-    );
-    // ==========================================
+    // =================================================
+    // FILTER ONLY FOR DISPLAY
+    // =================================================
+
+    const report =
+        filterByInterval(
+            fullReport,
+            interval
+        );
+
+
+    // =================================================
     // SUMMARY
-    // ==========================================
+    // =================================================
 
     const summary = {
 
@@ -452,19 +545,32 @@ ORDER BY created_at ASC;
 
         date: fromDate,
 
-        records: report.length,
+        records:
+            report.length,
+
 
         horizontalTotal:
+
             report.length > 0
-                ? report[report.length - 1].horizontalCumulative
+
+                ? report[
+                    report.length - 1
+                  ].horizontalCumulative
+
                 : 0,
 
-        inclinedTotal:
-            report.length > 0
-                ? report[report.length - 1].inclinedCumulative
-                : 0
 
+        inclinedTotal:
+
+            report.length > 0
+
+                ? report[
+                    report.length - 1
+                  ].inclinedCumulative
+
+                : 0
     };
+
 
     return {
 
@@ -473,14 +579,21 @@ ORDER BY created_at ASC;
         rows: report
 
     };
-
 }
+
+
+// =====================================================
+// EXPORT
+// =====================================================
+
 module.exports = {
 
     getWeatherLogs,
+
     getTodaySummary,
+
     getDailyCumulative,
-    getDetailedReport,
-     getGIIDetailedReport
+
+    getGIIDetailedReport
 
 };

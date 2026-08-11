@@ -14,7 +14,7 @@ export default function WmsReport() {
 const [campus, setCampus] = useState("NLC");
 const [fromDate, setFromDate] = useState("");
 const [toDate, setToDate] = useState("");
-const [interval, setInterval] = useState("10");
+const [interval, setInterval] = useState("15");
 
 const [reportData, setReportData] = useState([]);
 const [loading, setLoading] = useState(false);
@@ -549,7 +549,7 @@ else{
         onChange={(e)=>setInterval(e.target.value)}
     >
 
-        <option value="10">Live (10 Sec)</option>
+      
 
         <option value="15">15 Minutes</option>
 
