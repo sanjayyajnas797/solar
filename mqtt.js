@@ -346,10 +346,7 @@ VALUES
 ]
         );
 
-        console.log(
-            `✅ WEATHER SAVED | ${campus} | ${irradiance}`
-        );
-
+       
     }
     catch (err) {
 
@@ -396,11 +393,7 @@ if (
     memory.calculationDate !== currentDate
 ) {
 
-    console.log(
-        `🌅 NEW DAY | ${campus} | ` +
-        `Previous: ${memory.calculationDate} | ` +
-        `New: ${currentDate}`
-    );
+    
 
     // Reset daily cumulative
     memory.cumulativeEnergy = 0;
@@ -448,10 +441,7 @@ memory.calculationDate = currentDate;
 
         memory.hasData = true;
 
-        console.log(
-            `🟢 ${campus} MEMORY START | ` +
-            `I:${irradiance} | T:${temperature}`
-        );
+      
 
         return;
     }
@@ -525,11 +515,7 @@ memory.intervalEnergy += energy;
     memory.hasData = true;
 
 
-    console.log(
-        `📊 ${campus} MEMORY | ` +
-        `I:${irradiance} | ` +
-        `Cumulative:${memory.cumulativeEnergy.toFixed(3)}`
-    );
+  
 }
 
 
@@ -554,9 +540,7 @@ async function saveGII(
         inclined <= 15
     ) {
 
-        console.log(
-            `⏭️ GII Skip | H:${horizontal} I:${inclined}`
-        );
+       
 
         return;
     }
@@ -596,12 +580,7 @@ VALUES
 ]
         );
 
-        console.log(
-            `✅ GII 15-MIN SAVED | ` +
-            `H:${horizontal} | ` +
-            `I:${inclined} | ` +
-            `T:${temperature}`
-        );
+       
 
     }
     catch (err) {
@@ -640,11 +619,7 @@ if (
     giiCalculation.calculationDate !== currentDate
 ) {
 
-    console.log(
-        `🌅 NEW DAY | GII | ` +
-        `Previous: ${giiCalculation.calculationDate} | ` +
-        `New: ${currentDate}`
-    );
+    
 
     // Reset daily cumulative
     giiCalculation.horizontalCumulative = 0;
@@ -706,9 +681,7 @@ giiCalculation.calculationDate =
 
         giiHasData = true;
 
-        console.log(
-            `🟢 GII MEMORY START | H:${horizontal} | I:${inclined}`
-        );
+       
 
         return;
     }
@@ -821,11 +794,7 @@ giiCalculation.inclinedCumulative +=
     giiHasData = true;
 
 
-    console.log(
-        `📊 GII MEMORY | H:${horizontal} | I:${inclined} | ` +
-        `H Energy:${giiCalculation.horizontalEnergy.toFixed(3)} | ` +
-        `I Energy:${giiCalculation.inclinedEnergy.toFixed(3)}`
-    );
+   
 }
 
     
@@ -839,9 +808,7 @@ async function saveGII15Minute() {
     // No MQTT data
     if (!giiHasData) {
 
-        console.log(
-            "⏭️ GII 15-MIN SKIPPED | No MQTT data"
-        );
+       
 
         return;
     }
@@ -892,12 +859,7 @@ giiCalculation.inclinedCumulative
 );
 
 
-        console.log(
-            `✅ GII 15-MIN DATABASE SAVED | ` +
-            `H:${horizontal} | ` +
-            `I:${inclined} | ` +
-            `T:${temperature}`
-        );
+       
 
 
     }
