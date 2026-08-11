@@ -103,15 +103,87 @@ const fetchWeather = async (campus) => {
 
 };
 
+// =====================================================
+// LIVE WEATHER + GII
+// =====================================================
+
+const fetchLiveWeather = async () => {
+
+  try {
+
+    const [
+      giiRes,
+      nlcilRes,
+      nlcicRes,
+      ntplRes,
+      nupplRes,
+      btpsRes
+    ] = await Promise.all([
+
+      fetch(`${API_BASE}/gii/latest`),
+      fetch(`${API_BASE}/weather/NLCIL`),
+      fetch(`${API_BASE}/weather/NLCIC`),
+      fetch(`${API_BASE}/weather/NTPL`),
+      fetch(`${API_BASE}/weather/NUPPL`),
+      fetch(`${API_BASE}/weather/BTPS`)
+
+    ]);
+
+    const [
+      gii,
+      nlcil,
+      nlcic,
+      ntpl,
+      nuppl,
+      btps
+    ] = await Promise.all([
+
+      giiRes.json(),
+      nlcilRes.json(),
+      nlcicRes.json(),
+      ntplRes.json(),
+      nupplRes.json(),
+      btpsRes.json()
+
+    ]);
+
+    setGiiData(gii || {
+      horizontal_irradiance: 0,
+      inclined_irradiance: 0,
+      temperature: 0
+    });
+
+    const liveWeather = {
+      NLCIL: nlcil || {},
+      NLCIC: nlcic || {},
+      NTPL: ntpl || {},
+      NUPPL: nuppl || {},
+      BTPS: btps || {}
+    };
+
+    setWeatherData(liveWeather);
+
+    setUpdateTime(
+      new Date().toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      })
+    );
+
+  } catch (err) {
+
+    console.log("LIVE WEATHER ERROR:", err);
+
+  }
+
+};
+
 // FETCH DATA
 const fetchData = async()=>{
 try{
 
-  const giiRes = await fetch(`${API_BASE}/gii/latest`);
-
-const gii = await giiRes.json();
-
-setGiiData(gii);
+ 
 
 const resSub = await fetch(`${API_BASE}/sub-buildings`);
 const buildings = await resSub.json();
@@ -297,11 +369,48 @@ console.log("Mainbuilding error:",e);
 }
 };
 
-useEffect(()=>{
-fetchData();
-const t=setInterval(fetchData,10000);
-return ()=>clearInterval(t);
-},[]);
+// =====================================================
+// START LIVE UPDATE
+// =====================================================
+
+useEffect(() => {
+
+  // First load immediately
+  fetchData();
+
+  fetchLiveWeather();
+
+
+  // Building / energy data
+  const buildingTimer =
+    setInterval(
+      fetchData,
+      10000
+    );
+
+
+  // MQTT weather + GII
+  // Check every 1 second
+  const liveTimer =
+    setInterval(
+      fetchLiveWeather,
+      1000
+    );
+
+
+  return () => {
+
+    clearInterval(
+      buildingTimer
+    );
+
+    clearInterval(
+      liveTimer
+    );
+
+  };
+
+}, []);
 
 return(
 

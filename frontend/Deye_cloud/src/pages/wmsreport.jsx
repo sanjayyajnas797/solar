@@ -14,7 +14,7 @@ export default function WmsReport() {
 const [campus, setCampus] = useState("NLC");
 const [fromDate, setFromDate] = useState("");
 const [toDate, setToDate] = useState("");
-const [interval, setInterval] = useState("10");
+const [interval, setInterval] = useState("15");
 
 const [reportData, setReportData] = useState([]);
 const [loading, setLoading] = useState(false);

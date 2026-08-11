@@ -284,22 +284,18 @@ function filterByInterval(
 // =====================================================
 // GII DETAILED REPORT
 // =====================================================
-
 async function getGIIDetailedReport(
-
     fromDate,
-
     toDate,
-
     interval = "15"
-
 ) {
 
+    // =================================================
+    // GET STORED 15-MINUTE GII DATA
+    // =================================================
 
     const { rows } = await db.query(`
-
         SELECT
-
             to_char(
                 created_at AT TIME ZONE 'Asia/Kolkata',
                 'YYYY-MM-DD HH24:MI:SS'
@@ -311,7 +307,11 @@ async function getGIIDetailedReport(
 
             inclined_irradiance,
 
-            temperature
+            temperature,
+
+            horizontal_cumulative,
+
+            inclined_cumulative
 
         FROM gii_weather_logs
 
@@ -329,199 +329,36 @@ async function getGIIDetailedReport(
 
 
     // =================================================
-    // CALCULATE CUMULATIVE
-    // USING ALL 15-MINUTE DATABASE ROWS
+    // DIRECTLY USE DATABASE CUMULATIVE VALUES
     // =================================================
 
-    const fullReport = [];
+    const fullReport = rows.map(row => ({
 
+        time:
+            row.created_at,
 
-    let horizontalCumulative = 0;
+        horizontal:
+            Number(row.horizontal_irradiance),
 
-    let inclinedCumulative = 0;
+        temperature:
+            Number(row.temperature),
 
+        inclined:
+            Number(row.inclined_irradiance),
 
-    for (
-        let i = 0;
-        i < rows.length;
-        i++
-    ) {
+        horizontalCumulative:
+            Number(
+                Number(row.horizontal_cumulative || 0)
+                    .toFixed(2)
+            ),
 
-        const current = rows[i];
+        inclinedCumulative:
+            Number(
+                Number(row.inclined_cumulative || 0)
+                    .toFixed(2)
+            )
 
-
-        let horizontalEnergy = 0;
-
-        let inclinedEnergy = 0;
-
-
-        // =================================================
-        // BETWEEN CURRENT AND PREVIOUS READING
-        // =================================================
-
-        if (i > 0) {
-
-            const previous =
-                rows[i - 1];
-
-
-            const currentDate =
-                current.created_at
-                    .split(" ")[0];
-
-
-            const previousDate =
-                previous.created_at
-                    .split(" ")[0];
-
-
-            // Same day only
-            if (
-                currentDate ===
-                previousDate
-            ) {
-
-
-                const currentTimestamp =
-                    Number(
-                        current.mqtt_timestamp
-                    );
-
-
-                const previousTimestamp =
-                    Number(
-                        previous.mqtt_timestamp
-                    );
-
-
-                const diff =
-                    currentTimestamp -
-                    previousTimestamp;
-
-
-                // =================================================
-                // 15 MIN DATA
-                //
-                // Normal:
-                // 900 seconds
-                //
-                // Allow up to:
-                // 1200 seconds = 20 minutes
-                // =================================================
-
-                if (
-                    diff > 0 &&
-                    diff <= 1200
-                ) {
-
-
-                    // ---------------------------------------------
-                    // Horizontal
-                    // ---------------------------------------------
-
-                    horizontalEnergy =
-
-                        (
-                            Number(
-                                previous.horizontal_irradiance
-                            ) +
-
-                            Number(
-                                current.horizontal_irradiance
-                            )
-
-                        ) / 2
-
-                        * diff
-
-                        / 3600;
-
-
-                    // ---------------------------------------------
-                    // Inclined
-                    // ---------------------------------------------
-
-                    inclinedEnergy =
-
-                        (
-                            Number(
-                                previous.inclined_irradiance
-                            ) +
-
-                            Number(
-                                current.inclined_irradiance
-                            )
-
-                        ) / 2
-
-                        * diff
-
-                        / 3600;
-                }
-
-            }
-            else {
-
-                // New day
-                horizontalCumulative = 0;
-
-                inclinedCumulative = 0;
-            }
-        }
-
-
-        // =================================================
-        // ADD ENERGY
-        // =================================================
-
-        horizontalCumulative +=
-            horizontalEnergy;
-
-
-        inclinedCumulative +=
-            inclinedEnergy;
-
-
-        // =================================================
-        // REPORT ROW
-        // =================================================
-
-        fullReport.push({
-
-            time:
-                current.created_at,
-
-
-            horizontal:
-                Number(
-                    current.horizontal_irradiance
-                ),
-
-
-            temperature:
-                Number(
-                    current.temperature
-                ),
-
-
-            inclined:
-                Number(
-                    current.inclined_irradiance
-                ),
-
-
-            horizontalCumulative:
-                Number(
-                    horizontalCumulative.toFixed(2)
-                ),
-
-
-            inclinedCumulative:
-                Number(
-                    inclinedCumulative.toFixed(2)
-                )
-        });
-    }
+    }));
 
 
     // =================================================
@@ -548,27 +385,20 @@ async function getGIIDetailedReport(
         records:
             report.length,
 
-
         horizontalTotal:
-
             report.length > 0
-
                 ? report[
                     report.length - 1
                   ].horizontalCumulative
-
                 : 0,
 
-
         inclinedTotal:
-
             report.length > 0
-
                 ? report[
                     report.length - 1
                   ].inclinedCumulative
-
                 : 0
+
     };
 
 
@@ -579,8 +409,8 @@ async function getGIIDetailedReport(
         rows: report
 
     };
-}
 
+}
 
 // =====================================================
 // EXPORT

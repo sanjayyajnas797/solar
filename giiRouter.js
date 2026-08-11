@@ -11,6 +11,8 @@ const {
 
 } = require("./giiService");
 
+const { getGIIStatus } = require("./mqtt");
+
 
 // ================= Latest Logs =================
 
@@ -74,13 +76,20 @@ router.get("/report", async (req, res) => {
 
 });
 
-router.get("/latest", async (req, res) => {
+// ================= LIVE GII =================
+
+router.get("/latest", (req, res) => {
 
     try {
 
-        res.json(await getLatestGII());
+        const data = getGIIStatus();
 
-    } catch (err) {
+        res.json(data);
+
+    }
+    catch (err) {
+
+        console.error("LIVE GII ERROR:", err.message);
 
         res.status(500).json({
             error: err.message

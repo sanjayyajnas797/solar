@@ -188,49 +188,20 @@ router.get("/weather/:campus", async(req,res)=>{
 });
 
 
-// ================= GII STATUS =================
+// ================= GII LIVE STATUS =================
 
 router.get("/gii/latest", async (req, res) => {
 
     try {
 
-        const { rows } = await db.query(`
-            SELECT
-                horizontal_irradiance,
-                inclined_irradiance,
-                temperature
-            FROM gii_weather_logs
-            ORDER BY id DESC
-            LIMIT 1
-        `);
-
         const status = getGIIStatus();
 
-        if (rows.length === 0) {
-
-            return res.json({
-                horizontal_irradiance: 0,
-                inclined_irradiance: 0,
-                temperature: 0,
-                online: false
-            });
-
-        }
-
-        res.json({
-
-            horizontal_irradiance: rows[0].horizontal_irradiance,
-
-            inclined_irradiance: rows[0].inclined_irradiance,
-
-            temperature: rows[0].temperature,
-
-            online: status.online
-
-        });
+        res.json(status);
 
     }
     catch (err) {
+
+        console.error("GII LIVE ERROR:", err.message);
 
         res.status(500).json({
             error: err.message
@@ -239,7 +210,6 @@ router.get("/gii/latest", async (req, res) => {
     }
 
 });
-
 
 
 // ================= LAST 10 DAYS =================

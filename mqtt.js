@@ -4,41 +4,47 @@ const db = require("./db");
 // =====================================================
 // LIVE WEATHER
 // =====================================================
-
 const latestWeather = {
+
     NLCIL: {
         irradiance: 0,
         temperature: 0,
+        mqttTimestamp: null,
         lastUpdate: 0
     },
 
     NLCIC: {
         irradiance: 0,
         temperature: 0,
+        mqttTimestamp: null,
         lastUpdate: 0
     },
 
     NTPL: {
         irradiance: 0,
         temperature: 0,
+        mqttTimestamp: null,
         lastUpdate: 0
     },
 
     NUPPL: {
         irradiance: 0,
         temperature: 0,
+        mqttTimestamp: null,
         lastUpdate: 0
     },
 
     BTPS: {
         irradiance: 0,
         temperature: 0,
+        mqttTimestamp: null,
         lastUpdate: 0
     },
 
     LIBRARY: {
         irradiance: 0,
         temperature: 0,
+        mqttTimestamp: null,
         lastUpdate: 0
     }
 };
@@ -56,6 +62,9 @@ let giiBuffer = {
 
 let giiStatus = {
     online: false,
+    horizontal_irradiance: 0,
+    inclined_irradiance: 0,
+    temperature: 0,
     lastUpdate: 0
 };
 
@@ -72,6 +81,11 @@ let giiCalculation = {
     horizontalEnergy: 0,
     inclinedEnergy: 0,
 
+    horizontalCumulative: 0,
+inclinedCumulative: 0,
+
+calculationDate: null,
+
     intervalStart: null,
 
     latestHorizontal: 0,
@@ -85,6 +99,76 @@ let giiCalculation = {
 // =====================================================
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
+
+let giiDbSaveTimer = null;
+let giiHasData = false;
+
+// =====================================================
+// WEATHER 10-SECOND CALCULATION MEMORY
+// =====================================================
+
+const weatherCalculation = {
+
+    NLCIL: {
+        previousIrradiance: null,
+        previousTimestamp: null,
+        cumulativeEnergy: 0,
+        intervalEnergy: 0,
+        latestIrradiance: 0,
+        latestTemperature: 0,
+        latestTimestamp: null,
+        hasData: false,
+         calculationDate: null
+    },
+
+    NLCIC: {
+        previousIrradiance: null,
+        previousTimestamp: null,
+        cumulativeEnergy: 0,
+        intervalEnergy: 0,
+        latestIrradiance: 0,
+        latestTemperature: 0,
+        latestTimestamp: null,
+        hasData: false,
+         calculationDate: null
+    },
+
+    NTPL: {
+        previousIrradiance: null,
+        previousTimestamp: null,
+        cumulativeEnergy: 0,
+        intervalEnergy: 0,
+        latestIrradiance: 0,
+        latestTemperature: 0,
+        latestTimestamp: null,
+        hasData: false,
+         calculationDate: null
+    },
+
+    NUPPL: {
+        previousIrradiance: null,
+        previousTimestamp: null,
+        cumulativeEnergy: 0,
+        intervalEnergy: 0,
+        latestIrradiance: 0,
+        latestTemperature: 0,
+        latestTimestamp: null,
+        hasData: false,
+         calculationDate: null
+    },
+
+    BTPS: {
+        previousIrradiance: null,
+        previousTimestamp: null,
+        cumulativeEnergy: 0,
+        intervalEnergy: 0,
+        latestIrradiance: 0,
+        latestTemperature: 0,
+        latestTimestamp: null,
+        hasData: false,
+         calculationDate: null
+    }
+};
 
 
 // =====================================================
@@ -119,6 +203,45 @@ client.on("connect", () => {
 });
 
 
+
+// =====================================================
+// ALL MQTT DATA - 15 MINUTE DATABASE TIMER
+// =====================================================
+
+giiDbSaveTimer = setInterval(
+    async () => {
+
+        console.log(
+            "⏱️ 15-MIN DATABASE TIMER TRIGGERED"
+        );
+
+        // =========================================
+        // GII
+        // =========================================
+
+        await saveGII15Minute();
+
+
+        // =========================================
+        // WEATHER
+        // =========================================
+
+        await saveWeather15Minute("NLCIL");
+
+        await saveWeather15Minute("NLCIC");
+
+        await saveWeather15Minute("NTPL");
+
+        await saveWeather15Minute("NUPPL");
+
+        await saveWeather15Minute("BTPS");
+
+    },
+    FIFTEEN_MINUTES
+);
+
+
+
 // =====================================================
 // TIMESTAMP
 // =====================================================
@@ -129,6 +252,21 @@ function getDate(timestamp) {
         return new Date();
     }
 
+    const value = Number(timestamp);
+
+    // MQTT timestamp in seconds
+    if (!isNaN(value)) {
+
+        // seconds → milliseconds
+        if (value < 100000000000) {
+            return new Date(value * 1000);
+        }
+
+        // already milliseconds
+        return new Date(value);
+    }
+
+    // String / ISO timestamp
     const d = new Date(timestamp);
 
     if (isNaN(d.getTime())) {
@@ -136,6 +274,23 @@ function getDate(timestamp) {
     }
 
     return d;
+}
+
+
+// =====================================================
+// IST DATE KEY
+// Used to detect new day
+// =====================================================
+
+function getISTDateKey(date) {
+
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).format(date);
+
 }
 
 
@@ -148,7 +303,8 @@ async function saveWeather(
     campus,
     irradiance,
     temperature,
-    mqttTimestamp
+    mqttTimestamp,
+    cumulativeEnergy
 ) {
 
     // IMPORTANT
@@ -162,27 +318,32 @@ async function saveWeather(
 
         await db.query(
             `
-            INSERT INTO weather_logs
-            (
-                campus,
-                irradiance,
-                temperature,
-                mqtt_timestamp
-            )
-            VALUES
-            (
-                $1,
-                $2,
-                $3,
-                $4
-            )
+           INSERT INTO weather_logs
+(
+    campus,
+    irradiance,
+    temperature,
+    mqtt_timestamp,
+    cumulative_irradiance
+)
+VALUES
+(
+    $1,
+    $2,
+    $3,
+    $4,
+    $5
+)
             `,
-            [
-                campus,
-                irradiance,
-                temperature,
-                mqttTimestamp
-            ]
+       [
+    campus,
+    irradiance,
+    temperature,
+    mqttTimestamp instanceof Date
+        ? mqttTimestamp.getTime()
+        : getDate(mqttTimestamp).getTime(),
+    cumulativeEnergy
+]
         );
 
         console.log(
@@ -199,6 +360,178 @@ async function saveWeather(
     }
 }
 
+// =====================================================
+// PROCESS WEATHER
+// MQTT 10 SEC DATA
+// MEMORY CALCULATION ONLY
+// =====================================================
+
+function processWeather(
+    campus,
+    irradiance,
+    temperature,
+    mqttTimestamp
+) {
+
+    const memory =
+        weatherCalculation[campus];
+
+    if (!memory) {
+        return;
+    }
+
+
+    const now =
+        getDate(mqttTimestamp);
+
+        // =========================================
+// NEW DAY CHECK
+// =========================================
+
+const currentDate =
+    getISTDateKey(now);
+
+if (
+    memory.calculationDate !== null &&
+    memory.calculationDate !== currentDate
+) {
+
+    console.log(
+        `🌅 NEW DAY | ${campus} | ` +
+        `Previous: ${memory.calculationDate} | ` +
+        `New: ${currentDate}`
+    );
+
+    // Reset daily cumulative
+    memory.cumulativeEnergy = 0;
+
+    // Reset 15-min interval
+    memory.intervalEnergy = 0;
+
+    // Start fresh from today's first reading
+    memory.previousIrradiance = null;
+    memory.previousTimestamp = null;
+
+    memory.latestIrradiance = 0;
+    memory.latestTemperature = 0;
+    memory.latestTimestamp = null;
+
+    memory.hasData = false;
+}
+
+// Always keep current calculation date
+memory.calculationDate = currentDate;
+
+
+    // =========================================
+    // FIRST READING
+    // =========================================
+
+    if (
+        memory.previousTimestamp === null
+    ) {
+
+        memory.previousIrradiance =
+            irradiance;
+
+        memory.previousTimestamp =
+            now;
+
+        memory.latestIrradiance =
+            irradiance;
+
+        memory.latestTemperature =
+            temperature;
+
+        memory.latestTimestamp =
+            now;
+
+        memory.hasData = true;
+
+        console.log(
+            `🟢 ${campus} MEMORY START | ` +
+            `I:${irradiance} | T:${temperature}`
+        );
+
+        return;
+    }
+
+
+    // =========================================
+    // TIME DIFFERENCE
+    // =========================================
+
+    let seconds =
+        (
+            now.getTime() -
+            memory.previousTimestamp.getTime()
+        ) / 1000;
+
+
+    // MQTT normally 10 sec
+    if (
+        seconds <= 0 ||
+        seconds > 60
+    ) {
+        seconds = 10;
+    }
+
+
+    // =========================================
+    // IRRADIANCE CALCULATION
+    // =========================================
+
+    const averageIrradiance =
+        (
+            memory.previousIrradiance +
+            irradiance
+        ) / 2;
+
+
+    const energy =
+        averageIrradiance *
+        seconds /
+        3600;
+
+
+   memory.cumulativeEnergy += energy;
+memory.intervalEnergy += energy;
+
+
+    // =========================================
+    // UPDATE PREVIOUS
+    // =========================================
+
+    memory.previousIrradiance =
+        irradiance;
+
+    memory.previousTimestamp =
+        now;
+
+
+    // =========================================
+    // LATEST VALUE
+    // =========================================
+
+    memory.latestIrradiance =
+        irradiance;
+
+    memory.latestTemperature =
+        temperature;
+
+    memory.latestTimestamp =
+        now;
+
+    memory.hasData = true;
+
+
+    console.log(
+        `📊 ${campus} MEMORY | ` +
+        `I:${irradiance} | ` +
+        `Cumulative:${memory.cumulativeEnergy.toFixed(3)}`
+    );
+}
+
 
 // =====================================================
 // GII 15 MIN SAVE
@@ -208,7 +541,9 @@ async function saveGII(
     horizontal,
     inclined,
     temperature,
-    mqttTimestamp
+    mqttTimestamp,
+       horizontalCumulative,
+    inclinedCumulative
 ) {
 
     // IMPORTANT
@@ -230,27 +565,35 @@ async function saveGII(
 
         await db.query(
             `
-            INSERT INTO gii_weather_logs
-            (
-                horizontal_irradiance,
-                inclined_irradiance,
-                temperature,
-                mqtt_timestamp
-            )
-            VALUES
-            (
-                $1,
-                $2,
-                $3,
-                $4
-            )
+           INSERT INTO gii_weather_logs
+(
+    horizontal_irradiance,
+    inclined_irradiance,
+    temperature,
+    mqtt_timestamp,
+    horizontal_cumulative,
+    inclined_cumulative
+)
+VALUES
+(
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6
+)
             `,
-            [
-                horizontal,
-                inclined,
-                temperature,
-                mqttTimestamp
-            ]
+        [
+    horizontal,
+    inclined,
+    temperature,
+    mqttTimestamp instanceof Date
+        ? mqttTimestamp.getTime()
+        : getDate(mqttTimestamp).getTime(),
+    horizontalCumulative,
+    inclinedCumulative
+]
         );
 
         console.log(
@@ -274,6 +617,7 @@ async function saveGII(
 // =====================================================
 // PROCESS GII
 // MQTT 10 SEC DATA
+// MEMORY ONLY
 // =====================================================
 
 async function processGII(
@@ -284,10 +628,53 @@ async function processGII(
 ) {
 
     const now = getDate(mqttTimestamp);
+    // =========================================
+// NEW DAY CHECK
+// =========================================
 
-    // =================================================
+const currentDate =
+    getISTDateKey(now);
+
+if (
+    giiCalculation.calculationDate !== null &&
+    giiCalculation.calculationDate !== currentDate
+) {
+
+    console.log(
+        `🌅 NEW DAY | GII | ` +
+        `Previous: ${giiCalculation.calculationDate} | ` +
+        `New: ${currentDate}`
+    );
+
+    // Reset daily cumulative
+    giiCalculation.horizontalCumulative = 0;
+    giiCalculation.inclinedCumulative = 0;
+
+    // Reset 15-min interval
+    giiCalculation.horizontalEnergy = 0;
+    giiCalculation.inclinedEnergy = 0;
+
+    // Start fresh from today's first reading
+    giiCalculation.previousHorizontal = null;
+    giiCalculation.previousInclined = null;
+    giiCalculation.previousTimestamp = null;
+
+    giiCalculation.intervalStart = null;
+
+    giiCalculation.latestHorizontal = 0;
+    giiCalculation.latestInclined = 0;
+    giiCalculation.latestTemperature = 0;
+    giiCalculation.latestTimestamp = null;
+
+    giiHasData = false;
+}
+
+giiCalculation.calculationDate =
+    currentDate;
+
+    // =========================================
     // FIRST READING
-    // =================================================
+    // =========================================
 
     if (
         giiCalculation.previousTimestamp === null
@@ -317,13 +704,19 @@ async function processGII(
         giiCalculation.latestTimestamp =
             now;
 
+        giiHasData = true;
+
+        console.log(
+            `🟢 GII MEMORY START | H:${horizontal} | I:${inclined}`
+        );
+
         return;
     }
 
 
-    // =================================================
+    // =========================================
     // TIME DIFFERENCE
-    // =================================================
+    // =========================================
 
     let seconds =
         (
@@ -333,25 +726,20 @@ async function processGII(
 
 
     // MQTT normally 10 sec
-    if (seconds <= 0) {
+
+    if (
+        seconds <= 0 ||
+        seconds > 60
+    ) {
+
         seconds = 10;
+
     }
 
 
-    // Don't allow huge gap
-    if (seconds > 60) {
-
-        console.log(
-            `⚠️ MQTT gap detected: ${seconds}s`
-        );
-
-        seconds = 10;
-    }
-
-
-    // =================================================
+    // =========================================
     // HORIZONTAL ENERGY
-    // =================================================
+    // =========================================
 
     const horizontalAverage =
         (
@@ -366,9 +754,9 @@ async function processGII(
         3600;
 
 
-    // =================================================
+    // =========================================
     // INCLINED ENERGY
-    // =================================================
+    // =========================================
 
     const inclinedAverage =
         (
@@ -383,9 +771,9 @@ async function processGII(
         3600;
 
 
-    // =================================================
-    // ACCUMULATE
-    // =================================================
+    // =========================================
+    // MEMORY ACCUMULATION
+    // =========================================
 
     giiCalculation.horizontalEnergy +=
         horizontalEnergy;
@@ -393,10 +781,16 @@ async function processGII(
     giiCalculation.inclinedEnergy +=
         inclinedEnergy;
 
+        giiCalculation.horizontalCumulative +=
+    horizontalEnergy;
 
-    // =================================================
-    // UPDATE LATEST
-    // =================================================
+giiCalculation.inclinedCumulative +=
+    inclinedEnergy;
+
+
+    // =========================================
+    // UPDATE PREVIOUS
+    // =========================================
 
     giiCalculation.previousHorizontal =
         horizontal;
@@ -406,6 +800,11 @@ async function processGII(
 
     giiCalculation.previousTimestamp =
         now;
+
+
+    // =========================================
+    // LATEST LIVE VALUE
+    // =========================================
 
     giiCalculation.latestHorizontal =
         horizontal;
@@ -419,80 +818,209 @@ async function processGII(
     giiCalculation.latestTimestamp =
         now;
 
+    giiHasData = true;
 
-    // =================================================
-    // CHECK 15 MINUTES
-    // =================================================
 
-    const elapsed =
-        now.getTime() -
-        giiCalculation.intervalStart.getTime();
+    console.log(
+        `📊 GII MEMORY | H:${horizontal} | I:${inclined} | ` +
+        `H Energy:${giiCalculation.horizontalEnergy.toFixed(3)} | ` +
+        `I Energy:${giiCalculation.inclinedEnergy.toFixed(3)}`
+    );
+}
+
+    
+
+// =====================================================
+// GII 15 MINUTE DATABASE SAVE
+// =====================================================
+
+async function saveGII15Minute() {
+
+    // No MQTT data
+    if (!giiHasData) {
 
         console.log(
-    `⏱️ GII PROCESS | H:${horizontal} I:${inclined} | Elapsed:${Math.floor(elapsed / 1000)} sec`
+            "⏭️ GII 15-MIN SKIPPED | No MQTT data"
+        );
+
+        return;
+    }
+
+
+    const horizontal =
+        giiCalculation.latestHorizontal;
+
+    const inclined =
+        giiCalculation.latestInclined;
+
+    const temperature =
+        giiCalculation.latestTemperature;
+
+    const mqttTimestamp =
+        giiCalculation.latestTimestamp;
+
+
+    // =========================================
+    // DON'T SAVE LOW / NIGHT DATA
+    // =========================================
+
+    if (
+        horizontal <= 15 ||
+        inclined <= 15
+    ) {
+
+        console.log(
+            `⏭️ GII 15-MIN DB SKIPPED | ` +
+            `H:${horizontal} | I:${inclined}`
+        );
+
+        resetGIIMemory();
+
+        return;
+    }
+
+
+    try {
+
+       await saveGII(
+    horizontal,
+    inclined,
+    temperature,
+    mqttTimestamp,
+    giiCalculation.horizontalCumulative,
+giiCalculation.inclinedCumulative
 );
 
 
-
-    if (elapsed >= FIFTEEN_MINUTES) {
-
         console.log(
-            "⏱️ 15 MIN COMPLETED"
-        );
-
-        console.log(
-            `H Energy: ${
-                giiCalculation.horizontalEnergy.toFixed(3)
-            }`
-        );
-
-        console.log(
-            `I Energy: ${
-                giiCalculation.inclinedEnergy.toFixed(3)
-            }`
+            `✅ GII 15-MIN DATABASE SAVED | ` +
+            `H:${horizontal} | ` +
+            `I:${inclined} | ` +
+            `T:${temperature}`
         );
 
 
-        // =================================================
-        // SAVE ONLY IF CURRENT IRRADIANCE > 15
-        // =================================================
+    }
+    catch (err) {
 
-        if (
-            giiCalculation.latestHorizontal > 15 &&
-            giiCalculation.latestInclined > 15
-        ) {
+        console.log(
+            "❌ GII 15-MIN SAVE ERROR:",
+            err.message
+        );
 
-            await saveGII(
-                giiCalculation.latestHorizontal,
-                giiCalculation.latestInclined,
-                giiCalculation.latestTemperature,
-                giiCalculation.latestTimestamp
-            );
-
-        }
-        else {
-
-            console.log(
-                `⏭️ 15-MIN DB SKIPPED | ` +
-                `H:${giiCalculation.latestHorizontal} ` +
-                `I:${giiCalculation.latestInclined}`
-            );
-        }
+    }
 
 
-        // =================================================
-        // RESET 15 MIN INTERVAL
-        // =================================================
+    // =========================================
+    // RESET AFTER 15 MIN
+    // =========================================
 
-        giiCalculation.horizontalEnergy = 0;
+    resetGIIMemory();
+}
 
-        giiCalculation.inclinedEnergy = 0;
+// =====================================================
+// WEATHER 15 MINUTE DATABASE SAVE
+// =====================================================
+// =====================================================
+// WEATHER 15 MINUTE DATABASE SAVE
+// =====================================================
 
-        giiCalculation.intervalStart =
-            now;
+async function saveWeather15Minute(campus) {
+
+    const memory =
+        weatherCalculation[campus];
+
+    if (!memory) {
+        return;
+    }
+
+
+    // =========================================
+    // NO MQTT DATA
+    // =========================================
+
+    if (!memory.hasData) {
+
+        console.log(
+            `⏭️ ${campus} SKIPPED | No MQTT data`
+        );
+
+        return;
+    }
+
+
+    // =========================================
+    // SAVE LATEST IRRADIANCE
+    // =========================================
+
+    const irradiance =
+        memory.latestIrradiance;
+
+    const temperature =
+        memory.latestTemperature;
+
+    const mqttTimestamp =
+        memory.latestTimestamp;
+
+
+    try {
+
+       await saveWeather(
+    campus,
+    irradiance,
+    temperature,
+    mqttTimestamp,
+    memory.cumulativeEnergy
+);
+
+
+        console.log(
+            `✅ ${campus} 15-MIN SAVED | ` +
+            `I:${irradiance} | ` +
+            `T:${temperature} | ` +
+            `Cumulative:${memory.cumulativeEnergy.toFixed(3)}`
+        );
+
+
+        // =========================================
+        // RESET AFTER SUCCESSFUL SAVE
+        // =========================================
+
+       memory.intervalEnergy = 0;
+
+console.log(
+    `🔄 ${campus} NEW 15-MIN INTERVAL | ` +
+    `Cumulative continues:${memory.cumulativeEnergy.toFixed(3)}`
+);
+
+    }
+    catch (err) {
+
+        console.log(
+            `❌ ${campus} 15-MIN SAVE ERROR:`,
+            err.message
+        );
+
+        // DB fail என்றால் memory reset ஆகாது
     }
 }
 
+
+function resetGIIMemory() {
+
+    giiCalculation.horizontalEnergy = 0;
+    giiCalculation.inclinedEnergy = 0;
+
+    giiCalculation.intervalStart =
+        giiCalculation.latestTimestamp;
+
+    giiHasData = false;
+
+    console.log(
+        `🔄 GII NEW 15-MIN INTERVAL | ` +
+        `Cumulative continues`
+    );
+}
 
 // =====================================================
 // MQTT MESSAGE
@@ -519,192 +1047,298 @@ client.on("message", async (topic, message) => {
             new Date();
 
 
-        // =================================================
-        // NLC
-        // =================================================
-
         if (topic === "test/rx") {
 
-            const weather = {
+    const weather = {
 
-                irradiance:
-                    status.Pyranometer || 0,
+        irradiance:
+            Number(status.Pyranometer) || 0,
 
-                temperature:
-                    (
-                        status.Module_temperature ||
-                        status.Module_temp ||
-                        0
-                    ) / 10,
+        temperature:
+            (
+                Number(
+                    status.Module_temperature ||
+                    status.Module_temp ||
+                    0
+                )
+            ) / 10,
 
-                lastUpdate:
-                    Date.now()
-            };
+        mqttTimestamp:
+            mqttTimestamp,
 
-
-            latestWeather.NLCIL =
-                { ...weather };
-
-            latestWeather.NLCIC =
-                { ...weather };
-
-            latestWeather.NTPL =
-                { ...weather };
+        lastUpdate:
+            Date.now()
+    };
 
 
-            // NOTE:
-            // If NLC also needs 15-min logging,
-            // use a separate 15-min buffer.
-        }
+    // =========================================
+    // LIVE MEMORY
+    // =========================================
+
+    latestWeather.NLCIL = {
+        ...weather
+    };
+
+    latestWeather.NLCIC = {
+        ...weather
+    };
+
+    latestWeather.NTPL = {
+        ...weather
+    };
+
+    // =========================================
+// 10-SEC MEMORY CALCULATION
+// =========================================
+
+processWeather(
+    "NLCIL",
+    weather.irradiance,
+    weather.temperature,
+    weather.mqttTimestamp
+);
+
+processWeather(
+    "NLCIC",
+    weather.irradiance,
+    weather.temperature,
+    weather.mqttTimestamp
+);
+
+processWeather(
+    "NTPL",
+    weather.irradiance,
+    weather.temperature,
+    weather.mqttTimestamp
+);
+
+    console.log(
+        `🌤️ TEST/RX LIVE | ` +
+        `NLCIL/NLCIC/NTPL | ` +
+        `I:${weather.irradiance} | ` +
+        `T:${weather.temperature}`
+    );
+}
+
+       if (topic === "nuppl/rx") {
+
+    latestWeather.NUPPL = {
+
+        irradiance:
+            Number(status.Param_1) || 0,
+
+        temperature:
+            (
+                Number(status.Param_2) || 0
+            ) / 10,
+
+        mqttTimestamp:
+            mqttTimestamp,
+
+        lastUpdate:
+            Date.now()
+    };
+
+    processWeather(
+    "NUPPL",
+    latestWeather.NUPPL.irradiance,
+    latestWeather.NUPPL.temperature,
+    latestWeather.NUPPL.mqttTimestamp
+);
+
+    console.log(
+        `🌤️ NUPPL LIVE | ` +
+        `I:${latestWeather.NUPPL.irradiance} | ` +
+        `T:${latestWeather.NUPPL.temperature}`
+    );
+}
+
+     // =================================================
+// GII
+// =================================================
+
+if (topic === "library/rx") {
+
+    giiStatus.lastUpdate = Date.now();
+    giiStatus.online = true;
+
+    const subDeviceId =
+        data.payload?.[0]?.subDeviceId;
 
 
-        // =================================================
-        // NUPPL
-        // =================================================
+    // ---------------------------------------------
+    // HORIZONTAL SENSOR
+    // ---------------------------------------------
 
-        if (topic === "nuppl/rx") {
+  if (subDeviceId === "ttyCOM1_1") {
 
-            latestWeather.NUPPL = {
+    const horizontal =
+        Number(status.Param_1) || 0;
 
-                irradiance:
-                    status.Param_1 || 0,
+    const temperature =
+        (Number(status.Param_2) || 0) / 10;
 
-                temperature:
-                    (status.Param_2 || 0) / 10,
+    // =========================================
+    // GII LIVE UPDATE - IMMEDIATE
+    // =========================================
 
-                lastUpdate:
-                    Date.now()
-            };
-        }
+    giiStatus.online = true;
+    giiStatus.horizontal_irradiance = horizontal;
+    giiStatus.temperature = temperature;
+    giiStatus.lastUpdate = Date.now();
 
+    // Existing calculation memory
+    giiCalculation.latestHorizontal =
+        horizontal;
 
-        // =================================================
-        // GII
-        // =================================================
+    giiCalculation.latestTemperature =
+        temperature;
 
-        if (topic === "library/rx") {
+    giiCalculation.latestTimestamp =
+        mqttTimestamp;
 
-            giiStatus.lastUpdate =
-                Date.now();
+    // 15-min buffer
+    giiBuffer.horizontal =
+        horizontal;
 
-            giiStatus.online =
-                true;
+    giiBuffer.temperature =
+        temperature;
 
+    giiBuffer.mqttTimestamp =
+        mqttTimestamp;
 
-            const subDeviceId =
-                data.payload?.[0]?.subDeviceId;
-
-
-            // ---------------------------------------------
-            // HORIZONTAL
-            // ---------------------------------------------
-
-            if (
-                subDeviceId ===
-                "ttyCOM1_1"
-            ) {
-
-                giiBuffer.horizontal =
-                    status.Param_1 || 0;
-
-                giiBuffer.temperature =
-                    (
-                        status.Param_2 ||
-                        0
-                    ) / 10;
-
-                giiBuffer.mqttTimestamp =
-                    mqttTimestamp;
-            }
+    console.log(
+        `🔥 GII HORIZONTAL LIVE | H:${horizontal} | T:${temperature}`
+    );
+}
 
 
-            // ---------------------------------------------
-            // INCLINED
-            // ---------------------------------------------
+    // ---------------------------------------------
+    // INCLINED SENSOR
+    // ---------------------------------------------
 
-            if (
-                subDeviceId ===
-                "ttyCOM1_2"
-            ) {
+   if (subDeviceId === "ttyCOM1_2") {
 
-                giiBuffer.inclined =
-                    status.Param_3 || 0;
-            }
+    const inclined =
+        Number(status.Param_3) || 0;
+
+    // =========================================
+    // GII LIVE UPDATE - IMMEDIATE
+    // =========================================
+
+    giiStatus.online = true;
+    giiStatus.inclined_irradiance = inclined;
+    giiStatus.lastUpdate = Date.now();
+
+    // Existing calculation memory
+    giiCalculation.latestInclined =
+        inclined;
+
+    giiCalculation.latestTimestamp =
+        mqttTimestamp;
+
+    // 15-min buffer
+    giiBuffer.inclined =
+        inclined;
+
+    console.log(
+        `🔥 GII INCLINED LIVE | I:${inclined}`
+    );
+}
+
+    // ---------------------------------------------
+    // BOTH AVAILABLE
+    // 15-MIN CALCULATION ONLY
+    // ---------------------------------------------
+
+    if (
+        giiBuffer.horizontal !== null &&
+        giiBuffer.inclined !== null &&
+        giiBuffer.temperature !== null
+    ) {
+
+        await processGII(
+            giiBuffer.horizontal,
+            giiBuffer.inclined,
+            giiBuffer.temperature,
+            giiBuffer.mqttTimestamp
+        );
 
 
-            // ---------------------------------------------
-            // BOTH AVAILABLE
-            // ---------------------------------------------
-
-      
-
-            if (
-                giiBuffer.horizontal !== null &&
-                giiBuffer.inclined !== null &&
-                giiBuffer.temperature !== null
-            ) {
-
-                await processGII(
-                    giiBuffer.horizontal,
-                    giiBuffer.inclined,
-                    giiBuffer.temperature,
-                    giiBuffer.mqttTimestamp
-                );
-
-
-                // Clear pair buffer
-                giiBuffer.horizontal =
-                    null;
-
-                giiBuffer.inclined =
-                    null;
-
-                giiBuffer.temperature =
-                    null;
-
-                giiBuffer.mqttTimestamp =
-                    null;
-            }
-        }
+        // Clear pair buffer
+        giiBuffer.horizontal = null;
+        giiBuffer.inclined = null;
+        giiBuffer.temperature = null;
+        giiBuffer.mqttTimestamp = null;
+    }
+}
 
 
         // =================================================
         // BTPS
         // =================================================
 
-        if (topic === "rajashthan/rx") {
+       if (topic === "rajashthan/rx") {
 
-            const weather = {
+    const weather = {
 
-                irradiance:
-                    status.Pyranometer || 0,
+        irradiance:
+            Number(status.Pyranometer) || 0,
 
-                temperature:
-                    (
-                        status.Module_temperature ||
-                        status.Module_temp ||
-                        0
-                    ) / 10,
+        temperature:
+            (
+                Number(
+                    status.Module_temperature ||
+                    status.Module_temp ||
+                    0
+                )
+            ) / 10,
 
-                lastUpdate:
-                    Date.now()
-            };
+        mqttTimestamp:
+            mqttTimestamp,
+
+        lastUpdate:
+            Date.now()
+    };
 
 
-            latestWeather.BTPS =
-                { ...weather };
-        }
+    latestWeather.BTPS = {
+        ...weather
+    };
 
-    }
-    catch (err) {
+processWeather(
+    "BTPS",
+    weather.irradiance,
+    weather.temperature,
+    weather.mqttTimestamp
+);
+       console.log(
+        `🌤️ RAJASHTHAN/RX LIVE | ` +
+        `BTPS | ` +
+        `I:${weather.irradiance} | ` +
+        `T:${weather.temperature}`
+    );
+}
 
-        console.log(
-            "MQTT Parse Error ❌",
+
+// =====================================================
+// CLOSE MQTT MESSAGE HANDLER
+// =====================================================
+
+    } catch (err) {
+
+        console.error(
+            "MQTT MESSAGE ERROR ❌:",
             err.message
         );
+
     }
 });
 
+
+// =====================================================
+// LIVE WEATHER
+// =====================================================
 
 // =====================================================
 // LIVE WEATHER
@@ -764,22 +1398,37 @@ module.exports = {
 
     getMQTTWeather,
 
-    getGIIStatus: () => {
+   getGIIStatus: () => {
 
-        if (
-            Date.now() -
-            giiStatus.lastUpdate >
-            30000
-        ) {
+    const age =
+        Date.now() - giiStatus.lastUpdate;
 
-            return {
-                online: false
-            };
-        }
-
+    // MQTT data not received for 30 sec
+    if (age > 30000) {
 
         return {
-            online: true
+            online: false,
+            horizontal_irradiance: 0,
+            inclined_irradiance: 0,
+            temperature: 0,
+            lastUpdate: giiStatus.lastUpdate
         };
     }
+
+    return {
+        online: true,
+
+        horizontal_irradiance:
+            giiStatus.horizontal_irradiance,
+
+        inclined_irradiance:
+            giiStatus.inclined_irradiance,
+
+        temperature:
+            giiStatus.temperature,
+
+        lastUpdate:
+            giiStatus.lastUpdate
+    };
+}
 };
