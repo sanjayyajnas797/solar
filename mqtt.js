@@ -190,18 +190,20 @@ const client = mqtt.connect("mqtt://13.202.201.160", {
 // CONNECT
 // =====================================================
 
-client.on("connect", () => {
+client.on("connect", async () => {
 
     console.log("MQTT Connected ✅");
 
-   client.subscribe([
-    "test/rx",
-    "rajashthan/rx",
-    "nuppl/rx",
-    "library/rx"
-], {
-    qos: 0
-});
+    await loadCumulativeFromDatabase();
+
+    client.subscribe([
+        "test/rx",
+        "rajashthan/rx",
+        "nuppl/rx",
+        "library/rx"
+    ], {
+        qos: 0
+    });
 
     console.log("Subscribed All Topics ✅");
 });
@@ -301,6 +303,107 @@ function getISTDateKey(date) {
         day: "2-digit"
     }).format(date);
 
+}
+
+// =====================================================
+// RESTORE CUMULATIVE AFTER SERVER RESTART
+// =====================================================
+
+async function loadCumulativeFromDatabase() {
+
+    console.log("🔄 Loading previous cumulative values...");
+
+    const campuses = [
+        "NLCIL",
+        "NLCIC",
+        "NTPL",
+        "NUPPL",
+        "BTPS"
+    ];
+
+    for (const campus of campuses) {
+
+        try {
+
+            const result = await db.query(
+                `
+                SELECT cumulative_irradiance
+                FROM weather_logs
+                WHERE campus = $1
+                ORDER BY mqtt_timestamp DESC
+                LIMIT 1
+                `,
+                [campus]
+            );
+
+            if (result.rows.length > 0) {
+
+                weatherCalculation[campus].cumulativeEnergy =
+                    Number(result.rows[0].cumulative_irradiance) || 0;
+
+                console.log(
+                    `♻️ ${campus} cumulative restored: ` +
+                    `${weatherCalculation[campus].cumulativeEnergy.toFixed(3)}`
+                );
+
+            }
+
+        } catch (err) {
+
+            console.error(
+                `❌ ${campus} cumulative restore failed:`,
+                err.message
+            );
+
+        }
+    }
+
+    // =========================================
+    // GII CUMULATIVE RESTORE
+    // =========================================
+
+    try {
+
+        const result = await db.query(
+            `
+            SELECT
+                horizontal_cumulative,
+                inclined_cumulative
+            FROM gii_weather_logs
+            ORDER BY mqtt_timestamp DESC
+            LIMIT 1
+            `
+        );
+
+        if (result.rows.length > 0) {
+
+            giiCalculation.horizontalCumulative =
+                Number(result.rows[0].horizontal_cumulative) || 0;
+
+            giiCalculation.inclinedCumulative =
+                Number(result.rows[0].inclined_cumulative) || 0;
+
+            console.log(
+                `♻️ GII Horizontal restored: ` +
+                `${giiCalculation.horizontalCumulative.toFixed(3)}`
+            );
+
+            console.log(
+                `♻️ GII Inclined restored: ` +
+                `${giiCalculation.inclinedCumulative.toFixed(3)}`
+            );
+        }
+
+    } catch (err) {
+
+        console.error(
+            "❌ GII cumulative restore failed:",
+            err.message
+        );
+
+    }
+
+    console.log("✅ CUMULATIVE RESTORE COMPLETED");
 }
 
 

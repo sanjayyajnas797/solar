@@ -300,6 +300,10 @@ async function getDetailedReport(
     interval = "15"
 ) {
 
+    // =================================================
+    // GET STORED 15-MINUTE WEATHER DATA
+    // =================================================
+
     const { rows } = await db.query(`
         SELECT
             to_char(
@@ -309,20 +313,19 @@ async function getDetailedReport(
 
             mqtt_timestamp,
             irradiance,
-            temperature
+            temperature,
+            cumulative_irradiance
 
         FROM weather_logs
 
         WHERE campus = $1
-
-        AND created_at <= NOW()
 
         AND DATE(
             created_at AT TIME ZONE 'Asia/Kolkata'
         )
         BETWEEN $2::date AND $3::date
 
-        ORDER BY created_at ASC;
+        ORDER BY mqtt_timestamp ASC;
 
     `, [
         campus,
@@ -331,85 +334,33 @@ async function getDetailedReport(
     ]);
 
 
-    // ==========================================
-    // CALCULATE CUMULATIVE USING ALL DATA
-    // ==========================================
+    // =================================================
+    // DIRECTLY USE DATABASE CUMULATIVE VALUE
+    // =================================================
 
-    const fullReport = [];
+    const fullReport = rows.map(row => ({
 
-    let cumulative = 0;
+        time:
+            row.created_at,
 
+        irradiance:
+            Number(row.irradiance),
 
-    for (let i = 0; i < rows.length; i++) {
+        temperature:
+            Number(row.temperature),
 
-        const current = rows[i];
+        cumulative:
+            Number(
+                Number(row.cumulative_irradiance || 0)
+                    .toFixed(2)
+            )
 
-        let energy = 0;
-
-
-        if (i > 0) {
-
-            const previous = rows[i - 1];
-
-
-            const currentDate =
-                current.created_at.split(" ")[0];
-
-            const previousDate =
-                previous.created_at.split(" ")[0];
+    }));
 
 
-            if (currentDate === previousDate) {
-
-                const diff =
-                    Number(current.mqtt_timestamp) -
-                    Number(previous.mqtt_timestamp);
-
-
-                if (diff > 0 && diff <= 30) {
-
-                    energy =
-                        (
-                            Number(current.irradiance) *
-                            diff
-                        ) / 3600;
-                }
-
-            } else {
-
-                // New day → cumulative starts from 0
-
-                cumulative = 0;
-            }
-        }
-
-
-        cumulative += energy;
-
-
-        fullReport.push({
-
-            time:
-                current.created_at,
-
-            irradiance:
-                Number(current.irradiance),
-
-            temperature:
-                Number(current.temperature),
-
-            cumulative:
-                Number(
-                    cumulative.toFixed(2)
-                )
-
-        });
-    }
-
-
-    // ==========================================
+    // =================================================
     // FILTER ONLY FOR DISPLAY
-    // ==========================================
+    // =================================================
 
     let report = [];
 
@@ -476,9 +427,9 @@ async function getDetailedReport(
     }
 
 
-    // ==========================================
+    // =================================================
     // SUMMARY
-    // ==========================================
+    // =================================================
 
     const summary = {
 
