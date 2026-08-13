@@ -1571,37 +1571,7 @@ bottom: -1px;
   top: -21px;   /* 🔥 ADD THIS */
 }
 
-/* 🔥 TOP VALUE BOX (LIKE IMAGE) */
-.irr-top-box {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
 
-  min-width: 72px;   /* before 90px */
-  padding: 4px 12px; /* before 8px 14px */
-
-  border-radius: 10px;
-
-  font-size: 18px;   /* before 26px */
-  font-weight: 700;
-
-  color: #fff176;
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(25,25,25,0.92),
-      rgba(0,0,0,0.72)
-    );
-
-  border: 1px solid rgba(255,220,80,0.6);
-
-  box-shadow:
-    0 0 12px rgba(255,220,80,0.35),
-    inset 0 0 8px rgba(255,255,255,0.06);
-
-  text-align: center;
-}
 /* 🔥 IRRADIANCE SCALE RIGHT SIDE */
 .irr-scale {
   position: absolute;
@@ -2462,36 +2432,7 @@ bottom: -1px;
   }
 }
 
-/* 🔥 VALUE BOX */
-.irr-top-box {
 
-  min-width: 90px;
-
-  text-align: center;
-
-  font-size: 26px;
-
-  font-weight: 700;
-
-  color: #fff176;
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(25,25,25,0.95),
-      rgba(0,0,0,0.75)
-    );
-
-  border: 1px solid rgba(255,220,80,0.7);
-
-  box-shadow:
-    0 0 20px rgba(255,220,80,0.4),
-    inset 0 0 10px rgba(255,255,255,0.08);
-
-  padding: 8px 14px;
-
-  border-radius: 14px;
-}
 
 
 
@@ -3057,3 +2998,1700 @@ bottom: -1px;
 }
 
 
+/* =========================================================
+   UNIT ALIGNMENT FIX
+   Daily Production + Irradiance values
+   ========================================================= */
+
+/* Yesterday + Today value */
+.bar-label {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  font-size: 17px;
+  font-weight: 700;
+
+  color: #00ffc3;
+
+  white-space: nowrap;       /* IMPORTANT - unit won't wrap */
+  width: max-content;
+  min-width: max-content;
+
+  line-height: 1.2;
+  text-align: center;
+
+  z-index: 50;
+
+  text-shadow:
+    0 0 10px rgba(0,255,200,0.8),
+    0 0 20px rgba(0,255,200,0.4);
+}
+
+
+/* Yesterday value */
+.yesterday-value {
+  white-space: nowrap;
+  width: max-content;
+}
+
+
+/* Today value */
+.today-value {
+  top: -32px;
+  white-space: nowrap;
+  width: max-content;
+}
+
+/* IRRADIANCE VALUE - SAME SIZE AS TEMPERATURE */
+.irr-top-box {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+
+  padding: 6px 12px;
+
+  border-radius: 10px;
+
+  font-size: 16px;
+  font-weight: 700;
+
+  color: #fff176;
+
+  background: rgba(0,0,0,0.4);
+
+  border: 1px solid rgba(255,220,80,0.6);
+
+  box-shadow:
+    0 0 15px rgba(255,220,80,0.45),
+    inset 0 0 10px rgba(255,255,255,0.08);
+
+  text-align: center;
+
+  white-space: nowrap;
+  line-height: 1.2;
+
+  z-index: 20;
+}
+
+
+/* =========================================================
+   TEMPERATURE VALUE
+   ========================================================= */
+
+.temp-top-box {
+  white-space: nowrap;
+  width: max-content;
+
+  font-size: 16px;
+  line-height: 1.2;
+
+  z-index: 50;
+}
+
+
+/* ============================================================
+   BUILDING DETAILS
+   FULL PAGE RESPONSIVE OVERRIDE
+   HEADER + TOP CARDS + WEATHER + PRODUCTION + GRAPH
+   PC / LAPTOP / TABLET / MOBILE
+   ============================================================ */
+
+
+/* ============================================================
+   1. GLOBAL SAFETY
+   ============================================================ */
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.building-details-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.building-details-page > * {
+  max-width: 100%;
+}
+
+
+/* prevent content from forcing horizontal scroll */
+
+.bd-header,
+.bd-top-section,
+.bd-graph-section,
+.bottom-dual-layout,
+.bd-system-status-card,
+.bd-performance-card,
+.bd-left,
+.bd-middle,
+.bd-right-big,
+.bd-production-card,
+.bd-graph-box,
+.bd-weather-graph-box {
+  min-width: 0;
+  max-width: 100%;
+}
+
+
+/* images */
+
+.bd-header img,
+.bd-flow-item img,
+.bd-company-logo img,
+.bd-epc-logo img {
+  max-width: 100%;
+}
+
+
+/* ============================================================
+   2. HEADER - LARGE DESKTOP BASE
+   ============================================================ */
+
+.bd-header {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 8px 20px;
+
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  overflow: hidden;
+}
+
+.bd-header-left-side {
+  min-width: 0;
+  flex: 1 1 auto;
+
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.bd-title-box {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.bd-main-title {
+  max-width: 100%;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bd-sub-title {
+  white-space: nowrap;
+}
+
+.bd-header-divider {
+  flex: 0 0 1px;
+}
+
+.bd-epc-box {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.bd-epc-box > div:last-child {
+  min-width: 0;
+}
+
+.bd-epc-box .epc-company {
+  max-width: 100%;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bd-header-right {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  min-width: 0;
+}
+
+.live-system-pill,
+.updated-pill,
+.bd-back-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   3. TOP SECTION - LARGE DESKTOP
+   ============================================================ */
+
+.bd-top-section {
+  width: 100%;
+  max-width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 2fr)
+    minmax(260px, 1.3fr)
+    minmax(320px, 1.8fr);
+
+  gap: 20px;
+
+  align-items: stretch;
+}
+
+
+/* ============================================================
+   4. FLOW CARD
+   ============================================================ */
+
+.bd-left {
+  width: 100%;
+  min-width: 0;
+
+  overflow: hidden;
+}
+
+.bd-flow-box {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: clamp(20px, 4vw, 60px);
+}
+
+.bd-flow-item {
+  flex: 0 0 auto;
+}
+
+.bd-flow-line {
+  flex: 1 1 50px;
+  min-width: 20px;
+  max-width: 110px;
+}
+
+
+/* ============================================================
+   5. DAILY PRODUCTION CARD
+   ============================================================ */
+
+.bd-middle {
+  width: 100%;
+  min-width: 0;
+}
+
+.bd-production-card {
+  width: 100%;
+  max-width: 100%;
+
+  overflow: hidden;
+}
+
+.bd-production-bars {
+  width: 100%;
+  max-width: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+
+  gap: clamp(30px, 5vw, 100px);
+}
+
+.bd-bar-block {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.bd-bar-wrapper {
+  max-width: 100%;
+}
+
+.bd-bar {
+  max-width: 100%;
+}
+
+
+/* value never breaks */
+
+.bar-label,
+.today-value,
+.yesterday-value {
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   6. SOLAR / WEATHER CARD
+   ============================================================ */
+
+.bd-right-big {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+}
+
+.bd-right-header {
+  min-width: 0;
+}
+
+.bd-right-title {
+  white-space: nowrap;
+}
+
+.bd-weather-graph-box {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  overflow: visible;
+}
+
+.bd-dual-meter-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+}
+
+.bd-meter-block {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.bd-meter-track {
+  flex-shrink: 0;
+}
+
+
+/* ============================================================
+   7. GRAPH SECTION
+   ============================================================ */
+
+.bd-graph-section {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  overflow: visible;
+}
+
+.bd-graph-header {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.bd-graph-title {
+  min-width: 0;
+}
+
+.premium-tabs {
+  max-width: 100%;
+
+  display: flex;
+  align-items: center;
+
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  flex-shrink: 0;
+}
+
+.premium-date {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.premium-graph-card,
+.bd-graph-box {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  overflow: hidden;
+}
+
+
+/* ============================================================
+   8. RECHARTS SAFETY
+   ============================================================ */
+
+.bd-graph-box > div,
+.premium-graph-card > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.bd-graph-box svg,
+.premium-graph-card svg {
+  max-width: 100%;
+}
+
+
+/* ============================================================
+   9. 1600px+
+   LARGE PC
+   ============================================================ */
+
+@media (min-width: 1600px) {
+
+  .bd-header {
+    min-height: 80px;
+    padding: 8px 20px;
+  }
+
+  .bd-header-left-side {
+    gap: 20px;
+  }
+
+  .bd-top-section {
+    grid-template-columns:
+      minmax(0, 2fr)
+      minmax(300px, 1.3fr)
+      minmax(350px, 1.8fr);
+
+    gap: 20px;
+  }
+
+  .bd-left {
+    height: 300px;
+  }
+
+  .bd-production-card {
+    height: 360px;
+  }
+
+  .bd-right-big {
+    min-height: 430px;
+  }
+
+  .bd-weather-graph-box {
+    height: 320px;
+  }
+}
+
+
+/* ============================================================
+   1440 - 1599
+   NORMAL DESKTOP
+   ============================================================ */
+
+@media (min-width: 1440px) and (max-width: 1599px) {
+
+  .bd-header {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .bd-header-left-side {
+    gap: 14px;
+  }
+
+  .bd-main-title {
+    font-size: 17px !important;
+  }
+
+  .bd-sub-title {
+    font-size: 11px !important;
+  }
+
+  .bd-epc-box .epc-company {
+    font-size: 13px !important;
+  }
+
+  .bd-header-right {
+    gap: 8px;
+  }
+
+  .live-system-pill,
+  .updated-pill {
+    padding: 6px 10px !important;
+    font-size: 10px !important;
+  }
+
+  .bd-back-btn {
+    padding: 7px 14px !important;
+    font-size: 11px;
+  }
+
+
+  /* TOP */
+
+  .bd-top-section {
+    grid-template-columns:
+      minmax(0, 2fr)
+      minmax(240px, 1.3fr)
+      minmax(300px, 1.8fr);
+
+    gap: 16px;
+  }
+
+  .bd-left {
+    height: 300px;
+    padding: 17px;
+  }
+
+  .bd-flow-box {
+    gap: clamp(18px, 3vw, 45px);
+  }
+
+  .bd-flow-item {
+    width: 78px;
+    height: 78px;
+  }
+
+  .bd-flow-item img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .bd-production-card {
+    height: 340px;
+    padding-top: 30px;
+  }
+
+  .bd-production-bars {
+    height: 240px;
+    gap: 65px;
+  }
+
+  .bd-right-big {
+    min-height: 410px;
+    padding: 16px;
+  }
+
+  .bd-weather-graph-box {
+    height: 300px;
+  }
+
+  .bd-meter-track {
+    width: 62px;
+    height: 230px;
+  }
+
+  .bd-meter-fill {
+    width: 44px;
+  }
+}
+
+
+/* ============================================================
+   1280 - 1439
+   COMMON OFFICE PC / LAPTOP
+   ============================================================ */
+
+@media (min-width: 1201px) and (max-width: 1439px) {
+
+  .bd-header {
+    min-height: 76px;
+    padding: 7px 14px;
+    gap: 12px;
+  }
+
+  .bd-header-left-side {
+    gap: 10px;
+  }
+
+  .bd-company-logo-compact img {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  .bd-epc-logo-compact img {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .bd-main-title {
+    font-size: 15px !important;
+  }
+
+  .bd-sub-title {
+    font-size: 10px !important;
+  }
+
+  .bd-epc-box .epc-company {
+    font-size: 11px !important;
+  }
+
+  .bd-header-divider {
+    opacity: .4;
+  }
+
+  .bd-header-right {
+    gap: 6px;
+  }
+
+  .live-system-pill,
+  .updated-pill {
+    padding: 5px 8px !important;
+    font-size: 9px !important;
+  }
+
+  .bd-back-btn {
+    padding: 6px 11px !important;
+    font-size: 10px;
+  }
+
+
+  /* TOP 3 COLUMNS */
+
+  .bd-top-section {
+    grid-template-columns:
+      minmax(0, 1.9fr)
+      minmax(235px, 1.25fr)
+      minmax(290px, 1.7fr);
+
+    gap: 14px;
+  }
+
+
+  /* FLOW */
+
+  .bd-left {
+    height: 285px;
+    padding: 14px;
+  }
+
+  .bd-box-title {
+    font-size: 12px;
+  }
+
+  .bd-flow-box {
+    gap: clamp(15px, 2.5vw, 35px);
+  }
+
+  .bd-flow-item {
+    width: 72px;
+    height: 72px;
+  }
+
+  .bd-flow-item img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .bd-flow-line {
+    min-width: 18px;
+    max-width: 65px;
+  }
+
+
+  /* PRODUCTION */
+
+  .bd-production-card {
+    height: 320px;
+    padding-top: 28px;
+  }
+
+  .bd-production-title {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .bd-production-bars {
+    height: 225px;
+    gap: 48px;
+  }
+
+  .bd-bar {
+    width: 72px;
+  }
+
+  .bd-bar-wrapper {
+    width: 72px;
+  }
+
+  .bar-label,
+  .today-value,
+  .yesterday-value {
+    font-size: 14px;
+  }
+
+  .bar-name {
+    font-size: 11px;
+  }
+
+
+  /* WEATHER */
+
+  .bd-right-big {
+    min-height: 390px;
+    padding: 14px;
+  }
+
+  .bd-right-title {
+    font-size: 12px;
+  }
+
+  .bd-weather-graph-box {
+    height: 280px;
+    padding: 12px;
+  }
+
+  .bd-meter-track {
+    width: 56px;
+    height: 215px;
+  }
+
+  .bd-meter-fill {
+    width: 40px;
+  }
+
+  .bd-meter-label {
+    font-size: 11px;
+  }
+
+  .bd-scale-numbers,
+  .irr-scale {
+    font-size: 9px;
+  }
+
+  .irr-top-box,
+  .temp-top-box {
+    font-size: 13px;
+  }
+}
+
+
+/* ============================================================
+   1025 - 1200
+   SMALL LAPTOP / WINDOWS SCALE
+   ============================================================ */
+
+@media (min-width: 1025px) and (max-width: 1200px) {
+
+  .bd-header {
+    min-height: 72px;
+
+    padding: 6px 10px;
+
+    gap: 8px;
+  }
+
+  .bd-header-left-side {
+    gap: 7px;
+  }
+
+  .bd-company-logo-compact img {
+    width: 46px !important;
+    height: 46px !important;
+  }
+
+  .bd-epc-logo-compact img {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .bd-main-title {
+    font-size: 13px !important;
+  }
+
+  .bd-sub-title {
+    font-size: 8px !important;
+  }
+
+  .bd-epc-box .epc-company {
+    font-size: 9px !important;
+  }
+
+  .bd-epc-box .epc-label {
+    font-size: 7px !important;
+  }
+
+  .bd-header-divider {
+    opacity: .25;
+  }
+
+  .bd-header-right {
+    gap: 4px;
+  }
+
+  .live-system-pill,
+  .updated-pill {
+    padding: 4px 6px !important;
+    font-size: 8px !important;
+  }
+
+  .bd-back-btn {
+    padding: 5px 8px !important;
+    font-size: 9px;
+  }
+
+
+  /* TOP -> 2 ROWS */
+
+  .bd-top-section {
+    grid-template-columns:
+      minmax(0, 1.35fr)
+      minmax(0, 1fr);
+
+    gap: 12px;
+  }
+
+
+  /* FLOW */
+
+  .bd-left {
+    height: 270px;
+    padding: 12px;
+  }
+
+  .bd-flow-box {
+    gap: 18px;
+  }
+
+  .bd-flow-item {
+    width: 64px;
+    height: 64px;
+  }
+
+  .bd-flow-item img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .bd-flow-line {
+    max-width: 55px;
+  }
+
+
+  /* PRODUCTION */
+
+  .bd-middle {
+    grid-column: 2;
+  }
+
+  .bd-production-card {
+    height: 270px;
+    padding-top: 22px;
+  }
+
+  .bd-production-bars {
+    height: 190px;
+    gap: 32px;
+  }
+
+  .bd-bar {
+    width: 62px;
+  }
+
+  .bd-bar-wrapper {
+    width: 62px;
+  }
+
+  .bar-label,
+  .today-value,
+  .yesterday-value {
+    font-size: 12px;
+  }
+
+  .bar-name {
+    font-size: 10px;
+  }
+
+
+  /* WEATHER -> FULL WIDTH */
+
+  .bd-right-big {
+    grid-column: 1 / -1;
+
+    min-height: 360px;
+    padding: 14px;
+  }
+
+  .bd-weather-graph-box {
+    height: 270px;
+  }
+
+  .bd-meter-track {
+    width: 58px;
+    height: 205px;
+  }
+
+  .bd-meter-fill {
+    width: 42px;
+  }
+}
+
+
+/* ============================================================
+   769 - 1024
+   TABLET / SMALL DISPLAY
+   ============================================================ */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .bd-header {
+    min-height: auto;
+
+    padding: 8px 10px;
+
+    gap: 8px;
+  }
+
+  .bd-header-left-side {
+    gap: 7px;
+  }
+
+  .bd-company-logo-compact img {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .bd-epc-logo-compact img {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .bd-main-title {
+    font-size: 12px !important;
+  }
+
+  .bd-sub-title {
+    font-size: 8px !important;
+  }
+
+  .bd-epc-box .epc-company {
+    font-size: 8px !important;
+  }
+
+  .bd-header-divider {
+    display: none;
+  }
+
+  .live-system-pill,
+  .updated-pill {
+    padding: 4px 6px !important;
+    font-size: 8px !important;
+  }
+
+  .bd-back-btn {
+    padding: 5px 8px !important;
+    font-size: 8px;
+  }
+
+
+  /* 1 COLUMN TOP */
+
+  .bd-top-section {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+
+  /* FLOW */
+
+  .bd-left {
+    height: 250px;
+    padding: 12px;
+  }
+
+  .bd-flow-box {
+    gap: 24px;
+  }
+
+  .bd-flow-item {
+    width: 70px;
+    height: 70px;
+  }
+
+
+  /* PRODUCTION */
+
+  .bd-production-card {
+    height: 300px;
+    padding-top: 25px;
+  }
+
+  .bd-production-bars {
+    height: 220px;
+    gap: 55px;
+  }
+
+  .bd-bar {
+    width: 70px;
+  }
+
+  .bd-bar-wrapper {
+    width: 70px;
+  }
+
+
+  /* WEATHER */
+
+  .bd-right-big {
+    min-height: 380px;
+    padding: 14px;
+  }
+
+  .bd-weather-graph-box {
+    height: 285px;
+  }
+
+  .bd-meter-track {
+    width: 62px;
+    height: 220px;
+  }
+
+  .bd-meter-fill {
+    width: 44px;
+  }
+}
+
+
+/* ============================================================
+   601 - 768
+   TABLET PORTRAIT
+   ============================================================ */
+
+@media (min-width: 601px) and (max-width: 768px) {
+
+  .bd-header {
+    position: relative;
+
+    flex-direction: column;
+    align-items: stretch;
+
+    padding: 12px;
+
+    gap: 10px;
+  }
+
+  .bd-header-left-side {
+    width: 100%;
+
+    flex-wrap: wrap;
+    justify-content: center;
+
+    gap: 10px;
+  }
+
+  .bd-header-right {
+    width: 100%;
+
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .bd-header-divider {
+    display: none;
+  }
+
+
+  /* TOP */
+
+  .bd-top-section {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+
+  .bd-left {
+    height: 270px;
+  }
+
+  .bd-flow-box {
+    gap: 25px;
+  }
+
+
+  .bd-production-card {
+    height: 320px;
+  }
+
+  .bd-production-bars {
+    height: 230px;
+    gap: 60px;
+  }
+
+
+  .bd-right-big {
+    min-height: 390px;
+  }
+
+  .bd-weather-graph-box {
+    height: 290px;
+  }
+
+
+  /* GRAPH */
+
+  .premium-tabs {
+    width: 100%;
+
+    justify-content: center;
+  }
+
+  .premium-date {
+    max-width: 180px;
+  }
+}
+
+
+/* ============================================================
+   <= 600
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 600px) {
+
+  .building-details-page {
+    padding: 0 !important;
+  }
+
+
+  /* HEADER */
+
+  .bd-header {
+    position: relative;
+
+    flex-direction: column;
+    align-items: stretch;
+
+    padding: 10px !important;
+
+    gap: 10px;
+
+    border-radius: 0 0 14px 14px;
+  }
+
+  .bd-header-left-side {
+    width: 100%;
+
+    flex-direction: column;
+    align-items: center;
+
+    text-align: center;
+
+    gap: 8px;
+  }
+
+  .bd-company-logo-compact img {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  .bd-title-box {
+    width: 100%;
+  }
+
+  .bd-main-title {
+    font-size: 16px !important;
+
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .bd-sub-title {
+    font-size: 10px !important;
+  }
+
+  .bd-header-divider {
+    display: none;
+  }
+
+
+  /* EPC */
+
+  .bd-epc-box {
+    width: 100%;
+
+    justify-content: center;
+  }
+
+  .bd-epc-logo-compact img {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .bd-epc-box .epc-company {
+    font-size: 10px !important;
+
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .bd-epc-box .epc-label {
+    font-size: 8px !important;
+  }
+
+
+  /* RIGHT HEADER */
+
+  .bd-header-right {
+    width: 100%;
+
+    justify-content: center;
+    flex-wrap: wrap;
+
+    gap: 6px;
+  }
+
+  .live-system-pill,
+  .updated-pill {
+    padding: 6px 9px !important;
+
+    font-size: 9px !important;
+  }
+
+  .bd-back-btn {
+    padding: 6px 12px !important;
+
+    font-size: 10px;
+  }
+
+
+  /* ========================================================
+     TOP SECTION
+     ======================================================== */
+
+  .bd-top-section {
+    grid-template-columns: 1fr;
+
+    gap: 10px;
+  }
+
+
+  /* FLOW */
+
+  .bd-left {
+    width: 100%;
+    height: 230px;
+
+    padding: 12px;
+  }
+
+  .bd-box-title {
+    font-size: 12px;
+  }
+
+  .bd-flow-box {
+    gap: 10px;
+  }
+
+  .bd-flow-item {
+    width: 58px;
+    height: 58px;
+  }
+
+  .bd-flow-item img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .bd-flow-line {
+    min-width: 15px;
+    max-width: 50px;
+  }
+
+
+  /* ========================================================
+     PRODUCTION
+     ======================================================== */
+
+  .bd-production-card {
+    height: 300px;
+
+    padding-top: 25px;
+
+    border-radius: 16px;
+  }
+
+  .bd-production-title {
+    font-size: 12px;
+
+    margin-bottom: 12px;
+  }
+
+  .bd-production-bars {
+    height: 215px;
+
+    gap: 38px;
+  }
+
+  .bd-bar {
+    width: 58px;
+  }
+
+  .bd-bar-wrapper {
+    width: 58px;
+  }
+
+  .bar-label,
+  .today-value,
+  .yesterday-value {
+    font-size: 11px;
+  }
+
+  .bar-name {
+    font-size: 10px;
+  }
+
+
+  /* ========================================================
+     WEATHER
+     ======================================================== */
+
+  .bd-right-big {
+    width: 100%;
+
+    min-height: 350px;
+
+    padding: 12px;
+
+    border-radius: 16px;
+  }
+
+  .bd-right-title {
+    font-size: 12px;
+  }
+
+  .bd-weather-graph-box {
+    height: 270px;
+
+    padding: 10px;
+    margin-top: 10px;
+
+    border-radius: 15px;
+  }
+
+  .bd-dual-meter-container {
+    justify-content: space-evenly;
+  }
+
+  .bd-meter-label {
+    font-size: 10px;
+    margin-bottom: 7px;
+  }
+
+  .bd-meter-track {
+    width: 48px;
+    height: 205px;
+  }
+
+  .bd-meter-fill {
+    width: 34px;
+  }
+
+  .bd-scale-numbers,
+  .irr-scale {
+    font-size: 8px;
+  }
+
+  .bd-scale-numbers {
+    right: -31px;
+  }
+
+  .irr-top-box,
+  .temp-top-box {
+    font-size: 11px;
+  }
+
+  .irr-top-box {
+    padding: 5px 7px;
+  }
+
+
+  /* SUN */
+
+  .bd-center-sun,
+  .bd-center-sun-cores {
+    width: 48px;
+    height: 48px;
+  }
+
+
+  /* ========================================================
+     ENERGY TREND
+     ======================================================== */
+
+  .bd-graph-section {
+    margin-top: 18px;
+  }
+
+  .bd-graph-title {
+    font-size: 15px;
+  }
+
+  .premium-tabs {
+    width: 100%;
+
+    justify-content: center;
+
+    padding: 7px;
+
+    gap: 5px;
+
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    padding: 6px 11px;
+
+    font-size: 11px;
+  }
+
+  .premium-date {
+    width: 150px;
+
+    padding: 6px 8px;
+
+    font-size: 11px;
+  }
+
+
+  /* POWER GRAPH */
+
+  .premium-graph-card,
+  .bd-graph-box {
+    width: 100%;
+
+    padding: 8px !important;
+
+    margin-top: 8px;
+  }
+
+  .bd-graph-box > div {
+    width: 100% !important;
+  }
+
+
+  /* OTHER LOWER CARDS */
+
+  .bottom-dual-layout {
+    grid-template-columns: 1fr !important;
+
+    gap: 12px;
+
+    margin-top: 15px;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .status-bottom-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* ============================================================
+   VERY SMALL MOBILE
+   ============================================================ */
+
+@media (max-width: 420px) {
+
+  .bd-main-title {
+    font-size: 14px !important;
+  }
+
+  .bd-company-logo-compact img {
+    width: 46px !important;
+    height: 46px !important;
+  }
+
+  .bd-epc-logo-compact img {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+
+  .bd-left {
+    height: 215px;
+  }
+
+  .bd-flow-box {
+    gap: 6px;
+  }
+
+  .bd-flow-item {
+    width: 52px;
+    height: 52px;
+  }
+
+  .bd-flow-item img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .bd-flow-line {
+    max-width: 35px;
+  }
+
+
+  .bd-production-card {
+    height: 280px;
+  }
+
+  .bd-production-bars {
+    height: 195px;
+    gap: 28px;
+  }
+
+  .bd-bar {
+    width: 52px;
+  }
+
+  .bd-bar-wrapper {
+    width: 52px;
+  }
+
+  .bar-label,
+  .today-value,
+  .yesterday-value {
+    font-size: 10px;
+  }
+
+
+  .bd-right-big {
+    min-height: 330px;
+  }
+
+  .bd-weather-graph-box {
+    height: 250px;
+  }
+
+  .bd-meter-track {
+    width: 43px;
+    height: 190px;
+  }
+
+  .bd-meter-fill {
+    width: 30px;
+  }
+
+  .bd-center-sun,
+  .bd-center-sun-cores {
+    width: 42px;
+    height: 42px;
+  }
+
+
+  .premium-tabs {
+    border-radius: 18px;
+  }
+
+  .tab-btn {
+    font-size: 10px;
+    padding: 5px 9px;
+  }
+
+  .premium-date {
+    width: 135px;
+    font-size: 10px;
+  }
+}
+
+
+/* ============================================================
+   WINDOWS HIGH DPI / 125% / 150% SCALING
+   ============================================================ */
+
+@media (min-resolution: 120dpi) and (min-width: 1000px) {
+
+  .bd-header {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .bd-top-section {
+    gap: 12px;
+  }
+
+  .bd-flow-box {
+    gap: 18px;
+  }
+
+  .bd-production-bars {
+    gap: 35px;
+  }
+
+  .bd-main-title,
+  .bd-epc-box .epc-company {
+    max-width: 100%;
+  }
+
+  .bd-graph-box,
+  .premium-graph-card {
+    overflow: hidden;
+  }
+}
+
+
+/* ============================================================
+   FINAL WIDTH PROTECTION
+   ============================================================ */
+
+.bd-header *,
+.bd-top-section *,
+.bd-graph-section *,
+.bottom-dual-layout * {
+  min-width: 0;
+}
+
+.bd-main-title,
+.bd-sub-title,
+.epc-company,
+.bd-right-title,
+.bd-graph-title {
+  max-width: 100%;
+}
+
+.bd-flow-item,
+.bd-meter-block,
+.bd-bar-block {
+  flex-shrink: 1;
+}
+
+.bd-graph-section {
+  overflow: visible;
+}
+
+
+/* ============================================================
+   END FULL RESPONSIVE OVERRIDE
+   ============================================================ */

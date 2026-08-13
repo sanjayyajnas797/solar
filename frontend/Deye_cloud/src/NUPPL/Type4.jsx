@@ -15,17 +15,16 @@ import { FaHistory } from "react-icons/fa";
 
 /* CAPACITY MAP */
 const capacityMap = {
-  "TYPE4BLOCK825KW": 27.12,
-  "TYPE4BLOCK925KW": 27.12,
-  "TYPE4BLOCK1125KW": 27.12,
-  "TYPE4BLOCK1025KW": 27.12,
-  "TYPE4BLOCK725KW": 27.12,
-  "TYPE4BLOCK225KW": 27.12,
-  "TYPE4BLOCK125KW": 27.12,
-  "TYPE4BLOCK325KW": 27.12,
-  "TYPE4BLOCK4": 27.12,
-  "TYPE4BLOCK5": 27.12,
-  "TYPE4BLOCK6": 27.12
+  "NUPPLTYPE4BLOCK825KW": 26.54,
+  "NUPPLTYPE4BLOCK925KW": 26.54,
+  "NUPPLTYPE4BLOCK1125KW": 26.54,
+  "NUPPLTYPE4BLOCK1025KW": 26.54,
+  "NUPPLTYPE4BLOCK725KW": 26.54,
+  "NUPPLTYPE4BLOCK225KW": 26.54,
+  "NUPPLTYPE4BLOCK125KW": 26.54,
+  "NUPPLTYPE4BLOCK325KW": 26.54,
+  "NUPPLTYPE4BLOCK425KW": 26.54,
+  "NUPLTYPE4BLOCK5":25.99
 };
 
 /* NORMALIZE */
@@ -411,15 +410,19 @@ const normalized = normalizeName(b.name);
 
 const clean = normalized.replace(/KW$/,"");
 
-let capacity =
-capacityMap[normalized] ||
-capacityMap[clean];
+let capacity;
 
-const match =
-b.name.match(/(\d+)\s*kw/i);
+if (
+  normalized.includes("NUPPLTYPE4BLOCK") ||
+  normalized.includes("NUPLTYPE4BLOCK")
+) {
+  capacity = 26.54;
+} else {
+  const match = b.name.match(/(\d+(?:\.\d+)?)\s*kw/i);
 
-if(!capacity){
-capacity = match ? Number(match[1]) : 25;
+  capacity = match
+    ? Number(match[1])
+    : 25;
 }
 
 return(

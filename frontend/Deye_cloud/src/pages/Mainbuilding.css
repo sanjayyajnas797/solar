@@ -1240,3 +1240,788 @@ text-shadow:none;
     }
 
 }
+
+
+
+/* =========================================================
+   MAIN PAGE - RESPONSIVE / ALL PC & LAPTOP SUPPORT
+   Add this at the VERY BOTTOM of Mainbuilding.css
+   Existing design / colors / animation / data untouched
+   ========================================================= */
+
+
+/* =========================================================
+   GLOBAL WIDTH SAFETY
+   ========================================================= */
+
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.dashboard {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+
+/* =========================================================
+   HEADER - RESPONSIVE BASE
+   ========================================================= */
+
+.header {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.header-left-new,
+.header-right,
+.header-text-block,
+.header-supplier-block,
+.epc-text-block {
+    min-width: 0;
+}
+
+.header-client-name,
+.header-title,
+.header-company {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-right {
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   MAIN SCADA CONTAINER
+   ========================================================= */
+
+.scada-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   SCADA ROW
+   LARGE SCREEN
+   ========================================================= */
+
+.scada-row {
+    /*
+       Instead of fixed 260px columns,
+       use flexible columns.
+    */
+
+    grid-template-columns:
+        minmax(190px, 1.15fr)
+        minmax(70px, 0.65fr)
+        minmax(190px, 1.15fr)
+        minmax(70px, 0.65fr)
+        minmax(190px, 1.15fr)
+        minmax(70px, 0.65fr)
+        minmax(190px, 1.15fr);
+
+    width: 100%;
+    max-width: 100%;
+
+    box-sizing: border-box;
+}
+
+.scada-row > * {
+    min-width: 0;
+}
+
+
+/* =========================================================
+   PANEL SAFETY
+   ========================================================= */
+
+.panel {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   CAMPUS CARD
+   ========================================================= */
+
+.campus-card {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.campus-card > div {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.campus-card .value {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   FLOW LINE
+   ========================================================= */
+
+.flow-line {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.flow-line svg {
+    width: 300%;
+    max-width: none;
+}
+
+
+/* =========================================================
+   WEATHER PANELS
+   ========================================================= */
+
+.weather-panel,
+.gii-panel {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.weather-row {
+    min-width: 0;
+}
+
+.weather-row > div {
+    min-width: 0;
+}
+
+.weather-row .label,
+.weather-row .value,
+.gii-label,
+.gii-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   1920 / 1600 / LARGE DESKTOP
+   ========================================================= */
+
+@media (min-width: 1600px) {
+
+    .header {
+        padding-left: 28px;
+        padding-right: 28px;
+    }
+
+    .header-left-new {
+        gap: 28px;
+    }
+
+    .header-right {
+        gap: 18px;
+    }
+
+    .scada-container {
+        padding: 25px;
+    }
+
+    .scada-row {
+        grid-template-columns:
+            minmax(220px, 1.15fr)
+            minmax(100px, 0.65fr)
+            minmax(220px, 1.15fr)
+            minmax(100px, 0.65fr)
+            minmax(220px, 1.15fr)
+            minmax(100px, 0.65fr)
+            minmax(220px, 1.15fr);
+    }
+}
+
+
+/* =========================================================
+   1440 / 1366 LAPTOP
+   ========================================================= */
+
+@media (min-width: 1201px) and (max-width: 1599px) {
+
+    .header {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .header-left-new {
+        gap: 18px;
+    }
+
+    .header-right {
+        gap: 11px;
+    }
+
+    .header-logo-left {
+        width: 62px;
+        height: 62px;
+    }
+
+    .header-client-name {
+        font-size: 23px;
+    }
+
+    .header-title {
+        font-size: 12px;
+    }
+
+    .report-btn {
+        padding: 9px 17px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .live-text {
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .update-container {
+        padding: 5px 10px;
+        white-space: nowrap;
+    }
+
+    .update-time {
+        font-size: 13px;
+    }
+
+    .logout {
+        padding: 6px 13px;
+        white-space: nowrap;
+    }
+
+    .scada-container {
+        padding: 18px;
+    }
+
+    .scada-row {
+        grid-template-columns:
+            minmax(175px, 1.15fr)
+            minmax(60px, 0.60fr)
+            minmax(175px, 1.15fr)
+            minmax(60px, 0.60fr)
+            minmax(175px, 1.15fr)
+            minmax(60px, 0.60fr)
+            minmax(175px, 1.15fr);
+
+        gap: 9px;
+        padding: 11px;
+    }
+
+    .panel {
+        padding: 14px;
+    }
+
+    .campus-card {
+        gap: 11px;
+        padding: 12px;
+    }
+
+    .campus-card img {
+        width: 56px;
+        height: 56px;
+    }
+
+    .value {
+        font-size: 18px;
+    }
+
+    .label {
+        font-size: 11px;
+    }
+
+    .gii-panel {
+        width: auto;
+        min-height: 0;
+    }
+}
+
+
+/* =========================================================
+   1366 / 1280 SMALL DESKTOP
+   ========================================================= */
+
+@media (min-width: 1025px) and (max-width: 1200px) {
+
+    .header {
+        padding: 8px 14px;
+    }
+
+    .header-left-new {
+        gap: 12px;
+    }
+
+    .header-logo-left {
+        width: 54px;
+        height: 54px;
+    }
+
+    .header-client-name {
+        font-size: 20px;
+    }
+
+    .header-title {
+        font-size: 11px;
+    }
+
+    .header-right {
+        gap: 7px;
+    }
+
+    .report-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .live-text {
+        font-size: 10px;
+    }
+
+    .live-dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .update-container {
+        padding: 4px 7px;
+    }
+
+    .update-label {
+        font-size: 8px;
+    }
+
+    .update-time {
+        font-size: 10px;
+    }
+
+    .logout {
+        padding: 5px 9px;
+        font-size: 10px;
+    }
+
+    .scada-container {
+        padding: 12px;
+    }
+
+    /*
+       Keep 7-part SCADA flow.
+       Columns shrink automatically.
+    */
+
+    .scada-row {
+        grid-template-columns:
+            minmax(145px, 1.2fr)
+            minmax(45px, 0.55fr)
+            minmax(145px, 1.2fr)
+            minmax(45px, 0.55fr)
+            minmax(145px, 1.2fr)
+            minmax(45px, 0.55fr)
+            minmax(145px, 1.2fr);
+
+        gap: 7px;
+        padding: 9px;
+    }
+
+    .panel {
+        padding: 11px;
+    }
+
+    .campus-card {
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .campus-card img {
+        width: 48px;
+        height: 48px;
+    }
+
+    .value {
+        font-size: 16px;
+    }
+
+    .label {
+        font-size: 10px;
+    }
+
+    .flow-line {
+        height: 20px;
+    }
+
+    .gii-panel {
+        width: auto;
+        min-height: 0;
+        padding: 10px;
+    }
+
+    .gii-item {
+        gap: 5px;
+        margin: 6px 0;
+    }
+
+    .gii-label {
+        font-size: 10px;
+    }
+
+    .gii-value {
+        font-size: 14px;
+    }
+}
+
+
+/* =========================================================
+   1024 / TABLET LANDSCAPE
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+    .header {
+        position: fixed;
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .header-left-new {
+        gap: 9px;
+    }
+
+    .header-logo-left {
+        width: 48px;
+        height: 48px;
+    }
+
+    .header-client-name {
+        font-size: 17px;
+    }
+
+    .header-title {
+        font-size: 9px;
+    }
+
+    .header-right {
+        gap: 5px;
+    }
+
+    .report-btn {
+        padding: 7px 9px;
+        font-size: 10px;
+    }
+
+    .live-text {
+        font-size: 9px;
+    }
+
+    .update-container {
+        padding: 3px 6px;
+    }
+
+    .update-label {
+        font-size: 7px;
+    }
+
+    .update-time {
+        font-size: 9px;
+    }
+
+    .logout {
+        padding: 5px 7px;
+        font-size: 9px;
+    }
+
+    .scada-container {
+        padding: 10px;
+    }
+
+    /*
+       At this width 7 columns become too tight.
+       Use 4 columns and allow natural wrapping.
+    */
+
+    .scada-row {
+        grid-template-columns:
+            minmax(160px, 1.2fr)
+            minmax(65px, 0.6fr)
+            minmax(160px, 1.2fr)
+            minmax(160px, 1.2fr);
+
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .panel {
+        padding: 10px;
+    }
+
+    .campus-card img {
+        width: 46px;
+        height: 46px;
+    }
+
+    .value {
+        font-size: 15px;
+    }
+
+    .label {
+        font-size: 9px;
+    }
+}
+
+
+/* =========================================================
+   TABLET PORTRAIT
+   ========================================================= */
+
+@media (min-width: 601px) and (max-width: 768px) {
+
+    .header {
+        position: relative;
+        padding: 10px;
+        flex-wrap: wrap;
+    }
+
+    .header-left-new {
+        flex: 1 1 100%;
+        width: 100%;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .scada-container {
+        margin-top: 0;
+        padding: 10px;
+    }
+
+    .scada-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .flow-line {
+        width: 100%;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .header {
+        position: relative;
+        width: 100%;
+        padding: 10px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .header-left-new {
+        width: 100%;
+        flex: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+    }
+
+    .header-text-block {
+        align-items: center;
+        text-align: center;
+    }
+
+    .header-logo-left {
+        width: 52px;
+        height: 52px;
+    }
+
+    .header-client-name {
+        font-size: 18px;
+    }
+
+    .header-title {
+        font-size: 10px;
+    }
+
+    .header-supplier-block {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 7px;
+    }
+
+    .report-btn {
+        font-size: 11px;
+        padding: 7px 12px;
+    }
+
+    .live-text {
+        font-size: 10px;
+    }
+
+    .update-container {
+        padding: 4px 8px;
+    }
+
+    .logout {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .scada-container {
+        margin-top: 0;
+        padding: 8px;
+    }
+
+    .scada-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .panel {
+        width: 100%;
+        padding: 12px;
+    }
+
+    .campus-card {
+        width: 100%;
+    }
+
+    .flow-line {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .gii-panel {
+        width: 100%;
+    }
+}
+
+
+/* =========================================================
+   EXTRA PROTECTION AGAINST LONG TEXT
+   ========================================================= */
+
+.header-company,
+.header-client-name,
+.header-title,
+.value,
+.label,
+.gii-label,
+.gii-value {
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   PREVENT HORIZONTAL SCROLL
+   ========================================================= */
+
+body,
+.dashboard,
+.scada-container,
+.scada-row {
+    max-width: 100%;
+}
+
+
+/* =========================================================
+   HIGH DPI / WINDOWS 125% - 150% SAFETY
+   ========================================================= */
+
+@media (min-resolution: 120dpi) {
+
+    .header-right {
+        gap: 10px;
+    }
+
+    .scada-row {
+        gap: 9px;
+    }
+
+    .panel {
+        min-width: 0;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL WIDTH SAFETY
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+    .header-client-name {
+        font-size: 16px;
+    }
+
+    .header-title {
+        font-size: 9px;
+    }
+
+    .header-logo-left {
+        width: 46px;
+        height: 46px;
+    }
+
+    .header-right {
+        gap: 5px;
+    }
+
+    .report-btn {
+        padding: 6px 9px;
+        font-size: 10px;
+    }
+
+    .scada-container {
+        padding: 5px;
+    }
+
+    .scada-row {
+        padding: 6px;
+    }
+}

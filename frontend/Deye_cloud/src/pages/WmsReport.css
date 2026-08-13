@@ -636,3 +636,1606 @@ color:#1565c0;
     font-size:18px;
 
 }
+
+/* =========================================================
+   PROFESSIONAL WMS ALERT / TOAST
+   ========================================================= */
+
+.wms-alert {
+  position: fixed;
+  top: 100px;
+  right: 28px;
+
+  min-width: 330px;
+  max-width: 420px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 15px 18px;
+
+  background: linear-gradient(
+    145deg,
+    rgba(2, 24, 38, 0.97),
+    rgba(5, 53, 74, 0.97)
+  );
+
+  color: #fff;
+
+  border-radius: 14px;
+
+  border: 1px solid rgba(0, 255, 200, 0.35);
+
+  box-shadow:
+    0 12px 35px rgba(0, 0, 0, 0.35),
+    0 0 25px rgba(0, 200, 255, 0.12);
+
+  backdrop-filter: blur(14px);
+
+  z-index: 999999;
+
+  animation:
+    wmsAlertIn 0.4s ease forwards,
+    wmsAlertGlow 2s ease-in-out infinite;
+
+  overflow: hidden;
+}
+
+
+/* LEFT ICON */
+
+.wms-alert-icon {
+  width: 38px;
+  height: 38px;
+
+  min-width: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  font-size: 18px;
+  font-weight: 700;
+
+  background: rgba(255,255,255,0.08);
+
+  box-shadow:
+    inset 0 0 10px rgba(255,255,255,0.08);
+}
+
+
+/* CONTENT */
+
+.wms-alert-content {
+  flex: 1;
+}
+
+.wms-alert-title {
+  margin: 0 0 3px;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  letter-spacing: 0.3px;
+}
+
+.wms-alert-message {
+  margin: 0;
+
+  color: #cbd5e1;
+
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+
+/* CLOSE BUTTON */
+
+.wms-alert-close {
+  width: 26px;
+  height: 26px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  background: rgba(255,255,255,0.06);
+
+  color: #94a3b8;
+
+  cursor: pointer;
+
+  font-size: 15px;
+
+  transition: 0.25s ease;
+}
+
+.wms-alert-close:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+
+  transform: rotate(90deg);
+}
+
+
+/* SUCCESS */
+
+.wms-alert.success {
+  border-color: rgba(0,255,157,0.4);
+}
+
+.wms-alert.success .wms-alert-icon {
+  color: #00ff9d;
+
+  background: rgba(0,255,157,0.12);
+
+  box-shadow:
+    0 0 15px rgba(0,255,157,0.25);
+}
+
+.wms-alert.success .wms-alert-title {
+  color: #00ff9d;
+}
+
+
+/* WARNING */
+
+.wms-alert.warning {
+  border-color: rgba(255,193,7,0.45);
+}
+
+.wms-alert.warning .wms-alert-icon {
+  color: #ffd43b;
+
+  background: rgba(255,193,7,0.12);
+
+  box-shadow:
+    0 0 15px rgba(255,193,7,0.25);
+}
+
+.wms-alert.warning .wms-alert-title {
+  color: #ffd43b;
+}
+
+
+/* ERROR */
+
+.wms-alert.error {
+  border-color: rgba(255,82,82,0.45);
+}
+
+.wms-alert.error .wms-alert-icon {
+  color: #ff6b6b;
+
+  background: rgba(255,82,82,0.12);
+
+  box-shadow:
+    0 0 15px rgba(255,82,82,0.25);
+}
+
+.wms-alert.error .wms-alert-title {
+  color: #ff6b6b;
+}
+
+
+/* BLUE INFO */
+
+.wms-alert.info {
+  border-color: rgba(0,190,255,0.45);
+}
+
+.wms-alert.info .wms-alert-icon {
+  color: #38bdf8;
+
+  background: rgba(0,190,255,0.12);
+
+  box-shadow:
+    0 0 15px rgba(0,190,255,0.25);
+}
+
+.wms-alert.info .wms-alert-title {
+  color: #38bdf8;
+}
+
+
+/* TOP PROGRESS LINE */
+
+.wms-alert::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 0;
+
+  width: 100%;
+  height: 3px;
+
+  background: linear-gradient(
+    90deg,
+    #00ffc3,
+    #00a2ff
+  );
+
+  transform-origin: left;
+
+  animation: wmsAlertProgress 4s linear forwards;
+}
+
+
+/* ANIMATIONS */
+
+@keyframes wmsAlertIn {
+
+  from {
+    opacity: 0;
+    transform: translateX(80px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+}
+
+
+@keyframes wmsAlertGlow {
+
+  0%,100% {
+    box-shadow:
+      0 12px 35px rgba(0,0,0,0.35),
+      0 0 18px rgba(0,200,255,0.08);
+  }
+
+  50% {
+    box-shadow:
+      0 12px 35px rgba(0,0,0,0.35),
+      0 0 30px rgba(0,200,255,0.18);
+  }
+
+}
+
+
+@keyframes wmsAlertProgress {
+
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+
+}
+
+
+/* MOBILE */
+
+@media(max-width:600px) {
+
+  .wms-alert {
+    left: 15px;
+    right: 15px;
+
+    top: 90px;
+
+    min-width: unset;
+    width: auto;
+  }
+
+}
+
+/* =========================================================
+   WMS REPORT - FULL RESPONSIVE PC / LAPTOP OVERRIDE
+   Paste this at the VERY BOTTOM of WmsReport.css
+   ========================================================= */
+
+/* ---------- GLOBAL ---------- */
+
+.wms-page,
+.wms-page * {
+    box-sizing: border-box;
+}
+
+.wms-page {
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+
+    padding-top: 105px;
+    padding-left: clamp(18px, 2.2vw, 40px);
+    padding-right: clamp(18px, 2.2vw, 40px);
+    padding-bottom: 40px;
+
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(210, 241, 255, .95),
+            transparent 35%
+        ),
+        radial-gradient(
+            circle at top right,
+            rgba(220, 247, 255, .9),
+            transparent 30%
+        ),
+        linear-gradient(
+            180deg,
+            #eef8fd 0%,
+            #e3f1fa 45%,
+            #dcecf8 100%
+        );
+
+    font-family:
+        "Segoe UI",
+        Arial,
+        sans-serif;
+}
+
+
+/* =========================================================
+   FIXED HEADER
+   ========================================================= */
+
+.wms-report-navbar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    width: 100%;
+    height: 78px;
+
+    padding:
+        0
+        clamp(14px, 2vw, 35px);
+
+    display: flex;
+    align-items: center;
+
+    background:
+        linear-gradient(
+            100deg,
+            #032638 0%,
+            #06384d 50%,
+            #052d42 100%
+        );
+
+    border-bottom: 1px solid rgba(0, 255, 210, .12);
+
+    box-shadow:
+        0 6px 25px rgba(0, 25, 45, .30);
+
+    z-index: 99999;
+
+    overflow: hidden;
+}
+
+
+/* ---------- Header Left ---------- */
+
+.wms-report-nav-left {
+    display: flex;
+    align-items: center;
+
+    gap: clamp(10px, 1.3vw, 20px);
+
+    flex: 0 1 auto;
+    min-width: 0;
+
+    white-space: nowrap;
+}
+
+
+.wms-report-logo-box {
+    width: clamp(48px, 4vw, 64px);
+    height: clamp(48px, 4vw, 64px);
+
+    min-width: 48px;
+    min-height: 48px;
+
+    padding: 5px;
+
+    background: #fff;
+    border-radius: 11px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-shadow:
+        0 0 15px rgba(0, 255, 200, .22);
+}
+
+
+.wms-report-logo-box img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+}
+
+
+.wms-report-title-box {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+
+.wms-report-title-box h2 {
+    margin: 0;
+
+    color: #fff;
+
+    font-size: clamp(18px, 1.7vw, 28px);
+    font-weight: 700;
+
+    line-height: 1.05;
+
+    white-space: nowrap;
+}
+
+
+.wms-report-title-box span {
+    margin-top: 5px;
+
+    color: #cfe4ef;
+
+    font-size: clamp(10px, .85vw, 14px);
+    font-weight: 500;
+
+    white-space: nowrap;
+}
+
+
+/* ---------- Divider ---------- */
+
+.wms-report-divider {
+    width: 1px;
+    height: 52px;
+
+    margin:
+        0
+        clamp(12px, 2vw, 30px);
+
+    flex-shrink: 0;
+
+    background: rgba(255,255,255,.20);
+}
+
+
+/* ---------- EPC Center ---------- */
+
+.wms-report-nav-center {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    flex: 1;
+    min-width: 0;
+
+    margin: 0;
+
+    padding: 0;
+
+    border: none;
+
+    height: auto;
+}
+
+
+.wms-report-sun-box {
+    width: clamp(42px, 3.2vw, 56px);
+    height: clamp(42px, 3.2vw, 56px);
+
+    min-width: 42px;
+
+    background: #fff;
+
+    border-radius: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-shadow:
+        0 0 14px rgba(0,255,200,.16);
+}
+
+
+.wms-report-sun-box img {
+    width: 85%;
+    height: 85%;
+
+    object-fit: contain;
+}
+
+
+.wms-report-company {
+    min-width: 0;
+}
+
+
+.wms-report-company small {
+    display: block;
+
+    color: #a8c8d6;
+
+    font-size: clamp(8px, .65vw, 11px);
+
+    letter-spacing: 1px;
+}
+
+
+.wms-report-company h4 {
+    margin: 3px 0 0;
+
+    color: #00f2bd;
+
+    font-size: clamp(10px, .85vw, 14px);
+
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* ---------- Header Right ---------- */
+
+.wms-report-nav-right {
+    display: flex;
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: clamp(7px, .8vw, 14px);
+
+    flex: 0 0 auto;
+
+    min-width: 0;
+}
+
+
+.wms-report-live {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    padding:
+        7px
+        clamp(9px, 1vw, 14px);
+
+    border-radius: 20px;
+
+    white-space: nowrap;
+
+    font-size: clamp(9px, .7vw, 12px);
+
+    background: rgba(0,255,157,.07);
+
+    border: 1px solid rgba(0,255,157,.25);
+
+    color: #00ff9d;
+}
+
+
+.wms-report-dot {
+    width: 7px;
+    height: 7px;
+
+    min-width: 7px;
+
+    border-radius: 50%;
+
+    background: #00ff9d;
+}
+
+
+.wms-report-time {
+    padding:
+        7px
+        clamp(9px, 1vw, 14px);
+
+    border-radius: 20px;
+
+    white-space: nowrap;
+
+    font-size: clamp(9px, .68vw, 12px);
+
+    color: #8feaff;
+
+    background: rgba(0,180,255,.10);
+
+    border: 1px solid rgba(0,200,255,.20);
+}
+
+
+.wms-report-back-btn {
+    border: none;
+
+    padding:
+        8px
+        clamp(12px, 1.2vw, 20px);
+
+    border-radius: 22px;
+
+    white-space: nowrap;
+
+    background:
+        linear-gradient(
+            90deg,
+            #00d9cf,
+            #00a8ff
+        );
+
+    color: #fff;
+
+    font-size: clamp(10px, .72vw, 13px);
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: .25s ease;
+}
+
+
+.wms-report-back-btn:hover {
+    transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   FILTER CARD
+   ========================================================= */
+
+.filter-card {
+    width: 100%;
+
+    margin-top: 18px;
+
+    padding:
+        clamp(20px, 2vw, 32px);
+
+    border-radius: 20px;
+
+    background:
+        rgba(255,255,255,.94);
+
+    border: 1px solid rgba(255,255,255,.8);
+
+    box-shadow:
+        0 15px 40px rgba(20,55,85,.10);
+
+    backdrop-filter: blur(12px);
+}
+
+
+.filter-grid {
+    width: 100%;
+
+    display: grid;
+
+    /*
+       Desktop:
+       Campus | From | To | Interval | Generate
+    */
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+    gap:
+        clamp(14px, 1.5vw, 24px);
+
+    align-items: end;
+}
+
+
+.filter-item {
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.filter-item label {
+    margin-bottom: 8px;
+
+    color: #334155;
+
+    font-size: clamp(12px, .8vw, 14px);
+
+    font-weight: 700;
+}
+
+
+.filter-item select,
+.filter-item input {
+    width: 100%;
+    min-width: 0;
+
+    height: clamp(46px, 3.3vw, 52px);
+
+    padding:
+        0
+        clamp(10px, 1vw, 16px);
+
+    border:
+        1.5px solid #d8e5f0;
+
+    border-radius: 13px;
+
+    background: #fff;
+
+    color: #17202a;
+
+    font-size: clamp(12px, .85vw, 15px);
+
+    outline: none;
+
+    transition: .25s ease;
+}
+
+
+.filter-item select:hover,
+.filter-item input:hover {
+    border-color: #58b7ee;
+}
+
+
+.filter-item select:focus,
+.filter-item input:focus {
+    border-color: #159cff;
+
+    box-shadow:
+        0 0 0 4px rgba(21,156,255,.10);
+}
+
+
+/* ---------- Generate Button ---------- */
+
+.btn-box {
+    width: 100%;
+
+    display: flex;
+    align-items: end;
+}
+
+
+.generate-btn {
+    width: 100%;
+
+    height: clamp(46px, 3.3vw, 52px);
+
+    padding: 0 15px;
+
+    border: none;
+
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #299eff,
+            #087fe8
+        );
+
+    color: #fff;
+
+    font-size: clamp(12px, .85vw, 15px);
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 10px 24px rgba(30,145,235,.25);
+
+    transition: .25s ease;
+
+    white-space: nowrap;
+}
+
+
+.generate-btn:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 14px 30px rgba(30,145,235,.35);
+}
+
+
+/* =========================================================
+   SUMMARY CARDS
+   ========================================================= */
+
+.GII_summary-grid {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap:
+        clamp(12px, 1.2vw, 20px);
+
+    margin:
+        22px 0;
+}
+
+
+.GII_summary-card {
+    width: 100%;
+    min-width: 0;
+
+    min-height: 110px;
+
+    padding:
+        clamp(16px, 1.5vw, 22px);
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff,
+            #f7fbff
+        );
+
+    border: 1px solid #e2edf6;
+
+    box-shadow:
+        0 10px 28px rgba(20,50,80,.08);
+
+    text-align: center;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    transition: .25s ease;
+}
+
+
+.GII_summary-card:hover {
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 15px 35px rgba(20,50,80,.12);
+}
+
+
+.GII_summary-card h4 {
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: clamp(11px, .75vw, 14px);
+
+    font-weight: 700;
+}
+
+
+.GII_summary-card p {
+    margin:
+        8px 0 0;
+
+    color: #1267bb;
+
+    font-size: clamp(19px, 1.5vw, 25px);
+
+    font-weight: 700;
+
+    overflow-wrap: anywhere;
+}
+
+
+.gii-total-box {
+    width: 100%;
+}
+
+
+.gii-total {
+    width: 100%;
+
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 7px 10px;
+
+    border-radius: 8px;
+}
+
+
+.gii-total span {
+    font-size: 11px;
+}
+
+
+.gii-total strong {
+    font-size: clamp(12px, .9vw, 16px);
+}
+
+
+/* =========================================================
+   PREVIEW CARD
+   ========================================================= */
+
+.preview-card {
+    width: 100%;
+
+    margin-top: 24px;
+
+    padding:
+        clamp(18px, 2vw, 28px);
+
+    border-radius: 20px;
+
+    background: rgba(255,255,255,.96);
+
+    border: 1px solid rgba(220,235,245,.9);
+
+    box-shadow:
+        0 15px 40px rgba(20,50,80,.09);
+
+    overflow: hidden;
+}
+
+
+.preview-header {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 18px;
+}
+
+
+.preview-header h2 {
+    margin: 0;
+
+    color: #0b426f;
+
+    font-size: clamp(21px, 1.8vw, 29px);
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   PDF BUTTON
+   ========================================================= */
+
+.pdf-btn {
+    flex: 0 0 auto;
+
+    min-width: 145px;
+
+    height: 44px;
+
+    padding:
+        0
+        clamp(14px, 1.5vw, 24px);
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ff512f,
+            #dd2476
+        );
+
+    color: #fff;
+
+    font-size: clamp(12px, .8vw, 15px);
+
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 8px 20px rgba(221,36,118,.25);
+
+    transition: .25s ease;
+}
+
+
+.pdf-btn:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 12px 26px rgba(221,36,118,.35);
+}
+
+
+.pdf-btn:active {
+    transform: scale(.97);
+}
+
+
+/* =========================================================
+   REPORT TABLE
+   ========================================================= */
+
+.report-table {
+    width: 100%;
+
+    border-collapse: separate;
+
+    border-spacing: 0;
+
+    overflow: hidden;
+
+    border-radius: 12px;
+
+    table-layout: fixed;
+}
+
+
+.report-table thead {
+    background:
+        linear-gradient(
+            90deg,
+            #0d5b96,
+            #176da8
+        );
+}
+
+
+.report-table th {
+    padding:
+        clamp(10px, 1vw, 15px);
+
+    color: #fff;
+
+    text-align: center;
+
+    font-size: clamp(11px, .78vw, 14px);
+
+    font-weight: 700;
+
+    line-height: 1.3;
+
+    word-break: normal;
+}
+
+
+.report-table td {
+    padding:
+        clamp(9px, .9vw, 14px);
+
+    color: #1f2937;
+
+    text-align: center;
+
+    font-size: clamp(10px, .76vw, 14px);
+
+    font-weight: 500;
+
+    border-bottom: 1px solid #e6edf3;
+
+    word-break: break-word;
+}
+
+
+.report-table tbody tr {
+    transition: .2s ease;
+}
+
+
+.report-table tbody tr:hover {
+    background: #f3f9ff;
+}
+
+
+/* =========================================================
+   1500px+
+   LARGE DESKTOP
+   ========================================================= */
+
+@media (min-width: 1500px) {
+
+    .wms-report-navbar {
+        height: 82px;
+    }
+
+    .wms-page {
+        padding-top: 108px;
+    }
+
+    .filter-grid {
+        grid-template-columns:
+            repeat(5, minmax(0, 1fr));
+    }
+}
+
+
+/* =========================================================
+   1200px - 1499px
+   NORMAL DESKTOP / LAPTOP
+   ========================================================= */
+
+@media (min-width: 1200px) and (max-width: 1499px) {
+
+    .wms-report-navbar {
+        height: 76px;
+        padding: 0 20px;
+    }
+
+    .wms-page {
+        padding-top: 98px;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .wms-report-title-box h2 {
+        font-size: 21px;
+    }
+
+    .wms-report-company h4 {
+        font-size: 11px;
+    }
+
+    .wms-report-nav-right {
+        gap: 7px;
+    }
+
+    .filter-grid {
+        grid-template-columns:
+            repeat(5, minmax(0, 1fr));
+
+        gap: 14px;
+    }
+
+    .GII_summary-grid {
+        gap: 14px;
+    }
+}
+
+
+/* =========================================================
+   1024px - 1199px
+   SMALL LAPTOP
+   ========================================================= */
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+
+    .wms-report-navbar {
+        height: 72px;
+
+        padding: 0 14px;
+    }
+
+    .wms-page {
+        padding-top: 92px;
+
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .wms-report-logo-box {
+        width: 50px;
+        height: 50px;
+    }
+
+    .wms-report-title-box h2 {
+        font-size: 18px;
+    }
+
+    .wms-report-title-box span {
+        font-size: 10px;
+    }
+
+    .wms-report-divider {
+        margin: 0 12px;
+    }
+
+    .wms-report-sun-box {
+        width: 44px;
+        height: 44px;
+    }
+
+    .wms-report-company h4 {
+        font-size: 10px;
+    }
+
+    .wms-report-nav-right {
+        gap: 5px;
+    }
+
+    .wms-report-time {
+        display: none;
+    }
+
+    .filter-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 16px;
+    }
+
+    .GII_summary-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 14px;
+    }
+
+    .preview-card {
+        padding: 20px;
+    }
+
+    .report-table {
+        min-width: 700px;
+    }
+
+    .preview-card {
+        overflow-x: auto;
+    }
+}
+
+
+/* =========================================================
+   768px - 1023px
+   TABLET / SMALL SCREEN
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+
+    .wms-report-navbar {
+        height: 70px;
+
+        padding: 0 12px;
+    }
+
+    .wms-page {
+        padding-top: 88px;
+
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .wms-report-logo-box {
+        width: 46px;
+        height: 46px;
+    }
+
+    .wms-report-title-box h2 {
+        font-size: 16px;
+    }
+
+    .wms-report-title-box span {
+        font-size: 9px;
+    }
+
+    .wms-report-divider {
+        margin: 0 8px;
+
+        height: 42px;
+    }
+
+    .wms-report-sun-box {
+        width: 40px;
+        height: 40px;
+    }
+
+    .wms-report-company h4 {
+        font-size: 9px;
+    }
+
+    .wms-report-nav-right {
+        gap: 4px;
+    }
+
+    .wms-report-live {
+        padding: 6px 8px;
+    }
+
+    .wms-report-time {
+        display: none;
+    }
+
+    .wms-report-back-btn {
+        padding: 7px 10px;
+    }
+
+    .filter-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 14px;
+    }
+
+    .GII_summary-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .preview-card {
+        overflow-x: auto;
+    }
+
+    .report-table {
+        min-width: 700px;
+    }
+}
+
+
+/* =========================================================
+   BELOW 767px
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+    .wms-page {
+        padding-top: 82px;
+
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-bottom: 25px;
+    }
+
+
+    /* Header */
+
+    .wms-report-navbar {
+        height: auto;
+        min-height: 70px;
+
+        padding: 9px 10px;
+
+        gap: 8px;
+    }
+
+    .wms-report-nav-left {
+        gap: 8px;
+
+        flex: 1 1 auto;
+    }
+
+    .wms-report-logo-box {
+        width: 44px;
+        height: 44px;
+
+        min-width: 44px;
+    }
+
+    .wms-report-title-box h2 {
+        font-size: 15px;
+    }
+
+    .wms-report-title-box span {
+        display: none;
+    }
+
+    .wms-report-divider {
+        display: none;
+    }
+
+
+    /* EPC */
+
+    .wms-report-nav-center {
+        display: none;
+    }
+
+
+    /* Right */
+
+    .wms-report-nav-right {
+        gap: 5px;
+    }
+
+    .wms-report-live {
+        padding: 6px 8px;
+
+        font-size: 9px;
+    }
+
+    .wms-report-time {
+        display: none;
+    }
+
+    .wms-report-back-btn {
+        padding: 7px 10px;
+
+        font-size: 10px;
+    }
+
+
+    /* Filter */
+
+    .filter-card {
+        padding: 16px;
+
+        border-radius: 16px;
+    }
+
+    .filter-grid {
+        grid-template-columns: 1fr;
+
+        gap: 13px;
+    }
+
+    .filter-item select,
+    .filter-item input,
+    .generate-btn {
+        height: 48px;
+    }
+
+
+    /* Summary */
+
+    .GII_summary-grid {
+        grid-template-columns: 1fr;
+
+        gap: 12px;
+
+        margin: 16px 0;
+    }
+
+    .GII_summary-card {
+        min-height: 90px;
+    }
+
+
+    /* Preview */
+
+    .preview-card {
+        padding: 15px;
+
+        border-radius: 16px;
+
+        overflow-x: auto;
+    }
+
+    .preview-header {
+        flex-direction: column;
+
+        align-items: stretch;
+
+        gap: 12px;
+    }
+
+    .preview-header h2 {
+        font-size: 22px;
+    }
+
+    .pdf-btn {
+        width: 100%;
+
+        min-width: 0;
+    }
+
+
+    /* Table */
+
+    .report-table {
+        min-width: 700px;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+    .wms-report-title-box h2 {
+        font-size: 14px;
+    }
+
+    .wms-report-nav-right {
+        flex-shrink: 0;
+    }
+
+    .wms-report-live {
+        display: none;
+    }
+
+    .wms-report-back-btn {
+        padding: 7px 9px;
+    }
+
+    .filter-card {
+        padding: 13px;
+    }
+
+    .preview-card {
+        padding: 12px;
+    }
+}
+
+
+/* =========================================================
+   PREVENT HORIZONTAL OVERFLOW
+   ========================================================= */
+
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+
+    margin: 0;
+    padding: 0;
+
+    overflow-x: hidden;
+}
+
+
+img {
+    max-width: 100%;
+}
+
+
+button,
+input,
+select {
+    max-width: 100%;
+}
+
+
+/* =========================================================
+   SAFETY FOR LONG BUILDING / CAMPUS TEXT
+   ========================================================= */
+
+.GII_summary-card p,
+.wms-report-company h4,
+.wms-report-title-box h2 {
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   SMOOTH RESPONSIVE TRANSITION
+   ========================================================= */
+
+.filter-card,
+.preview-card,
+.GII_summary-card,
+.wms-report-navbar,
+.wms-report-title-box h2,
+.wms-report-company h4 {
+    transition:
+        width .25s ease,
+        padding .25s ease,
+        font-size .25s ease,
+        margin .25s ease;
+}

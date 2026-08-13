@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import GaugeComponent from "react-gauge-component";
 import "../pages/Buildings.css";
@@ -36,15 +36,27 @@ const capacityMap = {
   "NLCILLIBRARY50KWONGRID": 50.85,
   "NLCILEDUCATIONOFFICE": 23.73,
   "NLCILLDCOFFICEINV225KW": 145,
+  "NLCILGIRLSHIGHSCHOOLINV1":125.43,
+  "NLCILGIRLSHIGHSCHOOLINV2":125.43,
+  "NLCILBOYSHIGHSCHOOLINV1":125.43,
+  "NLCILBOYSHIGHSCHOOLINV2":125.43,
+  "NLCILLDCMAINBUILDINGINV225KW":72.5,
+   "NLCILLDCMAINBULIDINGINV1":72.5,
+   "NLCILTPS2SWITCHYARDBUILDINGINV1":71.19,
+   "NLCILTPS2SWITCHYARDBUILDINGINV2":71.19,
+   "NLCILNNTPSSOFTENINGPLANT":109.61,
+   
+
 
   /* ✅ TPS-2 ADDED */
-  "NLCILTPS2EXPSWITCHYARD40KW": 35.03,
-  "NLCILPSTCBUILDING":122.04,
+  "NLCILTPS2EXPSWITCHYARD40KW": 36.13,
+  "NLCILPSTCBUILDING":123.17,
   "NLCILTPS1EXPCANTEEN": 33.90,
   "NLCILLDCOFFICEINV1":145,
-  "NLCILTPS2EXPSCREENHOUSEA":97.18,
+  "NLCILTPS2EXPSCREENHOUSEA":98.31,
   "NLCILTPS2EXPSCREENHOUSEB":73.45,
   "NLCILTPS2EXPASHHANDLING": 40
+  
   
 
 };
@@ -63,27 +75,7 @@ const formatBuildingName = (name) => {
 
   if (!name) return "";
 
-  /* ✅ CUSTOM NAME FIX */
-  if (name.toUpperCase().includes("TPS-2 EXPENSTION")) {
-    return "Tps-2 Expe Switch Yard";
-  }
-
-  return name
-    .toLowerCase()
-    .split(" ")
-    .map((word) => {
-
-      if (word === "nlcil") return "NLCIL";
-       
-
-      if (word.includes("&")) return word.toUpperCase();
-
-      if (word.includes("inv")) return word.toUpperCase();
-
-      return word.charAt(0).toUpperCase() + word.slice(1);
-
-    })
-    .join(" ");
+  return name.toUpperCase();
 
 };
 
@@ -120,7 +112,7 @@ export default function Buildings() {
   const dispatch=useDispatch()
   const navigate = useNavigate();
 
-  const [buildings, setBuildings] = useState([]);
+ 
   
 
   const [displayToday,setDisplayToday] = useState(0)
@@ -131,7 +123,7 @@ const [displayLive,setDisplayLive] = useState(0)
 
   const [time, setTime] = useState("");
 
-  const [currentMap, setCurrentMap] = useState({});
+
 
  
 
@@ -154,47 +146,61 @@ const data=useSelector((state)=>state.userinfo.list)
   }, [dispatch]);
 
 
-  /* ✅ FILTER + MAP */
-  useEffect(() => {
+ /* ========================= */
+/* PERFORMANCE OPTIMIZATION */
+/* ========================= */
 
-    if (!data || data.length === 0) return;
+const buildings = useMemo(() => {
 
-    const filtered = data.filter(b => {
+  if (!data || data.length === 0) {
+    return [];
+  }
 
-      const name = b.name.toUpperCase();
+  return data.filter(b => {
 
-      return (
-        name.includes("NLCIL") ||
-        name.includes("TPS-2") ||
-        name.includes("NEYVELI")
-      );
+    const name = b.name?.toUpperCase() || "";
 
-    });
-
-    setBuildings(filtered);
-
-
-   
-
-
-    const map = {};
-
-    filtered.forEach(b => {
-      map[b.id] = Number(b.currentPower || 0);
-    });
-
-    setCurrentMap(map);
-
-
-    setTime(
-      new Date().toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-      })
+    return (
+      name.includes("NLCIL") ||
+      name.includes("TPS-2") ||
+      name.includes("NEYVELI")
     );
 
-  }, [data]);
+  });
+
+}, [data]);
+
+
+const currentMap = useMemo(() => {
+
+  const map = {};
+
+  buildings.forEach(b => {
+
+    map[b.id] = Number(
+      b.currentPower || 0
+    );
+
+  });
+
+  return map;
+
+}, [buildings]);
+
+
+/* UPDATE TIME */
+
+useEffect(() => {
+
+  setTime(
+    new Date().toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    })
+  );
+
+}, [data]);
   /* ========================= */
   /* FETCH PEAK */
   /* ========================= */

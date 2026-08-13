@@ -7,10 +7,18 @@ const db = require("./db");
 async function getWeatherLogs() {
 
     const { rows } = await db.query(`
-        SELECT *
-        FROM gii_weather_logs
-        ORDER BY id DESC
-        LIMIT 100
+       SELECT
+        id,
+        created_at,
+        mqtt_timestamp,
+        horizontal_irradiance,
+        inclined_irradiance,
+        temperature,
+        horizontal_cumulative,
+        inclined_cumulative
+    FROM gii_weather_logs
+    ORDER BY id DESC
+    LIMIT 100
     `);
 
     return rows;
@@ -282,6 +290,224 @@ function filterByInterval(
 
 
 // =====================================================
+// WEATHER DETAILED REPORT
+// =====================================================
+
+async function getDetailedReport(
+    campus,
+    fromDate,
+    toDate,
+    interval = "15"
+) {
+
+    const { rows } = await db.query(`
+        SELECT
+            to_char(
+                created_at AT TIME ZONE 'Asia/Kolkata',
+                'YYYY-MM-DD HH24:MI:SS'
+            ) AS created_at,
+
+            mqtt_timestamp,
+            irradiance,
+            temperature
+
+        FROM weather_logs
+
+        WHERE campus = $1
+
+        AND created_at <= NOW()
+
+        AND DATE(
+            created_at AT TIME ZONE 'Asia/Kolkata'
+        )
+        BETWEEN $2::date AND $3::date
+
+        ORDER BY created_at ASC;
+
+    `, [
+        campus,
+        fromDate,
+        toDate
+    ]);
+
+
+    // ==========================================
+    // CALCULATE CUMULATIVE USING ALL DATA
+    // ==========================================
+
+    const fullReport = [];
+
+    let cumulative = 0;
+
+
+    for (let i = 0; i < rows.length; i++) {
+
+        const current = rows[i];
+
+        let energy = 0;
+
+
+        if (i > 0) {
+
+            const previous = rows[i - 1];
+
+
+            const currentDate =
+                current.created_at.split(" ")[0];
+
+            const previousDate =
+                previous.created_at.split(" ")[0];
+
+
+            if (currentDate === previousDate) {
+
+                const diff =
+                    Number(current.mqtt_timestamp) -
+                    Number(previous.mqtt_timestamp);
+
+
+                if (diff > 0 && diff <= 30) {
+
+                    energy =
+                        (
+                            Number(current.irradiance) *
+                            diff
+                        ) / 3600;
+                }
+
+            } else {
+
+                // New day → cumulative starts from 0
+
+                cumulative = 0;
+            }
+        }
+
+
+        cumulative += energy;
+
+
+        fullReport.push({
+
+            time:
+                current.created_at,
+
+            irradiance:
+                Number(current.irradiance),
+
+            temperature:
+                Number(current.temperature),
+
+            cumulative:
+                Number(
+                    cumulative.toFixed(2)
+                )
+
+        });
+    }
+
+
+    // ==========================================
+    // FILTER ONLY FOR DISPLAY
+    // ==========================================
+
+    let report = [];
+
+
+    if (interval === "10") {
+
+        report = fullReport;
+
+    } else {
+
+        const gapSeconds = {
+
+            "15": 15 * 60,
+
+            "30": 30 * 60,
+
+            "60": 60 * 60
+
+        }[interval];
+
+
+        // Invalid interval
+
+        if (!gapSeconds) {
+
+            report = fullReport;
+
+        } else {
+
+            let lastTime = null;
+
+
+            for (const row of fullReport) {
+
+                const currentTime =
+                    new Date(row.time).getTime();
+
+
+                if (!lastTime) {
+
+                    report.push(row);
+
+                    lastTime = currentTime;
+
+                    continue;
+                }
+
+
+                const diff =
+                    (
+                        currentTime -
+                        lastTime
+                    ) / 1000;
+
+
+                if (diff >= gapSeconds) {
+
+                    report.push(row);
+
+                    lastTime = currentTime;
+                }
+            }
+        }
+    }
+
+
+    // ==========================================
+    // SUMMARY
+    // ==========================================
+
+    const summary = {
+
+        campus,
+
+        date: fromDate,
+
+        records:
+            report.length,
+
+        totalEnergy:
+            report.length > 0
+                ? report[
+                    report.length - 1
+                  ].cumulative
+                : 0
+    };
+
+
+    return {
+
+        summary,
+
+        rows: report
+
+    };
+}
+
+// =====================================================
 // GII DETAILED REPORT
 // =====================================================
 async function getGIIDetailedReport(
@@ -424,6 +650,8 @@ module.exports = {
 
     getDailyCumulative,
 
-    getGIIDetailedReport
+    getGIIDetailedReport,
+
+    getDetailedReport
 
 };

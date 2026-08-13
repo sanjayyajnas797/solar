@@ -194,10 +194,14 @@ client.on("connect", () => {
 
     console.log("MQTT Connected ✅");
 
-    client.subscribe("test/rx");
-    client.subscribe("rajashthan/rx");
-    client.subscribe("nuppl/rx");
-    client.subscribe("library/rx");
+   client.subscribe([
+    "test/rx",
+    "rajashthan/rx",
+    "nuppl/rx",
+    "library/rx"
+], {
+    qos: 0
+});
 
     console.log("Subscribed All Topics ✅");
 });
@@ -215,31 +219,37 @@ giiDbSaveTimer = setInterval(
             "⏱️ 15-MIN DATABASE TIMER TRIGGERED"
         );
 
-        // =========================================
-        // GII
-        // =========================================
+        try {
 
-        await saveGII15Minute();
+            await Promise.all([
 
+                saveGII15Minute(),
 
-        // =========================================
-        // WEATHER
-        // =========================================
+                saveWeather15Minute("NLCIL"),
 
-        await saveWeather15Minute("NLCIL");
+                saveWeather15Minute("NLCIC"),
 
-        await saveWeather15Minute("NLCIC");
+                saveWeather15Minute("NTPL"),
 
-        await saveWeather15Minute("NTPL");
+                saveWeather15Minute("NUPPL"),
 
-        await saveWeather15Minute("NUPPL");
+                saveWeather15Minute("BTPS")
 
-        await saveWeather15Minute("BTPS");
+            ]);
+
+        }
+        catch (err) {
+
+            console.error(
+                "❌ 15-MIN DATABASE SAVE ERROR:",
+                err.message
+            );
+
+        }
 
     },
     FIFTEEN_MINUTES
 );
-
 
 
 // =====================================================
@@ -346,7 +356,10 @@ VALUES
 ]
         );
 
-       
+        console.log(
+            `✅ WEATHER SAVED | ${campus} | ${irradiance}`
+        );
+
     }
     catch (err) {
 
@@ -393,7 +406,11 @@ if (
     memory.calculationDate !== currentDate
 ) {
 
-    
+    console.log(
+        `🌅 NEW DAY | ${campus} | ` +
+        `Previous: ${memory.calculationDate} | ` +
+        `New: ${currentDate}`
+    );
 
     // Reset daily cumulative
     memory.cumulativeEnergy = 0;
@@ -441,7 +458,10 @@ memory.calculationDate = currentDate;
 
         memory.hasData = true;
 
-      
+        console.log(
+            `🟢 ${campus} MEMORY START | ` +
+            `I:${irradiance} | T:${temperature}`
+        );
 
         return;
     }
@@ -515,7 +535,7 @@ memory.intervalEnergy += energy;
     memory.hasData = true;
 
 
-  
+   
 }
 
 
@@ -540,7 +560,9 @@ async function saveGII(
         inclined <= 15
     ) {
 
-       
+        console.log(
+            `⏭️ GII Skip | H:${horizontal} I:${inclined}`
+        );
 
         return;
     }
@@ -580,7 +602,12 @@ VALUES
 ]
         );
 
-       
+        console.log(
+            `✅ GII 15-MIN SAVED | ` +
+            `H:${horizontal} | ` +
+            `I:${inclined} | ` +
+            `T:${temperature}`
+        );
 
     }
     catch (err) {
@@ -619,7 +646,11 @@ if (
     giiCalculation.calculationDate !== currentDate
 ) {
 
-    
+    console.log(
+        `🌅 NEW DAY | GII | ` +
+        `Previous: ${giiCalculation.calculationDate} | ` +
+        `New: ${currentDate}`
+    );
 
     // Reset daily cumulative
     giiCalculation.horizontalCumulative = 0;
@@ -681,7 +712,9 @@ giiCalculation.calculationDate =
 
         giiHasData = true;
 
-       
+        console.log(
+            `🟢 GII MEMORY START | H:${horizontal} | I:${inclined}`
+        );
 
         return;
     }
@@ -794,7 +827,7 @@ giiCalculation.inclinedCumulative +=
     giiHasData = true;
 
 
-   
+    
 }
 
     
@@ -808,7 +841,9 @@ async function saveGII15Minute() {
     // No MQTT data
     if (!giiHasData) {
 
-       
+        console.log(
+            "⏭️ GII 15-MIN SKIPPED | No MQTT data"
+        );
 
         return;
     }
@@ -859,7 +894,12 @@ giiCalculation.inclinedCumulative
 );
 
 
-       
+        console.log(
+            `✅ GII 15-MIN DATABASE SAVED | ` +
+            `H:${horizontal} | ` +
+            `I:${inclined} | ` +
+            `T:${temperature}`
+        );
 
 
     }
@@ -936,12 +976,7 @@ async function saveWeather15Minute(campus) {
 );
 
 
-        console.log(
-            `✅ ${campus} 15-MIN SAVED | ` +
-            `I:${irradiance} | ` +
-            `T:${temperature} | ` +
-            `Cumulative:${memory.cumulativeEnergy.toFixed(3)}`
-        );
+      
 
 
         // =========================================
@@ -1074,12 +1109,7 @@ processWeather(
     weather.mqttTimestamp
 );
 
-    console.log(
-        `🌤️ TEST/RX LIVE | ` +
-        `NLCIL/NLCIC/NTPL | ` +
-        `I:${weather.irradiance} | ` +
-        `T:${weather.temperature}`
-    );
+   
 }
 
        if (topic === "nuppl/rx") {
@@ -1108,11 +1138,7 @@ processWeather(
     latestWeather.NUPPL.mqttTimestamp
 );
 
-    console.log(
-        `🌤️ NUPPL LIVE | ` +
-        `I:${latestWeather.NUPPL.irradiance} | ` +
-        `T:${latestWeather.NUPPL.temperature}`
-    );
+  
 }
 
      // =================================================
@@ -1169,9 +1195,7 @@ if (topic === "library/rx") {
     giiBuffer.mqttTimestamp =
         mqttTimestamp;
 
-    console.log(
-        `🔥 GII HORIZONTAL LIVE | H:${horizontal} | T:${temperature}`
-    );
+   
 }
 
 
@@ -1203,9 +1227,7 @@ if (topic === "library/rx") {
     giiBuffer.inclined =
         inclined;
 
-    console.log(
-        `🔥 GII INCLINED LIVE | I:${inclined}`
-    );
+  
 }
 
     // ---------------------------------------------
@@ -1274,12 +1296,7 @@ processWeather(
     weather.temperature,
     weather.mqttTimestamp
 );
-       console.log(
-        `🌤️ RAJASHTHAN/RX LIVE | ` +
-        `BTPS | ` +
-        `I:${weather.irradiance} | ` +
-        `T:${weather.temperature}`
-    );
+    
 }
 
 

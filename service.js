@@ -270,11 +270,16 @@ async function getBuilding(station) {
     let deviceStatus = "OFFLINE";
     let totalMPPTPower = 0;
 
-    for (let i = 0; i < inverters.length; i++) {
+  // ================= FETCH ALL INVERTER LATEST DATA IN PARALLEL =================
+const latestResults = await Promise.all(
+  inverters.map(inv => getLatest(inv.deviceSn))
+);
 
-      const latest = await getLatest(
-        inverters[i].deviceSn
-      );
+for (let i = 0; i < inverters.length; i++) {
+
+  const latest = latestResults[i];
+
+  // ================= STATUS =================
 
       // ================= STATUS =================
 
@@ -614,42 +619,45 @@ async function getGraph(type, stationId, date) {
     // 🔥 TIME BASED SUM (VERY IMPORTANT)
     let timeMap = {};
 
-    // ================= LOOP ALL INVERTERS =================
-    for (const inv of inverters) {
+    // ================= FETCH ALL INVERTER HISTORY IN PARALLEL =================
+const historyResults = await Promise.all(
+  inverters.map(inv =>
+    api(
+      "/v1.0/device/history",
+      {
+        deviceSn: String(inv.deviceSn),
+        startAt,
+        endAt,
+        granularity,
+        measurePoints: [measurePoint]
+      }
+    )
+  )
+);
 
-     
+// ================= PROCESS ALL INVERTER RESULTS =================
+for (const result of historyResults) {
 
-      const result = await api(
-        "/v1.0/device/history",
-        {
-          deviceSn: String(inv.deviceSn),
-          startAt,
-          endAt,
-          granularity,
-          measurePoints: [measurePoint]
-        }
-      );
+  const raw = result.dataList || [];
 
-      const raw = result.dataList || [];
+  raw.forEach(item => {
 
-      raw.forEach(item => {
+    const time =
+      new Date(Number(item.time) * 1000).toISOString();
 
-        const time =
-          new Date(Number(item.time) * 1000).toISOString();
+    const obj =
+      item.itemList?.find(i => i.key === measurePoint);
 
-        const obj =
-          item.itemList?.find(i => i.key === measurePoint);
+    const power = Number(obj?.value || 0);
 
-        const power = Number(obj?.value || 0);
-
-        // 🔥 SAME TIME → ADD ALL INVERTERS
-        if (!timeMap[time]) {
-          timeMap[time] = 0;
-        }
-
-        timeMap[time] += power;
-      });
+    // 🔥 SAME TIME → ADD ALL INVERTERS
+    if (!timeMap[time]) {
+      timeMap[time] = 0;
     }
+
+    timeMap[time] += power;
+  });
+}
 
     // 🔥 FINAL DATA
     const allData = Object.keys(timeMap).map(time => ({

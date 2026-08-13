@@ -103,11 +103,17 @@ const fetchWeather = async (campus) => {
 
 };
 
+const liveRequestRef = useRef(false);
+
 // =====================================================
 // LIVE WEATHER + GII
 // =====================================================
 
 const fetchLiveWeather = async () => {
+
+  if (liveRequestRef.current) return;
+
+  liveRequestRef.current = true;
 
   try {
 
@@ -171,9 +177,13 @@ const fetchLiveWeather = async () => {
       })
     );
 
-  } catch (err) {
+    } catch (err) {
 
     console.log("LIVE WEATHER ERROR:", err);
+
+  } finally {
+
+    liveRequestRef.current = false;
 
   }
 
@@ -394,7 +404,7 @@ useEffect(() => {
   const liveTimer =
     setInterval(
       fetchLiveWeather,
-      1000
+      5000
     );
 
 
@@ -605,7 +615,7 @@ c.name === "NLCIL" ? (
     
 <div className="panel weather-panel gii-panel">
 
-    <div className="weather-title">GII</div>
+    <div className="weather-title">TA BUILDING</div>
 
     <div className="gii-item">
     <WiDaySunny className="icon sun" />
@@ -697,7 +707,7 @@ d="M0 20 Q 25 10 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 4
 }
 <div className="panel weather-panel">
      {c.name === "NLCIL" && (
-        <div className="weather-title">GHI</div>
+        <div className="weather-title">POWER STATION</div>
     )}
 
 <div className="weather-row">

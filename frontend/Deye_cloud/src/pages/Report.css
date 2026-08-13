@@ -741,3 +741,1587 @@ transform:rotate(360deg);
     transform:translateY(-2px);
     background:#0098d8;
 }
+
+
+
+/* ============================================================
+   FINAL REPORT PAGE RESPONSIVE SYSTEM
+   PC + LAPTOP + SMALL LAPTOP + HIGH DPI
+   HEADER + FILTER + REPORT + TABLE + LOADING
+   Paste at VERY BOTTOM of Report.css
+   ============================================================ */
+
+
+/* ============================================================
+   1. GLOBAL WIDTH SAFETY
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+#root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.solarReportPage {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+
+    padding-left: 35px;
+    padding-right: 35px;
+    padding-bottom: 40px;
+
+    overflow-x: hidden;
+}
+
+
+/* ============================================================
+   2. FIXED HEADER - BASE
+   ============================================================ */
+
+.dashboardTopHeader {
+    position: fixed !important;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    width: 100%;
+    max-width: 100%;
+
+    height: 82px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 35px;
+
+    gap: 20px;
+
+    z-index: 9999;
+
+    box-sizing: border-box;
+
+    overflow: hidden;
+}
+
+
+/* LEFT */
+
+.dashboardLeft {
+    min-width: 0;
+    flex: 0 1 auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+}
+
+
+/* NLC LOGO */
+
+.dashboardLogo {
+    width: 64px;
+    height: 64px;
+
+    flex: 0 0 auto;
+
+    object-fit: contain;
+
+    padding: 5px;
+
+    border-radius: 11px;
+}
+
+
+/* LEFT TEXT */
+
+.dashboardLeft > div {
+    min-width: 0;
+}
+
+.dashboardLeft h2 {
+    margin: 0;
+
+    font-size: 18px;
+    line-height: 1.2;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dashboardLeft span {
+    display: block;
+
+    margin-top: 3px;
+
+    font-size: 11px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* ============================================================
+   3. EPC CENTER
+   ============================================================ */
+
+.dashboardCenter {
+    min-width: 0;
+
+    flex: 1 1 auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding-left: 22px;
+
+    border-left: 1px solid rgba(255,255,255,.2);
+
+    overflow: hidden;
+}
+
+.sunLogo {
+    width: 52px;
+    height: 52px;
+
+    flex: 0 0 auto;
+
+    margin-right: 0;
+}
+
+.epcText {
+    min-width: 0;
+
+    overflow: hidden;
+}
+
+.epcText small {
+    display: block;
+
+    font-size: 9px;
+
+    white-space: nowrap;
+}
+
+.epcText h3 {
+    margin: 2px 0 0;
+
+    font-size: 14px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* ============================================================
+   4. RIGHT HEADER
+   ============================================================ */
+
+.dashboardRight {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    min-width: 0;
+}
+
+.liveBadge,
+.timeBadge {
+    white-space: nowrap;
+}
+
+.liveBadge {
+    padding: 7px 12px;
+    font-size: 11px;
+}
+
+.timeBadge {
+    padding: 7px 11px;
+    font-size: 11px;
+}
+
+.backBtn {
+    padding: 8px 16px;
+
+    font-size: 11px;
+
+    white-space: nowrap;
+
+    flex-shrink: 0;
+}
+
+
+/* ============================================================
+   5. WMS REPORT BUTTON
+   Remove old margin-right:120px effect
+   ============================================================ */
+
+.wmsReportBtn {
+    flex: 0 0 auto;
+
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+
+    white-space: nowrap;
+
+    padding: 8px 14px;
+
+    font-size: 11px;
+
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ============================================================
+   6. PAGE TOP SPACE
+   Header = 82px
+   ============================================================ */
+
+.solarReportPage {
+    padding-top: 110px;
+}
+
+
+/* ============================================================
+   7. REPORT HEADER
+   ============================================================ */
+
+.solarReportHeader {
+    width: 100%;
+    max-width: 1400px;
+
+    margin: 0 auto 25px;
+}
+
+.solarReportHeader h1 {
+    margin: 0 0 6px;
+
+    font-size: clamp(24px, 2vw, 34px);
+
+    line-height: 1.2;
+
+    word-break: break-word;
+}
+
+.solarReportHeader p {
+    margin: 0;
+
+    font-size: clamp(12px, 1vw, 15px);
+}
+
+
+/* ============================================================
+   8. FILTER CARD
+   ============================================================ */
+
+.solarReportFilterCard {
+    width: 100%;
+    max-width: 1400px;
+
+    margin: 0 auto;
+
+    display: grid;
+
+    /*
+       4 fields + Generate + Download
+       Desktop = 6 balanced columns
+    */
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr))
+        minmax(150px, .8fr)
+        minmax(150px, .8fr);
+
+    gap: 18px;
+
+    padding: 25px;
+
+    border-radius: 20px;
+
+    overflow: hidden;
+}
+
+
+/* FIELD SAFETY */
+
+.solarReportField {
+    min-width: 0;
+    width: 100%;
+}
+
+.solarReportField label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    font-size: 12px;
+}
+
+.solarReportField input,
+.solarReportField select {
+    width: 100%;
+    max-width: 100%;
+
+    min-width: 0;
+
+    height: 48px;
+
+    padding: 0 12px;
+
+    font-size: 13px;
+
+    outline: none;
+}
+
+
+/* BUTTON AREA */
+
+.solarReportButtonArea {
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    align-items: flex-end;
+}
+
+.solarGenerateBtn,
+.solarDownloadBtn {
+    width: 100%;
+    max-width: 100%;
+
+    height: 48px;
+
+    padding: 0 12px;
+
+    font-size: 13px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* ============================================================
+   9. PREVIEW CARD
+   ============================================================ */
+
+.solarReportPreviewCard {
+    width: 100%;
+    max-width: 1400px;
+
+    margin: 28px auto 0;
+
+    padding: 25px;
+
+    border-radius: 20px;
+
+    overflow-x: hidden;
+}
+
+.solarReportPreviewCard h2 {
+    margin-top: 0;
+
+    font-size: clamp(20px, 1.7vw, 28px);
+}
+
+
+/* ============================================================
+   10. REPORT INFO CARDS
+   ============================================================ */
+
+.reportInfoCard {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 15px;
+
+    margin-bottom: 22px;
+}
+
+.reportInfoCard div {
+    min-width: 0;
+
+    padding: 18px;
+
+    overflow: hidden;
+}
+
+.reportInfoCard span,
+.reportInfoCard strong {
+    max-width: 100%;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+.reportInfoCard strong {
+    font-size: 16px;
+}
+
+
+/* ============================================================
+   11. TABLE RESPONSIVE CONTAINER
+   ============================================================ */
+
+.reportTable {
+    width: 100%;
+    max-width: 100%;
+
+    table-layout: fixed;
+
+    border-collapse: separate;
+
+    overflow: hidden;
+}
+
+.reportTable th,
+.reportTable td {
+    min-width: 0;
+
+    word-break: break-word;
+
+    overflow-wrap: anywhere;
+
+    text-align: center;
+}
+
+.reportTable th {
+    padding: 14px 10px;
+
+    font-size: 13px;
+}
+
+.reportTable td {
+    padding: 11px 8px;
+
+    font-size: 13px;
+}
+
+
+/* FIRST COLUMN */
+
+.reportTable th:first-child,
+.reportTable td:first-child {
+    width: 90px;
+}
+
+
+/* ============================================================
+   12. LOADING OVERLAY
+   ============================================================ */
+
+.loadingOverlay {
+    position: fixed !important;
+
+    inset: 0;
+
+    width: 100vw;
+    height: 100vh;
+
+    padding: 20px;
+
+    z-index: 999999;
+
+    box-sizing: border-box;
+}
+
+.loadingCard {
+    width: min(420px, 92vw);
+
+    max-width: 100%;
+
+    padding: 28px;
+
+    box-sizing: border-box;
+}
+
+.loaderCircle {
+    width: 60px;
+    height: 60px;
+}
+
+.loadingCard h2 {
+    font-size: 22px;
+}
+
+.loadingCard h3 {
+    font-size: 28px;
+}
+
+
+/* ============================================================
+   13. LARGE DESKTOP
+   1600px+
+   ============================================================ */
+
+@media (min-width: 1600px) {
+
+    .solarReportPage {
+        padding-left: 45px;
+        padding-right: 45px;
+    }
+
+    .dashboardTopHeader {
+        padding-left: 40px;
+        padding-right: 40px;
+
+        height: 82px;
+    }
+
+    .dashboardLogo {
+        width: 66px;
+        height: 66px;
+    }
+
+    .dashboardLeft h2 {
+        font-size: 19px;
+    }
+
+    .epcText h3 {
+        font-size: 15px;
+    }
+
+    .solarReportFilterCard {
+        padding: 28px;
+        gap: 20px;
+    }
+
+    .solarReportPreviewCard {
+        padding: 28px;
+    }
+
+    .reportTable th,
+    .reportTable td {
+        font-size: 14px;
+    }
+}
+
+
+/* ============================================================
+   14. 1440 - 1599
+   NORMAL DESKTOP / LAPTOP
+   ============================================================ */
+
+@media (min-width: 1440px) and (max-width: 1599px) {
+
+    .dashboardTopHeader {
+        padding: 0 25px;
+        gap: 14px;
+    }
+
+    .dashboardLogo {
+        width: 60px;
+        height: 60px;
+    }
+
+    .dashboardLeft h2 {
+        font-size: 17px;
+    }
+
+    .dashboardLeft span {
+        font-size: 10px;
+    }
+
+    .sunLogo {
+        width: 48px;
+        height: 48px;
+    }
+
+    .epcText h3 {
+        font-size: 13px;
+    }
+
+    .dashboardRight {
+        gap: 7px;
+    }
+
+    .liveBadge,
+    .timeBadge {
+        font-size: 10px;
+        padding: 6px 9px;
+    }
+
+    .backBtn {
+        padding: 7px 13px;
+        font-size: 10px;
+    }
+
+    .wmsReportBtn {
+        font-size: 10px;
+        padding: 7px 10px;
+    }
+
+    .solarReportPage {
+        padding-left: 28px;
+        padding-right: 28px;
+    }
+
+    .solarReportFilterCard {
+        padding: 22px;
+        gap: 15px;
+    }
+
+    .solarReportPreviewCard {
+        padding: 22px;
+    }
+}
+
+
+/* ============================================================
+   15. 1201 - 1439
+   COMMON OFFICE LAPTOP
+   1366 x 768 / 1280 x 720
+   ============================================================ */
+
+@media (min-width: 1201px) and (max-width: 1439px) {
+
+    .dashboardTopHeader {
+        height: 76px;
+
+        padding: 0 20px;
+
+        gap: 10px;
+    }
+
+    .dashboardLogo {
+        width: 54px;
+        height: 54px;
+    }
+
+    .dashboardLeft {
+        gap: 10px;
+    }
+
+    .dashboardLeft h2 {
+        font-size: 15px;
+    }
+
+    .dashboardLeft span {
+        font-size: 9px;
+    }
+
+    .dashboardCenter {
+        padding-left: 14px;
+        gap: 7px;
+    }
+
+    .sunLogo {
+        width: 44px;
+        height: 44px;
+    }
+
+    .epcText small {
+        font-size: 8px;
+    }
+
+    .epcText h3 {
+        font-size: 11px;
+    }
+
+    .dashboardRight {
+        gap: 5px;
+    }
+
+    .liveBadge,
+    .timeBadge {
+        padding: 5px 8px;
+        font-size: 9px;
+    }
+
+    .backBtn {
+        padding: 6px 10px;
+        font-size: 9px;
+    }
+
+    .wmsReportBtn {
+        height: 32px;
+        padding: 5px 8px;
+        font-size: 9px;
+    }
+
+    .solarReportPage {
+        padding-top: 96px;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .solarReportHeader {
+        margin-bottom: 18px;
+    }
+
+    .solarReportHeader h1 {
+        font-size: 27px;
+    }
+
+    .solarReportFilterCard {
+        padding: 18px;
+
+        gap: 12px;
+    }
+
+    .solarReportField label {
+        font-size: 11px;
+    }
+
+    .solarReportField input,
+    .solarReportField select,
+    .solarGenerateBtn,
+    .solarDownloadBtn {
+        height: 44px;
+        font-size: 12px;
+    }
+
+    .solarReportPreviewCard {
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .reportInfoCard {
+        gap: 12px;
+    }
+
+    .reportInfoCard div {
+        padding: 15px;
+    }
+
+    .reportInfoCard strong {
+        font-size: 14px;
+    }
+
+    .reportTable th,
+    .reportTable td {
+        padding: 9px 7px;
+        font-size: 12px;
+    }
+}
+
+
+/* ============================================================
+   16. 1025 - 1200
+   SMALL LAPTOP
+   ============================================================ */
+
+@media (min-width: 1025px) and (max-width: 1200px) {
+
+    .dashboardTopHeader {
+        height: 72px;
+
+        padding: 0 14px;
+
+        gap: 7px;
+    }
+
+    .dashboardLeft {
+        gap: 7px;
+
+        max-width: 28%;
+    }
+
+    .dashboardLogo {
+        width: 48px;
+        height: 48px;
+    }
+
+    .dashboardLeft h2 {
+        font-size: 13px;
+    }
+
+    .dashboardLeft span {
+        font-size: 8px;
+    }
+
+    .dashboardCenter {
+        padding-left: 9px;
+        gap: 6px;
+
+        max-width: 31%;
+    }
+
+    .sunLogo {
+        width: 40px;
+        height: 40px;
+    }
+
+    .epcText small {
+        font-size: 7px;
+    }
+
+    .epcText h3 {
+        font-size: 9px;
+    }
+
+    .dashboardRight {
+        gap: 4px;
+    }
+
+    .liveBadge,
+    .timeBadge {
+        padding: 4px 6px;
+        font-size: 8px;
+    }
+
+    .backBtn {
+        padding: 5px 8px;
+        font-size: 8px;
+    }
+
+    .wmsReportBtn {
+        height: 29px;
+        padding: 4px 6px;
+        font-size: 8px;
+    }
+
+    .solarReportPage {
+        padding-top: 88px;
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    /*
+       Filter becomes 3 columns
+    */
+
+    .solarReportFilterCard {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+
+        gap: 12px;
+
+        padding: 16px;
+    }
+
+    .solarReportField label {
+        font-size: 10px;
+    }
+
+    .solarReportField input,
+    .solarReportField select {
+        height: 42px;
+        font-size: 11px;
+        padding: 0 10px;
+    }
+
+    .solarGenerateBtn,
+    .solarDownloadBtn {
+        height: 42px;
+        font-size: 11px;
+    }
+
+    .solarReportPreviewCard {
+        padding: 17px;
+        margin-top: 17px;
+    }
+
+    .reportInfoCard {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 10px;
+    }
+
+    .reportInfoCard div {
+        padding: 13px;
+    }
+
+    .reportInfoCard strong {
+        font-size: 13px;
+    }
+
+    .reportTable th,
+    .reportTable td {
+        padding: 8px 6px;
+        font-size: 11px;
+    }
+}
+
+
+/* ============================================================
+   17. 769 - 1024
+   TABLET / SMALL SCREEN
+   ============================================================ */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+    .dashboardTopHeader {
+        height: auto;
+        min-height: 68px;
+
+        padding: 8px 10px;
+
+        gap: 7px;
+    }
+
+    .dashboardLeft {
+        max-width: 28%;
+        gap: 7px;
+    }
+
+    .dashboardLogo {
+        width: 44px;
+        height: 44px;
+    }
+
+    .dashboardLeft h2 {
+        font-size: 12px;
+    }
+
+    .dashboardLeft span {
+        font-size: 7px;
+    }
+
+    .dashboardCenter {
+        max-width: 30%;
+
+        padding-left: 7px;
+
+        gap: 5px;
+    }
+
+    .sunLogo {
+        width: 38px;
+        height: 38px;
+    }
+
+    .epcText small {
+        font-size: 7px;
+    }
+
+    .epcText h3 {
+        font-size: 8px;
+    }
+
+    .dashboardRight {
+        gap: 3px;
+    }
+
+    .liveBadge,
+    .timeBadge {
+        padding: 4px 5px;
+        font-size: 7px;
+    }
+
+    .backBtn {
+        padding: 5px 7px;
+        font-size: 7px;
+    }
+
+    .wmsReportBtn {
+        height: 27px;
+        padding: 4px 5px;
+        font-size: 7px;
+    }
+
+    .solarReportPage {
+        padding-top: 84px;
+
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .solarReportFilterCard {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 10px;
+
+        padding: 14px;
+    }
+
+    .solarReportField input,
+    .solarReportField select,
+    .solarGenerateBtn,
+    .solarDownloadBtn {
+        height: 42px;
+    }
+
+    .reportInfoCard {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 10px;
+    }
+
+    .solarReportPreviewCard {
+        padding: 15px;
+    }
+
+    .reportTable {
+        font-size: 11px;
+    }
+
+    .reportTable th,
+    .reportTable td {
+        padding: 7px 5px;
+        font-size: 10px;
+    }
+}
+
+
+/* ============================================================
+   18. 601 - 768
+   TABLET PORTRAIT
+   ============================================================ */
+
+@media (min-width: 601px) and (max-width: 768px) {
+
+    .dashboardTopHeader {
+        position: relative !important;
+
+        height: auto;
+
+        padding: 12px;
+
+        flex-wrap: wrap;
+
+        gap: 10px;
+    }
+
+    .dashboardLeft {
+        width: 100%;
+        max-width: 100%;
+
+        justify-content: flex-start;
+    }
+
+    .dashboardLogo {
+        width: 50px;
+        height: 50px;
+    }
+
+    .dashboardCenter {
+        width: 100%;
+        max-width: 100%;
+
+        border-left: none;
+
+        border-top: 1px solid rgba(255,255,255,.15);
+
+        padding: 10px 0 0;
+    }
+
+    .epcText h3 {
+        font-size: 12px;
+    }
+
+    .wmsReportBtn {
+        order: 3;
+
+        margin-left: auto;
+    }
+
+    .dashboardRight {
+        width: 100%;
+
+        justify-content: flex-start;
+
+        flex-wrap: wrap;
+    }
+
+    .solarReportPage {
+        padding-top: 20px;
+
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .solarReportFilterCard {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .reportInfoCard {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .reportTable {
+        display: block;
+
+        overflow-x: auto;
+
+        white-space: nowrap;
+    }
+
+    .reportTable th,
+    .reportTable td {
+        white-space: nowrap;
+    }
+}
+
+
+/* ============================================================
+   19. <= 600
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 600px) {
+
+    .dashboardTopHeader {
+        position: relative !important;
+
+        width: 100%;
+
+        height: auto;
+
+        padding: 10px;
+
+        flex-direction: column;
+
+        align-items: stretch;
+
+        gap: 10px;
+    }
+
+    .dashboardLeft {
+        width: 100%;
+
+        justify-content: center;
+
+        text-align: center;
+
+        flex-direction: column;
+
+        gap: 6px;
+    }
+
+    .dashboardLogo {
+        width: 52px;
+        height: 52px;
+    }
+
+    .dashboardLeft h2 {
+        font-size: 16px;
+    }
+
+    .dashboardLeft span {
+        font-size: 10px;
+    }
+
+    .dashboardCenter {
+        width: 100%;
+
+        padding: 10px 0;
+
+        border-left: none;
+
+        border-top: 1px solid rgba(255,255,255,.15);
+
+        justify-content: center;
+
+        text-align: center;
+    }
+
+    .sunLogo {
+        width: 44px;
+        height: 44px;
+    }
+
+    .epcText h3 {
+        font-size: 10px;
+
+        white-space: normal;
+    }
+
+    .wmsReportBtn {
+        width: 100%;
+
+        margin: 0 !important;
+
+        order: 3;
+    }
+
+    .dashboardRight {
+        width: 100%;
+
+        justify-content: center;
+
+        flex-wrap: wrap;
+
+        gap: 7px;
+    }
+
+    .liveBadge,
+    .timeBadge,
+    .backBtn {
+        font-size: 10px;
+    }
+
+    .solarReportPage {
+        padding-top: 15px;
+
+        padding-left: 8px;
+        padding-right: 8px;
+
+        padding-bottom: 25px;
+    }
+
+    .solarReportHeader h1 {
+        font-size: 23px;
+    }
+
+    .solarReportHeader p {
+        font-size: 12px;
+    }
+
+    .solarReportFilterCard {
+        grid-template-columns: 1fr;
+
+        gap: 12px;
+
+        padding: 15px;
+
+        border-radius: 17px;
+    }
+
+    .solarReportField input,
+    .solarReportField select,
+    .solarGenerateBtn,
+    .solarDownloadBtn {
+        height: 46px;
+
+        font-size: 13px;
+    }
+
+    .solarReportPreviewCard {
+        padding: 15px;
+
+        border-radius: 17px;
+    }
+
+    .reportInfoCard {
+        grid-template-columns: 1fr;
+
+        gap: 10px;
+    }
+
+    .reportInfoCard div {
+        padding: 14px;
+    }
+
+    .reportInfoCard span,
+    .reportInfoCard strong {
+        white-space: normal;
+        overflow: visible;
+    }
+
+    /*
+       Mobile table scroll
+    */
+
+    .reportTable {
+        display: block;
+
+        width: 100%;
+
+        overflow-x: auto;
+
+        white-space: nowrap;
+
+        border-radius: 12px;
+    }
+
+    .reportTable table {
+        min-width: 600px;
+    }
+
+    .reportTable th,
+    .reportTable td {
+        white-space: nowrap;
+
+        padding: 9px 10px;
+    }
+
+    .loadingCard {
+        width: 92vw;
+
+        padding: 22px;
+    }
+}
+
+
+/* ============================================================
+   20. VERY SMALL MOBILE
+   ============================================================ */
+
+@media (max-width: 420px) {
+
+    .dashboardLogo {
+        width: 46px;
+        height: 46px;
+    }
+
+    .dashboardLeft h2 {
+        font-size: 14px;
+    }
+
+    .dashboardLeft span {
+        font-size: 9px;
+    }
+
+    .epcText h3 {
+        font-size: 9px;
+    }
+
+    .solarReportPage {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .solarReportFilterCard {
+        padding: 12px;
+    }
+
+    .solarReportPreviewCard {
+        padding: 12px;
+    }
+
+    .solarReportHeader h1 {
+        font-size: 20px;
+    }
+
+    .reportInfoCard strong {
+        font-size: 14px;
+    }
+
+    .reportTable th,
+    .reportTable td {
+        font-size: 10px;
+    }
+}
+
+
+/* ============================================================
+   21. HIGH DPI / WINDOWS 125% / 150%
+   ============================================================ */
+
+@media (min-resolution: 120dpi) and (min-width: 1000px) {
+
+    .dashboardTopHeader {
+        padding-left: 12px;
+        padding-right: 12px;
+
+        gap: 7px;
+    }
+
+    .dashboardLeft {
+        min-width: 0;
+    }
+
+    .dashboardLogo {
+        flex-shrink: 0;
+    }
+
+    .dashboardCenter {
+        min-width: 0;
+    }
+
+    .epcText {
+        min-width: 0;
+    }
+
+    .epcText h3 {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dashboardRight {
+        flex-shrink: 0;
+    }
+
+    .solarReportPage {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .solarReportFilterCard,
+    .solarReportPreviewCard {
+        max-width: 100%;
+    }
+
+    .reportInfoCard div {
+        min-width: 0;
+    }
+}
+
+
+/* ============================================================
+   22. NEVER BREAK WIDTH
+   ============================================================ */
+
+.solarReportPage *,
+.dashboardTopHeader *,
+.solarReportFilterCard *,
+.solarReportPreviewCard * {
+    max-width: 100%;
+}
+
+img,
+svg,
+canvas {
+    max-width: 100%;
+}
+
+input,
+select,
+button {
+    max-width: 100%;
+}
+
+
+/* ============================================================
+   23. REMOVE OLD WMS POSITIONING
+   ============================================================ */
+
+.wmsReportBtn {
+    margin-right: 0 !important;
+    position: static !important;
+    transform: none;
+}
+
+
+/* ============================================================
+   24. TABLE HORIZONTAL SCROLL SAFETY
+   ============================================================ */
+
+@media (max-width: 900px) {
+
+    .solarReportPreviewCard {
+        overflow-x: hidden;
+    }
+
+    .reportTable {
+        display: block;
+
+        width: 100%;
+
+        overflow-x: auto;
+        overflow-y: hidden;
+
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+
+/* ============================================================
+   25. FINAL BUTTON SAFETY
+   ============================================================ */
+
+.solarGenerateBtn,
+.solarDownloadBtn,
+.wmsReportBtn,
+.backBtn {
+    cursor: pointer;
+
+    transition:
+        transform .25s ease,
+        box-shadow .25s ease,
+        background .25s ease;
+}
+
+
+/* ============================================================
+   FINAL PDF DOWNLOAD BUTTON
+   NEW CLASS - NO OVERRIDE FROM OLD CSS
+   ============================================================ */
+
+.solarPdfDownloadBtn {
+    width: 100% !important;
+    height: 48px !important;
+
+    margin: 0 !important;
+    padding: 0 12px !important;
+
+    border: none !important;
+    border-radius: 14px !important;
+
+    background: linear-gradient(
+        135deg,
+        #20b257,
+        #11853d
+    ) !important;
+
+    color: #ffffff !important;
+
+    font-size: 13px !important;
+    font-weight: 700 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    box-sizing: border-box !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    cursor: pointer !important;
+
+    box-shadow:
+        0 12px 28px rgba(32,178,87,.30) !important;
+
+    transition:
+        transform .25s ease,
+        box-shadow .25s ease,
+        background .25s ease !important;
+}
+
+
+.solarPdfDownloadBtn:hover {
+    transform: translateY(-3px) !important;
+
+    background: linear-gradient(
+        135deg,
+        #25c261,
+        #0f7b38
+    ) !important;
+
+    box-shadow:
+        0 16px 32px rgba(32,178,87,.38) !important;
+}
+
+
+/* Same alignment as Generate Report */
+.solarReportFilterCard > .solarPdfDownloadBtn {
+    align-self: end !important;
+}
+
+
+/* ============================================================
+   END FINAL REPORT RESPONSIVE SYSTEM
+   ============================================================ */

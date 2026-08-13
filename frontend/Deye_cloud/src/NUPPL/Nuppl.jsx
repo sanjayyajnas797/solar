@@ -29,29 +29,21 @@ import { FaHistory } from "react-icons/fa";
 
 const capacityMap = {
   "NUPPLESTATEOFFICE": 30.51,
-  "NUPPLESTATESTORE": 10,
+  "NUPPLESTATESTORE": 10.17,
   "NUPPLSCHOOL40KW": 40,
   "NUPPLSCHOOL100KW": 100,
-  "NUPPLGENERALHOSPITAL": 75,
-  "NUPPLTRAININGCENTER": 60
+  "NUPPLGENERALHOSPITAL": 122.04,
+  "NUPPLTRAININGCENTER": 80.23
 };
 
 const normalizeName = name =>
 name?.toUpperCase().replace(/[^A-Z0-9]/g,"");
 
-const formatBuildingName = name => {
+const formatBuildingName = (name) => {
 
-if(!name) return "";
+  if (!name) return "";
 
-return name
-.toLowerCase()
-.split(" ")
-.map(word =>
-word==="nuppl"
-? "NUPPL"
-: word.charAt(0).toUpperCase()+word.slice(1)
-)
-.join(" ");
+  return name.toUpperCase();
 
 };
 

@@ -24,11 +24,81 @@ const [summary, setSummary] = useState({
     records: 0,
     totalEnergy: 0
 });
+
+const showAlert = (
+  message,
+  type = "warning",
+  title = "Attention"
+) => {
+
+  const oldAlert = document.querySelector(".wms-alert");
+
+  if (oldAlert) {
+    oldAlert.remove();
+  }
+
+  const alertBox = document.createElement("div");
+
+  alertBox.className = `wms-alert ${type}`;
+
+  const icon =
+    type === "success"
+      ? "✓"
+      : type === "error"
+      ? "!"
+      : type === "info"
+      ? "i"
+      : "⚠";
+
+  alertBox.innerHTML = `
+    <div class="wms-alert-icon">
+      ${icon}
+    </div>
+
+    <div class="wms-alert-content">
+      <p class="wms-alert-title">
+        ${title}
+      </p>
+
+      <p class="wms-alert-message">
+        ${message}
+      </p>
+    </div>
+
+    <button
+      class="wms-alert-close"
+      type="button"
+    >
+      ×
+    </button>
+  `;
+
+  document.body.appendChild(alertBox);
+
+  const closeBtn =
+    alertBox.querySelector(".wms-alert-close");
+
+  closeBtn.onclick = () => {
+    alertBox.remove();
+  };
+
+  setTimeout(() => {
+
+    if (alertBox) {
+      alertBox.remove();
+    }
+
+  }, 4000);
+};
 const generateReport = async () => {
 
     if (!fromDate || !toDate) {
 
-        alert("Select From & To Date");
+       showAlert(
+  "Please select both From Date and To Date.",
+  "warning",
+  "Date Required"
+);
 
         return;
 
@@ -79,7 +149,11 @@ setReportData(res.data.rows);
 
         console.log(err);
 
-        alert("Unable to load report");
+      showAlert(
+  "Unable to load the report. Please try again.",
+  "error",
+  "Report Error"
+);
 
     }
 
@@ -95,7 +169,11 @@ const downloadPDF = () => {
 
     if (reportData.length === 0) {
 
-        alert("Generate Report First");
+       showAlert(
+  "Please generate the report before downloading the PDF.",
+  "info",
+  "Report Not Ready"
+);
 
         return;
 
@@ -203,11 +281,11 @@ doc.text("CAMPUS",12,40);
 
 doc.setFontSize(12);
 doc.text(
-    campus === "GII"
-        ? "NLC GII"
-        : campus === "NLC"
-        ? "NLC GHI"
-        : summary.campus,
+  campus === "GII"
+    ? "NLC TA BUILDING"
+    : campus === "NLC"
+    ? "NLC GHI"
+    : summary.campus,
     12,
     48
 );
@@ -277,56 +355,58 @@ else{
 
 if (campus === "GII") {
 
-    autoTable(doc,{
+    autoTable(doc, {
 
-        startY:58,
+        startY: 58,
 
-        head:[[
+        head: [[
             "Date & Time",
-            "Horizontal Irradiance",
-            "Module Temperature",
-            "Inclined Irradiance",
-            "Horizontal Cumulative",
-            "Inclined Cumulative"
+            "Horizontal Irradiance (W/m²)",
+            "Horizontal Cumulative (Wh/m²)",
+            "Inclined Irradiance (W/m²)",
+            "Inclined Cumulative (Wh/m²)",
+            "Module Temperature (°C)"
         ]],
 
-        body:reportData.map(r=>[
+        body: reportData.map(r => [
             r.time,
             r.horizontal,
-            r.temperature,
-            r.inclined,
             r.horizontalCumulative,
-            r.inclinedCumulative
+            r.inclined,
+            r.inclinedCumulative,
+            r.temperature
         ]),
 
-        theme:"grid",
+        theme: "grid",
 
-        headStyles:{
-            fillColor:[22,90,145],
-            textColor:[255,255,255],
-            fontSize:10,
-            halign:"center",
-            valign:"middle"
+        headStyles: {
+            fillColor: [22, 90, 145],
+            textColor: [255, 255, 255],
+            fontSize: 9,
+            halign: "center",
+            valign: "middle"
         },
 
-        alternateRowStyles:{
-            fillColor:[245,245,245],
-            textColor:[0,0,0]
+        alternateRowStyles: {
+            fillColor: [245, 245, 245],
+            textColor: [0, 0, 0]
         },
 
-        styles:{
-            fontSize:9.5,
-            cellPadding:2,
-            textColor:[0,0,0],
-            fontStyle:"bold",
-            lineColor:[225,225,225],
-            lineWidth:0.1,
-            halign:"center"
+        styles: {
+            fontSize: 8.5,
+            cellPadding: 2,
+            textColor: [0, 0, 0],
+            fontStyle: "bold",
+            lineColor: [225, 225, 225],
+            lineWidth: 0.1,
+            halign: "center",
+            valign: "middle"
         }
 
     });
 
 }
+
 else{
 
     autoTable(doc,{
@@ -335,9 +415,9 @@ else{
 
         head:[[
             "Date & Time",
-            "Irradiance",
-            "Temperature",
-            "Cumulative"
+            "Irradiance(W/m²)",
+            "Temperature(°C)",
+            "Cumulative(W/m²)"
         ]],
 
         body:reportData.map(r=>[
@@ -489,7 +569,7 @@ else{
                         >
 
                             <option value="NLC">
-                                NLC GHI
+                                NLC POWER STATION
                             </option>
 
                             <option value="NUPPL">
@@ -501,7 +581,7 @@ else{
                             </option>
 
                             <option value="GII">
-                                 NLC GII
+                                 NLC TA BUILDING
                             </option>
 
                         </select>
@@ -549,7 +629,7 @@ else{
         onChange={(e)=>setInterval(e.target.value)}
     >
 
-        <option value="10">Live (10 Sec)</option>
+       
 
         <option value="15">15 Minutes</option>
 
@@ -584,13 +664,13 @@ else{
     <h4>Campus</h4>
 
     <p>
-        {
-            campus === "GII"
-                ? "NLC GII"
-                : campus === "NLC"
-                ? "NLC GHI"
-                : summary.campus
-        }
+       {
+    campus === "GII"
+        ? "NLC TA BUILDING"
+        : campus === "NLC"
+        ? "NLC GHI"
+        : summary.campus
+}
     </p>
 </div>
 
@@ -648,37 +728,80 @@ campus === "GII"
 
                 </div>
 
-                {
-campus === "GII" ? (
+              {campus === "GII" ? (
 
 <table className="report-table">
 
 <thead>
 <tr>
-<th>Date & Time</th>
-<th>Horizontal Irradiance</th>
-<th>Module Temperature</th>
-<th>Inclined Irradiance</th>
-<th>Horizontal Cumulative</th>
-<th>Inclined Cumulative</th>
+    <th>Date & Time</th>
+
+    <th>
+        Horizontal Irradiance
+        <br />
+        (W/m²)
+    </th>
+
+    <th>
+        Horizontal Cumulative
+        <br />
+        (Wh/m²)
+    </th>
+
+    <th>
+        Inclined Irradiance
+        <br />
+        (W/m²)
+    </th>
+
+    <th>
+        Inclined Cumulative
+        <br />
+        (Wh/m²)
+    </th>
+
+    <th>
+        Module Temperature
+        <br />
+        (°C)
+    </th>
 </tr>
 </thead>
 
 <tbody>
 
 {
-reportData.map((row,index)=>(
+    reportData.map((row, index) => (
 
-<tr key={index}>
-<td>{row.time}</td>
-<td>{row.horizontal}</td>
-<td>{row.temperature}</td>
-<td>{row.inclined}</td>
-<td>{row.horizontalCumulative}</td>
-<td>{row.inclinedCumulative}</td>
-</tr>
+        <tr key={index}>
 
-))
+            <td>
+                {row.time}
+            </td>
+
+            <td>
+                {row.horizontal}
+            </td>
+
+            <td>
+                {row.horizontalCumulative}
+            </td>
+
+            <td>
+                {row.inclined}
+            </td>
+
+            <td>
+                {row.inclinedCumulative}
+            </td>
+
+            <td>
+                {row.temperature}
+            </td>
+
+        </tr>
+
+    ))
 }
 
 </tbody>
@@ -687,38 +810,66 @@ reportData.map((row,index)=>(
 
 ) : (
 
-<table className="report-table">
 
-<thead>
-<tr>
-<th>Date & Time</th>
-<th>Irradiance</th>
-<th>Temperature</th>
-<th>Cumulative</th>
-</tr>
-</thead>
 
-<tbody>
+    <table className="report-table">
 
-{
-reportData.map((row,index)=>(
+        <thead>
+            <tr>
+                <th>Date & Time</th>
 
-<tr key={index}>
-<td>{row.time}</td>
-<td>{row.irradiance}</td>
-<td>{row.temperature}</td>
-<td>{row.cumulative}</td>
-</tr>
+                <th>
+                    Irradiance
+                    <br />
+                    (W/m²)
+                </th>
 
-))
-}
+                <th>
+                    Temperature
+                    <br />
+                    (°C)
+                </th>
 
-</tbody>
+                <th>
+                    Cumulative
+                    <br />
+                    (Wh/m²)
+                </th>
+            </tr>
+        </thead>
 
-</table>
+        <tbody>
 
-)
-}
+            {reportData.map((row, index) => (
+
+                <tr key={index}>
+
+                    <td>
+                        {row.time}
+                    </td>
+
+                    <td>
+                        {row.irradiance}
+                    </td>
+
+                    <td>
+                        {row.temperature}
+                    </td>
+
+                    <td>
+                        {row.cumulative}
+                    </td>
+
+                </tr>
+
+            ))}
+
+        </tbody>
+
+    </table>
+
+)}
+
             </div>
 
         </div>

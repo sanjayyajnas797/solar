@@ -29,9 +29,9 @@ import { FaHistory } from "react-icons/fa";
 /* ========================= */
 
 const capacityMap = {
-  "NTPLPUMPHOUSE20KW": 112,
-  "NTPLPARKINGSHED": 118,
-  "NTPLAOBUILDING":123,
+  "NTPLSTORMWATER": 20.34,
+  "NTPLPARKINGSHED": 118.65,
+  "NTPLAOBUILDING":50.85,
   "NTPLSERVICEBUILDING":110.74
 }
 
@@ -47,28 +47,13 @@ name?.toUpperCase().replace(/[^A-Z0-9]/g,"");
 /* FORMAT NAME */
 /* ========================= */
 
-const formatBuildingName = (name)=>{
+const formatBuildingName = (name) => {
 
-if(!name) return "";
+  if (!name) return "";
 
-if(name.toUpperCase().includes("NTPL STORM WATER")){
-return "NTPL Pump House 20kW"
-}
-
-return name
-.toLowerCase()
-.split(" ")
-.map(word=>{
-
-if(word==="ntpl") return "NTPL";
-
-return word.charAt(0).toUpperCase()+word.slice(1);
-
-})
-.join(" ");
+  return name.toUpperCase();
 
 };
-
 
 /* ========================= */
 /* ICON MAP */

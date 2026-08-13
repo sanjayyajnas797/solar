@@ -450,8 +450,8 @@ useEffect(() => {
 
     {/* VALUE */}
     <div className="bar-label yesterday-value">
-      {yesterday}
-    </div>
+  {yesterday} kWh
+</div>
 
     <div
       className="bd-bar yesterday-glass"
@@ -516,8 +516,8 @@ useEffect(() => {
 
     {/* ✅ VALUE INSIDE (IMPORTANT FIX) */}
     <div className="bar-label today-value">
-      {today}
-    </div>
+  {today} kWh
+</div>
 
     <div
       className="bd-bar today-glass"
@@ -653,11 +653,11 @@ useEffect(() => {
           </div>
 
           <div
-            className="irr-top-box"
-            style={{ bottom: `${irrHeight + 10}px` }}
-          >
-           {displayIrradiance.toFixed(0)}
-          </div>
+  className="irr-top-box"
+  style={{ bottom: `${irrHeight + 10}px` }}
+>
+  {displayIrradiance.toFixed(0)} W/m²
+</div>
 
           <div
             className="bd-meter-fill irradiance-fill elite-glow"

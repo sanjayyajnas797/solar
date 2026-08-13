@@ -27,13 +27,14 @@ import { FaHistory } from "react-icons/fa";
 const capacityMap = {
 
   "NLCBTPSOHCBUILDING25KW": 23.73,
-  "NLCBTPSOFFICERSCLUB33KW": 27.12,
+  "NLCBTPSOFFICERSCLUB": 27.12,
   "NLCBTPSTAOFFICE25KW": 23.73,
   "NLCBTPSNEWSCHOOLBUILDINGINV2":149.16,
   "NLCBTPSNEWSCHOOLBUILDINGINV1":149.16,
   "NLCBTPSEMPLOYEESCLUB":28.82,
    "NLCBTPSNEWCISFBARRACKS":80.23,
-   "NLCBTPSTHERMALCANTEEN":67.24
+   "NLCBTPSTHERMALCANTEEN":67.24,
+  
 
 };
 
@@ -54,35 +55,7 @@ const formatBtpsName = (name) => {
 
   if (!name) return "";
 
-  let formatted = name;
-
-  formatted = formatted.replace(/,\s*/g, ", ");
-
-  if (formatted.toUpperCase().startsWith("NLC BTPS")) {
-
-    const prefix = "NLC BTPS";
-
-    let rest = formatted.slice(prefix.length);
-
-    rest = rest
-      .toLowerCase()
-      .split(" ")
-      .map(word => {
-
-        if (!word) return "";
-
-        if (word.toLowerCase() === "ta")
-          return "TA";
-
-        return word.charAt(0).toUpperCase() + word.slice(1);
-
-      })
-      .join(" ");
-
-    formatted = prefix + rest;
-  }
-
-  return formatted;
+  return name.toUpperCase();
 
 };
 

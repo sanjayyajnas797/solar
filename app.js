@@ -33,34 +33,3 @@
 });
 
 
-// const db = require("./db");
-
-// async function checkGII() {
-//     try {
-
-//         const { rows } = await db.query(`
-//           SELECT
-//     id,
-//     created_at,
-//     mqtt_timestamp,
-//     horizontal_irradiance,
-//     inclined_irradiance,
-//     temperature
-// FROM gii_weather_logs
-// ORDER BY id DESC
-// LIMIT 10;
-//         `);
-
-//         console.table(rows);
-
-//         process.exit(0);
-
-//     } catch (err) {
-
-//         console.error("❌ DB ERROR:", err.message);
-
-//         process.exit(1);
-//     }
-// }
-
-// checkGII();
