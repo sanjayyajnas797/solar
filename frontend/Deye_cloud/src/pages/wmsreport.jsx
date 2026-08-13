@@ -11,7 +11,7 @@ import API_BASE from './config'
 export default function WmsReport() {
 
     const navigate = useNavigate();
-const [campus, setCampus] = useState("NLC");
+const [campus, setCampus] = useState("NLCIL");
 const [fromDate, setFromDate] = useState("");
 const [toDate, setToDate] = useState("");
 const [interval, setInterval] = useState("15");
@@ -281,10 +281,8 @@ doc.text("CAMPUS",12,40);
 
 doc.setFontSize(12);
 doc.text(
-  campus === "GII"
+ campus === "GII"
     ? "NLC TA BUILDING"
-    : campus === "NLC"
-    ? "NLC GHI"
     : summary.campus,
     12,
     48
@@ -568,8 +566,8 @@ else{
                             }
                         >
 
-                            <option value="NLC">
-                                NLC POWER STATION
+                            <option value="NLCIL">
+                                NLCIL
                             </option>
 
                             <option value="NUPPL">
@@ -665,11 +663,9 @@ else{
 
     <p>
        {
-    campus === "GII"
-        ? "NLC TA BUILDING"
-        : campus === "NLC"
-        ? "NLC GHI"
-        : summary.campus
+   campus === "GII"
+    ? "NLC TA BUILDING"
+    : summary.campus
 }
     </p>
 </div>

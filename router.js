@@ -268,6 +268,39 @@ router.get(
   }
 );
 
+// ================= CAMPUS CONSOLIDATED REPORT =================
 
+router.get(
+  "/report/campus/:campus",
+  async (req, res) => {
+
+    try {
+
+      const { campus } = req.params;
+
+      const { from, to } = req.query;
+
+      const data =
+        await getCampusReport(
+          campus,
+          from,
+          to
+        );
+
+      res.json(data);
+
+    }
+    catch (err) {
+
+      console.error("Campus Report Route Error:", err.message);
+
+      res.status(500).json({
+        error: err.message
+      });
+
+    }
+
+  }
+);
 
 module.exports = router;
