@@ -214,44 +214,99 @@ client.on("connect", async () => {
 // ALL MQTT DATA - 15 MINUTE DATABASE TIMER
 // =====================================================
 
-giiDbSaveTimer = setInterval(
-    async () => {
+// =====================================================
+// CLOCK-ALIGNED 15 MINUTE DATABASE SAVE
+// 10:00, 10:15, 10:30, 10:45...
+// =====================================================
 
-        console.log(
-            "⏱️ 15-MIN DATABASE TIMER TRIGGERED"
-        );
+function start15MinuteDatabaseScheduler() {
 
-        try {
+    const scheduleNextSave = () => {
 
-            await Promise.all([
+        const now = new Date();
 
-                saveGII15Minute(),
+        const next = new Date(now);
 
-                saveWeather15Minute("NLCIL"),
+        // Next 15-minute boundary
+        const currentMinutes = now.getMinutes();
 
-                saveWeather15Minute("NLCIC"),
+        const nextQuarter =
+            Math.floor(currentMinutes / 15) * 15 + 15;
 
-                saveWeather15Minute("NTPL"),
+        if (nextQuarter >= 60) {
 
-                saveWeather15Minute("NUPPL"),
+            next.setHours(
+                now.getHours() + 1,
+                0,
+                0,
+                0
+            );
 
-                saveWeather15Minute("BTPS")
+        } else {
 
-            ]);
-
-        }
-        catch (err) {
-
-            console.error(
-                "❌ 15-MIN DATABASE SAVE ERROR:",
-                err.message
+            next.setMinutes(
+                nextQuarter,
+                0,
+                0
             );
 
         }
 
-    },
-    FIFTEEN_MINUTES
-);
+        const delay =
+            next.getTime() - now.getTime();
+
+        console.log(
+            `⏰ NEXT 15-MIN DATABASE SAVE: ${next.toLocaleTimeString()}`
+        );
+
+        giiDbSaveTimer = setTimeout(
+            async () => {
+
+                console.log(
+                    "⏱️ CLOCK-ALIGNED 15-MIN SAVE"
+                );
+
+                try {
+
+                    const saveTime = new Date(next);
+
+await Promise.all([
+
+    saveGII15Minute(saveTime),
+
+    saveWeather15Minute("NLCIL", saveTime),
+    saveWeather15Minute("NLCIC", saveTime),
+    saveWeather15Minute("NTPL", saveTime),
+    saveWeather15Minute("NUPPL", saveTime),
+    saveWeather15Minute("BTPS", saveTime)
+
+]);
+
+                }
+                catch (err) {
+
+                    console.error(
+                        "❌ 15-MIN DATABASE SAVE ERROR:",
+                        err.message
+                    );
+
+                }
+
+                // Schedule next 15-minute boundary
+                scheduleNextSave();
+
+            },
+            delay
+        );
+
+    };
+
+    scheduleNextSave();
+}
+
+
+// Start scheduler
+start15MinuteDatabaseScheduler();
 
 
 // =====================================================
@@ -939,7 +994,7 @@ giiCalculation.inclinedCumulative +=
 // GII 15 MINUTE DATABASE SAVE
 // =====================================================
 
-async function saveGII15Minute() {
+async function saveGII15Minute(saveTime) {
 
     // No MQTT data
     if (!giiHasData) {
@@ -961,9 +1016,8 @@ async function saveGII15Minute() {
     const temperature =
         giiCalculation.latestTemperature;
 
-    const mqttTimestamp =
-        giiCalculation.latestTimestamp;
-
+   const mqttTimestamp =
+    saveTime;
 
     // =========================================
     // DON'T SAVE LOW / NIGHT DATA
@@ -1030,7 +1084,7 @@ giiCalculation.inclinedCumulative
 // WEATHER 15 MINUTE DATABASE SAVE
 // =====================================================
 
-async function saveWeather15Minute(campus) {
+async function saveWeather15Minute(campus, saveTime) {
 
     const memory =
         weatherCalculation[campus];
@@ -1064,9 +1118,7 @@ async function saveWeather15Minute(campus) {
     const temperature =
         memory.latestTemperature;
 
-    const mqttTimestamp =
-        memory.latestTimestamp;
-
+  const mqttTimestamp = saveTime;
 
     try {
 

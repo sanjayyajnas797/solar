@@ -1,0 +1,602 @@
+/* =========================================================
+   PGT PAGE
+========================================================= */
+
+.pgt-page-content {
+    padding: 50px 30px 60px;
+}
+
+
+/* =========================================================
+   FILTER CARD
+========================================================= */
+
+.pgt-filter-card {
+    background: rgba(255, 255, 255, 0.97);
+
+    border-radius: 22px;
+
+    padding: 30px;
+
+    box-shadow:
+        0 10px 30px rgba(0, 80, 120, 0.10);
+}
+
+
+.pgt-filter-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        1fr
+        1fr
+        1fr
+        1fr
+        1.15fr;
+
+    gap: 20px;
+
+    align-items: end;
+
+}
+
+
+.pgt-filter-item {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+
+.pgt-filter-item label {
+    font-size: 15px;
+
+    font-weight: 700;
+
+    color: #243746;
+}
+
+
+.pgt-filter-item input,
+.pgt-filter-item select {
+
+    height: 54px;
+
+    border: 1px solid #d5e1ea;
+
+    border-radius: 12px;
+
+    padding: 0 16px;
+
+    font-size: 15px;
+
+    background: white;
+
+    outline: none;
+
+    color: #34495e;
+}
+
+
+.pgt-filter-item input:focus,
+.pgt-filter-item select:focus {
+
+    border-color: #2693e6;
+
+    box-shadow:
+        0 0 0 3px rgba(38, 147, 230, 0.10);
+}
+
+
+/* =========================================================
+   GENERATE BUTTON
+========================================================= */
+
+.pgt-generate-btn {
+
+    height: 54px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2196f3,
+            #1688df
+        );
+
+    color: white;
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 8px 18px rgba(33, 150, 243, 0.25);
+
+    transition: 0.2s;
+}
+
+
+.pgt-generate-btn:hover {
+    transform: translateY(-1px);
+}
+
+
+.pgt-generate-btn:disabled {
+
+    opacity: 0.65;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   REPORT PREVIEW
+========================================================= */
+
+.pgt-report-preview {
+
+    margin-top: 28px;
+
+    background: white;
+
+    border-radius: 20px;
+
+    padding: 30px;
+
+    box-shadow:
+        0 8px 28px rgba(0, 80, 120, 0.10);
+}
+
+
+/* =========================================================
+   REPORT TITLE
+========================================================= */
+
+.pgt-report-title {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 20px 10px 18px;
+
+    background: white;
+
+    border-bottom: 2px solid #d8e3ea;
+}
+
+
+.pgt-report-title h2 {
+
+    margin: 0;
+
+    font-size: 22px;
+
+    color: #123b5d;
+
+    font-weight: 800;
+
+    letter-spacing: 0.2px;
+}
+
+
+.pgt-report-title span {
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+    color: #405b6b;
+}
+
+
+/* =========================================================
+   TABLE WRAPPER
+========================================================= */
+
+.pgt-table-wrapper {
+
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+/* =========================================================
+   REPORT TABLE
+========================================================= */
+
+.pgt-report-table {
+
+    width: 100%;
+
+    min-width: 1400px;
+
+    border-collapse: collapse;
+
+    table-layout: fixed;
+}
+
+
+/* =========================================================
+   TABLE HEADER - SECOND SCREENSHOT BLUE STYLE
+========================================================= */
+
+.pgt-report-table th {
+
+    /* Blue like second screenshot */
+    background:
+        linear-gradient(
+            180deg,
+            #176fa9 0%,
+            #12659b 100%
+        );
+
+    border: none;
+
+    padding: 16px 9px;
+
+    text-align: center;
+
+    vertical-align: middle;
+
+    font-size: 14px;
+
+    font-weight: 800;
+
+    color: white;
+
+    line-height: 1.35;
+}
+
+
+/* =========================================================
+   TABLE BODY
+========================================================= */
+
+.pgt-report-table td {
+
+    background: white;
+
+    border-bottom: 1px solid #e1e8ed;
+
+    border-left: none;
+
+    border-right: none;
+
+    border-top: none;
+
+    padding: 14px 9px;
+
+    text-align: center;
+
+    vertical-align: middle;
+
+    font-size: 14px;
+
+    color: #111111;
+
+    font-weight: 500;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   BODY VALUES BLACK
+========================================================= */
+
+.pgt-report-table td {
+
+    color: #111111;
+
+}
+
+
+/* =========================================================
+   TABLE ROW
+========================================================= */
+
+.pgt-report-table tbody tr {
+
+    transition:
+        background 0.15s ease;
+}
+
+
+.pgt-report-table tbody tr:hover td {
+
+    background: #f7fbfe;
+}
+
+
+/* =========================================================
+   REMOVE OLD BLUE COLUMN COLOR
+========================================================= */
+
+.pgt-report-table td.pgt-blue-cell {
+
+    background: white;
+
+    color: #111111;
+}
+
+
+/* =========================================================
+   TOTAL ROW
+========================================================= */
+
+.pgt-total-row td {
+
+    background: white;
+
+    border-top: 2px solid #d3dfe7;
+
+    font-weight: 800;
+
+    color: #111111;
+
+    font-size: 14px;
+
+    padding-top: 16px;
+
+    padding-bottom: 16px;
+}
+
+
+/* =========================================================
+   PG TEST CALCULATION
+========================================================= */
+
+.pgt-calculation-section {
+
+    width: 760px;
+
+    max-width: 100%;
+
+    margin: 42px auto 10px;
+
+    border: 1px solid #d4e0e7;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    background: white;
+
+    box-shadow:
+        0 6px 20px rgba(0, 80, 120, 0.06);
+}
+
+
+/* =========================================================
+   CALCULATION HEADING
+========================================================= */
+
+.pgt-calculation-heading {
+
+    background:
+        linear-gradient(
+            180deg,
+            #176fa9 0%,
+            #12659b 100%
+        );
+
+    border-bottom: none;
+
+    padding: 16px;
+
+    text-align: center;
+
+    font-size: 19px;
+
+    font-weight: 800;
+
+    color: white;
+}
+
+
+/* =========================================================
+   CALCULATION ROW
+========================================================= */
+
+.pgt-calc-line {
+
+    display: grid;
+
+    grid-template-columns:
+        1fr
+        140px
+        160px;
+
+    min-height: 46px;
+
+    border-bottom: 1px solid #e0e7ec;
+}
+
+
+.pgt-calc-line:last-child {
+
+    border-bottom: none;
+}
+
+
+/* =========================================================
+   CALCULATION CELLS
+========================================================= */
+
+.pgt-calc-line > div,
+.pgt-calc-line > strong {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 10px 12px;
+
+    border-right: 1px solid #e0e7ec;
+
+    font-size: 14px;
+
+    color: #111111;
+}
+
+
+.pgt-calc-line > div:first-child {
+
+    justify-content: flex-start;
+
+    font-weight: 600;
+
+    color: #111111;
+}
+
+
+.pgt-calc-line > strong:last-child {
+
+    border-right: none;
+
+    font-size: 15px;
+
+    font-weight: 800;
+
+    color: #111111;
+}
+
+
+/* =========================================================
+   PR ROW
+========================================================= */
+
+.pgt-pr-row {
+
+    background: white;
+
+    font-weight: 800;
+}
+
+
+.pgt-pr-row > div:first-child {
+
+    font-weight: 800;
+
+    color: #111111;
+}
+
+
+/* =========================================================
+   RESULT ROW
+========================================================= */
+
+.pgt-result-row {
+
+    background: white;
+
+    font-weight: 800;
+
+    border-top: 2px solid #cbd8e0;
+}
+
+
+.pgt-result-row > div:first-child {
+
+    font-weight: 800;
+
+    color: #111111;
+}
+
+
+.pgt-result-row strong {
+
+    font-size: 16px;
+
+    font-weight: 800;
+
+    color: #111111;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .pgt-page-content {
+
+        padding: 40px 20px;
+
+    }
+
+
+    .pgt-filter-grid {
+
+        grid-template-columns:
+            1fr
+            1fr;
+
+    }
+
+
+    .pgt-report-preview {
+
+        padding: 22px;
+
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .pgt-filter-grid {
+
+        grid-template-columns: 1fr;
+
+    }
+
+
+    .pgt-report-title {
+
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 8px;
+
+    }
+
+
+    .pgt-report-title h2 {
+
+        font-size: 18px;
+
+    }
+
+
+    .pgt-report-title span {
+
+        font-size: 14px;
+
+    }
+
+
+    .pgt-calculation-section {
+
+        width: 100%;
+
+    }
+
+}

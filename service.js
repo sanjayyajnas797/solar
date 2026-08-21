@@ -10,6 +10,8 @@ const https = require("https");
 
 const { getMQTTWeather } = require('./mqtt');
 
+const db = require("./db");
+
 const axiosInstance = axios.create({
     httpAgent: new http.Agent({ keepAlive: true }),
     httpsAgent: new https.Agent({ keepAlive: true }),
@@ -200,6 +202,7 @@ async function getLatest(deviceSn) {
     const latest =
         data.deviceDataList?.[0] || null;
 
+        
    
 
     return latest;
@@ -966,6 +969,859 @@ async function getCampusReport(campus, fromDate, toDate) {
 
 }
 
+// ================= PGT INVERTER ENERGY =================
+
+async function getPgtInverterEnergy(stationId, date) {
+
+    try {
+
+        // 1. Get devices for this building
+        const devices = await getDevices(stationId);
+
+        // 2. Get inverter devices
+        const inverters = devices.filter(d =>
+            d.deviceType === "INVERTER" ||
+            d.deviceType === "INV" ||
+            d.deviceType === 1
+        );
+
+        if (!inverters.length) {
+
+            console.log(
+                "No inverter found for station:",
+                stationId
+            );
+
+            return [];
+        }
+
+        // 3. Get DailyActiveProduction history
+        const historyResults = await Promise.all(
+
+            inverters.map(inv =>
+
+                api(
+                    "/v1.0/device/history",
+                    {
+                        deviceSn: String(inv.deviceSn),
+
+                        startAt: date,
+                        endAt: date,
+
+                        granularity: 1,
+
+                        measurePoints: [
+                            "DailyActiveProduction"
+                        ]
+                    }
+                )
+
+            )
+        );
+
+        // 4. Combine inverter data
+        const timeMap = {};
+
+        for (const result of historyResults) {
+
+            const raw = result.dataList || [];
+
+            raw.forEach(item => {
+
+                const utcDate =
+                    new Date(
+                        Number(item.time) * 1000
+                    );
+
+                // Convert UTC → IST
+                const istDate =
+                    new Date(
+                        utcDate.getTime() +
+                        (5.5 * 60 * 60 * 1000)
+                    );
+
+                const datePart =
+                    istDate.toISOString()
+                        .split("T")[0];
+
+                const hours =
+                    String(
+                        istDate.getUTCHours()
+                    ).padStart(2, "0");
+
+                const minutes =
+                    String(
+                        istDate.getUTCMinutes()
+                    ).padStart(2, "0");
+
+                const time =
+                    `${hours}:${minutes}:00`;
+
+                const fullTime =
+                    `${datePart} ${time}`;
+
+                const energy =
+                    Number(
+                        item.itemList?.find(
+                            i =>
+                                i.key ===
+                                "DailyActiveProduction"
+                        )?.value || 0
+                    );
+
+                if (!timeMap[fullTime]) {
+                    timeMap[fullTime] = 0;
+                }
+
+                timeMap[fullTime] += energy;
+
+            });
+
+        }
+
+        // 5. Convert to array
+       // 5. Convert raw data to array
+const rawData =
+    Object.keys(timeMap)
+        .sort()
+        .map(time => ({
+
+            time,
+
+            inverterEnergy:
+                Number(
+                    timeMap[time]
+                        .toFixed(2)
+                )
+
+        }));
+
+
+// 6. Create 15-minute PGT slots
+const pgtData = [];
+
+
+// Start from first available time
+if (rawData.length > 0) {
+
+    const firstDate =
+        new Date(
+            rawData[0].time
+                .replace(" ", "T")
+        );
+
+    // Round first time down to 15 minutes
+    firstDate.setMinutes(
+        Math.floor(
+            firstDate.getMinutes() / 15
+        ) * 15
+    );
+
+    firstDate.setSeconds(0);
+    firstDate.setMilliseconds(0);
+
+
+    // Create slots until last available time
+    const lastDate =
+        new Date(
+            rawData[rawData.length - 1].time
+                .replace(" ", "T")
+        );
+
+
+    for (
+        let slot = new Date(firstDate);
+        slot <= lastDate;
+        slot.setMinutes(
+            slot.getMinutes() + 15
+        )
+    ) {
+
+        const slotTime =
+            new Date(slot);
+
+
+        // Find nearest Cloud reading
+        let nearest = null;
+        let minDifference = Infinity;
+
+
+        for (const row of rawData) {
+
+            const rowTime =
+                new Date(
+                    row.time.replace(" ", "T")
+                );
+
+
+            const difference =
+                Math.abs(
+                    rowTime.getTime() -
+                    slotTime.getTime()
+                );
+
+
+            if (difference < minDifference) {
+
+                minDifference = difference;
+                nearest = row;
+
+            }
+
+        }
+
+
+        // Accept only if within 5 minutes
+        if (
+            nearest &&
+            minDifference <= 5 * 60 * 1000
+        ) {
+
+            const hours =
+                String(
+                    slotTime.getHours()
+                ).padStart(2, "0");
+
+
+            const minutes =
+                String(
+                    slotTime.getMinutes()
+                ).padStart(2, "0");
+
+
+            pgtData.push({
+
+                time:
+                    `${hours}:${minutes}:00`,
+
+                inverterEnergy:
+                    nearest.inverterEnergy
+
+            });
+
+        }
+
+    }
+
+}
+
+
+console.log(
+    "PGT 15 MINUTE INVERTER DATA:",
+    pgtData
+);
+
+
+return pgtData;
+
+    }
+    catch (err) {
+
+        console.log(
+            "PGT Inverter History Error:",
+            err.message
+        );
+
+        return [];
+
+    }
+}
+// ================= PGT COMBINED REPORT =================
+
+// ================= PGT COMBINED REPORT =================
+
+async function getPgtReport(stationId, date, fromTime, toTime) {
+
+    try {
+
+        // =================================================
+        // 1. GET INVERTER DATA
+        // =================================================
+
+        const inverterData =
+            await getPgtInverterEnergy(
+                stationId,
+                date
+            );
+
+             const filteredInverterData = inverterData.filter(row => {
+
+    const time = row.time.substring(0, 5);
+
+    return time >= fromTime && time <= toTime;
+
+});
+
+        // =================================================
+        // 2. GET GII / WEATHER DATA FROM DATABASE
+        // =================================================
+
+        const { rows } = await db.query(`
+
+            SELECT
+
+                to_char(
+                    created_at AT TIME ZONE 'Asia/Kolkata',
+                    'YYYY-MM-DD HH24:MI:SS'
+                ) AS time,
+
+                horizontal_irradiance,
+
+                inclined_irradiance,
+
+                temperature
+
+            FROM gii_weather_logs
+
+            WHERE DATE(
+                created_at AT TIME ZONE 'Asia/Kolkata'
+            ) = $1::date
+
+            ORDER BY created_at ASC;
+
+        `, [
+            date
+        ]);
+
+
+        // =================================================
+        // 3. CONVERT WEATHER DATA
+        // =================================================
+
+        const weatherData =
+            rows.map(row => ({
+
+                time: row.time,
+
+                ghi:
+                    Number(
+                        row.horizontal_irradiance || 0
+                    ),
+
+                gii:
+                    Number(
+                        row.inclined_irradiance || 0
+                    ),
+
+                moduleTemp:
+                    Number(
+                        row.temperature || 0
+                    )
+
+            }));
+
+
+        // =================================================
+        // 4. COMBINE WEATHER + INVERTER
+        // =================================================
+
+        let previousInverterEnergy = null;
+
+        let previousGII = null;
+
+        const report = [];
+
+
+      for (const inverterRow of filteredInverterData) {
+
+            const targetTime =
+                inverterRow.time;
+
+
+            // =================================================
+            // 4A. CALCULATE INVERTER ENERGY INTERVAL
+            // =================================================
+
+            let inverterEnergyInterval = null;
+
+
+            if (
+                previousInverterEnergy !== null
+            ) {
+
+                inverterEnergyInterval =
+                    Number(
+                        (
+                            inverterRow.inverterEnergy -
+                            previousInverterEnergy
+                        ).toFixed(2)
+                    );
+
+
+                // Prevent negative value
+                // if inverter energy resets
+
+                if (
+                    inverterEnergyInterval < 0
+                ) {
+
+                    inverterEnergyInterval = 0;
+
+                }
+
+            }
+
+
+            previousInverterEnergy =
+                inverterRow.inverterEnergy;
+
+
+            // =================================================
+            // 4B. FIND NEAREST WEATHER READING
+            // =================================================
+
+            let nearestWeather = null;
+
+            let minDifference =
+                Infinity;
+
+
+            for (
+                const weatherRow
+                of weatherData
+            ) {
+
+                const weatherTime =
+                    weatherRow.time
+                        .split(" ")[1]
+                        .substring(0, 5);
+
+
+                const targetMinutes =
+                    (
+                        Number(
+                            targetTime
+                                .split(":")[0]
+                        ) * 60
+                    )
+                    +
+                    Number(
+                        targetTime
+                            .split(":")[1]
+                    );
+
+
+                const weatherMinutes =
+                    (
+                        Number(
+                            weatherTime
+                                .split(":")[0]
+                        ) * 60
+                    )
+                    +
+                    Number(
+                        weatherTime
+                            .split(":")[1]
+                    );
+
+
+                const difference =
+                    Math.abs(
+                        targetMinutes -
+                        weatherMinutes
+                    );
+
+
+                if (
+                    difference <
+                    minDifference
+                ) {
+
+                    minDifference =
+                        difference;
+
+                    nearestWeather =
+                        weatherRow;
+
+                }
+
+            }
+
+
+            // =================================================
+            // 4C. CALCULATE POA IRRADIATION FOR INTERVAL
+            // =================================================
+
+            let poaIrradiationInterval = null;
+
+
+            if (
+                nearestWeather &&
+                previousGII !== null
+            ) {
+
+                poaIrradiationInterval =
+                    Number(
+                        (
+                            (
+                                previousGII +
+                                nearestWeather.gii
+                            ) / 2 * 0.25
+                        ).toFixed(2)
+                    );
+
+            }
+
+
+            // =================================================
+            // 5. ACCEPT WEATHER READING
+            // WITHIN 10 MINUTES
+            // =================================================
+
+            if (
+                nearestWeather &&
+                minDifference <= 10
+            ) {
+
+                report.push({
+
+                    date,
+
+                    time:
+                        targetTime,
+
+                    ghi:
+                        nearestWeather.ghi,
+
+                    gii:
+                        nearestWeather.gii,
+
+                    moduleTemp:
+                        nearestWeather.moduleTemp,
+
+                    inverterEnergy:
+                        inverterRow.inverterEnergy,
+
+                    inverterEnergyInterval:
+                        inverterEnergyInterval,
+
+                    // Net Meter not available from Cloud
+                    netMeterReading:
+                        null,
+
+                    // Net Export not available from Cloud
+                    netExportEnergyInterval:
+                        null,
+
+                    poaIrradiationInterval:
+                        poaIrradiationInterval
+
+                });
+
+            }
+
+            else {
+
+                report.push({
+
+                    date,
+
+                    time:
+                        targetTime,
+
+                    ghi:
+                        null,
+
+                    gii:
+                        null,
+
+                    moduleTemp:
+                        null,
+
+                    inverterEnergy:
+                        inverterRow.inverterEnergy,
+
+                    inverterEnergyInterval:
+                        inverterEnergyInterval,
+
+                    // Net Meter not available from Cloud
+                    netMeterReading:
+                        null,
+
+                    // Net Export not available from Cloud
+                    netExportEnergyInterval:
+                        null,
+
+                    poaIrradiationInterval:
+                        null
+
+                });
+
+            }
+
+
+            // =================================================
+            // 6. UPDATE PREVIOUS GII
+            // =================================================
+
+            if (
+                nearestWeather &&
+                minDifference <= 10
+            ) {
+
+                previousGII =
+                    nearestWeather.gii;
+
+            }
+
+        }
+
+
+        // =================================================
+        // 7. CALCULATE PGT TOTALS
+        // =================================================
+
+        const totalInverterEnergyInterval =
+            Number(
+                report
+                    .reduce(
+                        (sum, row) =>
+                            sum +
+                            Number(
+                                row.inverterEnergyInterval || 0
+                            ),
+                        0
+                    )
+                    .toFixed(2)
+            );
+
+
+        const totalPoaIrradiation =
+            Number(
+                report
+                    .reduce(
+                        (sum, row) =>
+                            sum +
+                            Number(
+                                row.poaIrradiationInterval || 0
+                            ),
+                        0
+                    )
+                    .toFixed(2)
+            );
+            
+
+            // =================================================
+// 7A. FIND ACTUAL TEST START / END TIME
+// =================================================
+
+// First actual generation point
+const firstGenerationRow =
+    report.find(row =>
+        row.inverterEnergyInterval !== null &&
+        Number(row.inverterEnergyInterval) > 0
+    );
+
+// Last actual generation point
+const generationRows =
+    report.filter(row =>
+        row.inverterEnergyInterval !== null &&
+        Number(row.inverterEnergyInterval) > 0
+    );
+
+const lastGenerationRow =
+    generationRows.length > 0
+        ? generationRows[generationRows.length - 1]
+        : null;
+
+
+// Actual Test Start Date & Time
+const testStartDateTime =
+    firstGenerationRow
+        ? `${date} ${firstGenerationRow.time}`
+        : null;
+
+
+// Actual Test End Date & Time
+const testEndDateTime =
+    lastGenerationRow
+        ? `${date} ${lastGenerationRow.time}`
+        : null;
+
+        // =================================================
+        // 8. PGT CALCULATION
+        // =================================================
+
+        // Installed DC Capacity from Library Building
+        const installedDcCapacity = 50.85;
+
+
+        // POA Irradiation:
+        // Wh/m² -> kWh/m²
+
+        const totalPoaKwh =
+            Number(
+                (
+                    totalPoaIrradiation / 1000
+                ).toFixed(2)
+            );
+
+
+        // Net Meter is not available from Deye Cloud
+        const initialNetMeterEnergy = null;
+
+        const finalNetMeterEnergy = null;
+
+
+        // AC Energy cannot be calculated
+        // until Net Meter data is available
+
+        const totalAcEnergyGenerated = null;
+
+
+        // Reference Yield can be calculated
+        // from POA Irradiation
+
+        const referenceYield =
+            totalPoaKwh;
+
+
+        // Final Yield requires AC Energy
+
+        const finalYield = null;
+
+
+        // Performance Ratio requires Final Yield
+
+        const performanceRatio = null;
+
+
+        // Guaranteed PR from PGT Excel
+
+        const guaranteedPr = 75;
+
+
+        // Result cannot be determined
+        // without Net Meter / AC Energy
+
+        const pgtResult = "PENDING";
+
+
+        // =================================================
+        // 9. LOG RESULT
+        // =================================================
+
+        console.log(
+            "PGT COMBINED REPORT:",
+            report
+        );
+
+
+        console.log(
+            "PGT TOTALS:",
+            {
+                totalInverterEnergyInterval,
+                totalPoaIrradiation
+            }
+        );
+
+
+        console.log(
+            "PGT CALCULATION:",
+            {
+                installedDcCapacity,
+                totalPoaKwh,
+                initialNetMeterEnergy,
+                finalNetMeterEnergy,
+                totalAcEnergyGenerated,
+                referenceYield,
+                finalYield,
+                performanceRatio,
+                guaranteedPr,
+                pgtResult
+            }
+        );
+
+
+        // =================================================
+        // 10. FINAL RESPONSE
+        // =================================================
+
+        return {
+
+            rows:
+                report,
+
+
+            // =================================================
+            // TOTALS
+            // =================================================
+
+            totals: {
+
+                inverterEnergyInterval:
+                    totalInverterEnergyInterval,
+
+                // Net Export not available from Cloud
+                netExportEnergyInterval:
+                    null,
+
+                poaIrradiationInterval:
+                    totalPoaIrradiation
+
+            },
+
+
+            // =================================================
+            // PGT CALCULATION
+            // =================================================
+
+            pgtCalculation: {
+
+                installedDcCapacity:
+                    installedDcCapacity,
+
+              testStartDateTime:
+    testStartDateTime,
+
+testEndDateTime:
+    testEndDateTime,
+
+                totalPoaIrradiation:
+                    totalPoaKwh,
+
+                initialNetMeterEnergy:
+                    initialNetMeterEnergy,
+
+                finalNetMeterEnergy:
+                    finalNetMeterEnergy,
+
+                totalAcEnergyGenerated:
+                    totalAcEnergyGenerated,
+
+                referenceYield:
+                    referenceYield,
+
+                finalYield:
+                    finalYield,
+
+                performanceRatio:
+                    performanceRatio,
+
+                guaranteedPr:
+                    guaranteedPr,
+
+                pgtResult:
+                    pgtResult
+
+            }
+
+        };
+
+    }
+
+    catch (err) {
+
+        console.error(
+            "PGT Report Error:",
+            err.message
+        );
+
+        throw err;
+
+    }
+
+}
 // ================= EXPORT =================
 
 module.exports={
@@ -977,8 +1833,9 @@ login,
 getGraph,
  getLast10DaysData,
  getReportData,
- getCampusReport
+ getCampusReport,
+ getPgtInverterEnergy,
 
- 
+ getPgtReport
 
 };

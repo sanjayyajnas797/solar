@@ -165,6 +165,10 @@ setReportData(res.data.rows);
 
 };
 
+const pg=()=>{
+    navigate('/pgreport')
+}
+
 const downloadPDF = () => {
 
     if (reportData.length === 0) {
@@ -521,6 +525,12 @@ else{
             <h4>SUN Industrial Automation & Solutions Pvt Ltd</h4>
         </div>
 
+    </div>
+
+    <div>
+        <button onClick={pg}>
+            PGT REPORT
+        </button>
     </div>
 
     <div className="wms-report-nav-right">

@@ -18,10 +18,12 @@ const {
 
     getReportData,
 
-    getCampusReport
+    getCampusReport,
 
     
+   getPgtInverterEnergy,
 
+   getPgtReport
    
 
 } = require("./service");
@@ -303,4 +305,155 @@ router.get(
   }
 );
 
+
+// ================= PGT INVERTER ENERGY =================
+
+router.get(
+    "/pgt/inverter-energy/:stationId",
+    async (req, res) => {
+
+        try {
+
+            const { stationId } = req.params;
+            const { date } = req.query;
+
+            if (!date) {
+
+                return res.status(400).json({
+                    error: "Date is required"
+                });
+
+            }
+
+            const data =
+                await getPgtInverterEnergy(
+                    stationId,
+                    date
+                );
+
+            res.json(data);
+
+        }
+        catch (err) {
+
+            console.error(
+                "PGT Inverter Energy Error:",
+                err.message
+            );
+
+            res.status(500).json({
+                error: err.message
+            });
+
+        }
+
+    }
+);
+
+// ================= PGT COMBINED REPORT =================
+
+router.get(
+    "/pgt/report/:stationId",
+    async (req, res) => {
+
+        try {
+
+            const { stationId } =
+                req.params;
+
+
+            const {
+                date,
+                fromTime,
+                toTime
+            } = req.query;
+
+
+            // ================================
+            // VALIDATE DATE
+            // ================================
+
+            if (!date) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Date is required"
+
+                });
+
+            }
+
+
+            // ================================
+            // VALIDATE TIME RANGE
+            // ================================
+
+            if (!fromTime || !toTime) {
+
+                return res.status(400).json({
+
+                    error:
+                        "From Time and To Time are required"
+
+                });
+
+            }
+
+
+            // ================================
+            // VALIDATE TIME ORDER
+            // ================================
+
+            if (fromTime >= toTime) {
+
+                return res.status(400).json({
+
+                    error:
+                        "To Time must be greater than From Time"
+
+                });
+
+            }
+
+
+            // ================================
+            // GET PGT REPORT
+            // ================================
+
+            const data =
+                await getPgtReport(
+                    stationId,
+                    date,
+                    fromTime,
+                    toTime
+                );
+
+
+            // ================================
+            // RESPONSE
+            // ================================
+
+            res.json(data);
+
+        }
+        catch (err) {
+
+            console.error(
+                "PGT Report Route Error:",
+                err.message
+            );
+
+
+            res.status(500).json({
+
+                error:
+                    err.message
+
+            });
+
+        }
+
+    }
+);
 module.exports = router;

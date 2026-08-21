@@ -17,6 +17,7 @@
   import Ftsshow from "./NLCIC/Ftsshow";
   import Report from "./pages/Report";
   import WmsReport from "./pages/wmsreport";
+  import Pgtreport from "./pages/Pgtreport";
   export default function App() {
 
    return (
@@ -80,6 +81,7 @@
     </ProtectedRoute>
   }
 />
+<Route path="/pgreport" element={<Pgtreport/>}></Route>
 
        </Routes>
 
