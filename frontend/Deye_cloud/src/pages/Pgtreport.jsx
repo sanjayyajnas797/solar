@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-import "./Pgtreport.css";
+import "./pgtreport.css";
 
 import MainLogo from "../assets/main logo.png";
 import SunLogo from "../assets/sunlogo.png";
