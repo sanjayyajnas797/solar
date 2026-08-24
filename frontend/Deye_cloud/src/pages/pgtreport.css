@@ -600,3 +600,24 @@
     }
 
 }
+
+.pgt-title-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.pgt-pdf-btn {
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    background: #168fdc;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.pgt-pdf-btn:hover {
+    background: #0d78bd;
+}
