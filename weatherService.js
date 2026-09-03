@@ -305,18 +305,20 @@ async function getDetailedReport(
     // =================================================
 
     const { rows } = await db.query(`
-        SELECT
-            to_char(
-                created_at AT TIME ZONE 'Asia/Kolkata',
-                'YYYY-MM-DD HH24:MI:SS'
-            ) AS created_at,
+       SELECT
+    to_char(
+        created_at AT TIME ZONE 'Asia/Kolkata',
+        'YYYY-MM-DD HH24:MI:SS'
+    ) AS created_at,
 
-            mqtt_timestamp,
-            irradiance,
-            temperature,
-            cumulative_irradiance
+    mqtt_timestamp,
+    irradiance,
+    inclined_irradiance,
+    temperature,
+    cumulative_irradiance,
+    inclined_cumulative
 
-        FROM weather_logs
+FROM weather_logs
 
         WHERE campus = $1
 
@@ -337,26 +339,33 @@ async function getDetailedReport(
     // =================================================
     // DIRECTLY USE DATABASE CUMULATIVE VALUE
     // =================================================
+const fullReport = rows.map(row => ({
 
-    const fullReport = rows.map(row => ({
+    time:
+        row.created_at,
 
-        time:
-            row.created_at,
+    irradiance:
+        Number(row.irradiance || 0),
 
-        irradiance:
-            Number(row.irradiance),
+    inclinedIrradiance:
+        Number(row.inclined_irradiance || 0),
 
-        temperature:
-            Number(row.temperature),
+    temperature:
+        Number(row.temperature || 0),
 
-        cumulative:
-            Number(
-                Number(row.cumulative_irradiance || 0)
-                    .toFixed(2)
-            )
+    cumulative:
+        Number(
+            Number(row.cumulative_irradiance || 0)
+                .toFixed(2)
+        ),
 
-    }));
+    inclinedCumulative:
+        Number(
+            Number(row.inclined_cumulative || 0)
+                .toFixed(2)
+        )
 
+}));
 
     // =================================================
     // FILTER ONLY FOR DISPLAY

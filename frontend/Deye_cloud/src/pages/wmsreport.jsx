@@ -816,12 +816,11 @@ campus === "GII"
 
 ) : (
 
-
-
-    <table className="report-table">
+<table className="report-table">
 
         <thead>
             <tr>
+
                 <th>Date & Time</th>
 
                 <th>
@@ -841,6 +840,25 @@ campus === "GII"
                     <br />
                     (Wh/m²)
                 </th>
+
+                {/* NUPPL EXTRA COLUMN */}
+                {campus === "NUPPL" && (
+                    <th>
+                        Inclined Irradiance
+                        <br />
+                        (W/m²)
+                    </th>
+                )}
+
+                {/* NUPPL EXTRA COLUMN */}
+                {campus === "NUPPL" && (
+                    <th>
+                        Inclined Cumulative
+                        <br />
+                        (Wh/m²)
+                    </th>
+                )}
+
             </tr>
         </thead>
 
@@ -866,6 +884,20 @@ campus === "GII"
                         {row.cumulative}
                     </td>
 
+                    {/* NUPPL DATA */}
+                    {campus === "NUPPL" && (
+                        <td>
+                            {row.inclinedIrradiance}
+                        </td>
+                    )}
+
+                    {/* NUPPL DATA */}
+                    {campus === "NUPPL" && (
+                        <td>
+                            {row.inclinedCumulative}
+                        </td>
+                    )}
+
                 </tr>
 
             ))}
@@ -875,6 +907,8 @@ campus === "GII"
     </table>
 
 )}
+
+              
 
             </div>
 

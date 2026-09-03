@@ -27,12 +27,13 @@ const latestWeather = {
         lastUpdate: 0
     },
 
-    NUPPL: {
-        irradiance: 0,
-        temperature: 0,
-        mqttTimestamp: null,
-        lastUpdate: 0
-    },
+ NUPPL: {
+    irradiance: 0,
+    inclinedIrradiance: 0,
+    temperature: 0,
+    mqttTimestamp: null,
+    lastUpdate: 0
+},
 
     BTPS: {
         irradiance: 0,
@@ -144,18 +145,26 @@ const weatherCalculation = {
         hasData: false,
          calculationDate: null
     },
+NUPPL: {
+    previousIrradiance: null,
+    previousInclined: null,
 
-    NUPPL: {
-        previousIrradiance: null,
-        previousTimestamp: null,
-        cumulativeEnergy: 0,
-        intervalEnergy: 0,
-        latestIrradiance: 0,
-        latestTemperature: 0,
-        latestTimestamp: null,
-        hasData: false,
-         calculationDate: null
-    },
+    previousTimestamp: null,
+
+    cumulativeEnergy: 0,
+    intervalEnergy: 0,
+
+    inclinedCumulative: 0,
+    inclinedIntervalEnergy: 0,
+
+    latestIrradiance: 0,
+    latestInclinedIrradiance: 0,
+    latestTemperature: 0,
+
+    latestTimestamp: null,
+    hasData: false,
+    calculationDate: null
+},
 
     BTPS: {
         previousIrradiance: null,
@@ -391,17 +400,42 @@ async function loadCumulativeFromDatabase() {
                 [campus]
             );
 
-            if (result.rows.length > 0) {
+           if (result.rows.length > 0) {
 
-                weatherCalculation[campus].cumulativeEnergy =
-                    Number(result.rows[0].cumulative_irradiance) || 0;
+    weatherCalculation[campus].cumulativeEnergy =
+        Number(result.rows[0].cumulative_irradiance) || 0;
 
-                console.log(
-                    `♻️ ${campus} cumulative restored: ` +
-                    `${weatherCalculation[campus].cumulativeEnergy.toFixed(3)}`
-                );
+    if (campus === "NUPPL") {
 
-            }
+        const inclinedResult = await db.query(
+            `
+            SELECT inclined_cumulative
+            FROM weather_logs
+            WHERE campus = 'NUPPL'
+            ORDER BY mqtt_timestamp DESC
+            LIMIT 1
+            `
+        );
+
+        if (inclinedResult.rows.length > 0) {
+
+            weatherCalculation.NUPPL.inclinedCumulative =
+                Number(
+                    inclinedResult.rows[0].inclined_cumulative
+                ) || 0;
+        }
+
+        console.log(
+            `♻️ NUPPL Inclined restored: ` +
+            `${weatherCalculation.NUPPL.inclinedCumulative.toFixed(3)}`
+        );
+    }
+
+    console.log(
+        `♻️ ${campus} cumulative restored: ` +
+        `${weatherCalculation[campus].cumulativeEnergy.toFixed(3)}`
+    );
+}
 
         } catch (err) {
 
@@ -461,22 +495,15 @@ async function loadCumulativeFromDatabase() {
     console.log("✅ CUMULATIVE RESTORE COMPLETED");
 }
 
-
-// =====================================================
-// SAVE WEATHER
-// 15 MIN ONLY
-// =====================================================
-
 async function saveWeather(
     campus,
     irradiance,
     temperature,
     mqttTimestamp,
-    cumulativeEnergy
+    cumulativeEnergy,
+    inclinedIrradiance = 0,
+    inclinedCumulative = 0
 ) {
-
-    // IMPORTANT
-    // Only save if irradiance > 15
 
     if (irradiance <= 15) {
         return;
@@ -486,40 +513,42 @@ async function saveWeather(
 
         await db.query(
             `
-           INSERT INTO weather_logs
-(
-    campus,
-    irradiance,
-    temperature,
-    mqtt_timestamp,
-    cumulative_irradiance
-)
-VALUES
-(
-    $1,
-    $2,
-    $3,
-    $4,
-    $5
-)
+            INSERT INTO weather_logs
+            (
+                campus,
+                irradiance,
+                inclined_irradiance,
+                temperature,
+                mqtt_timestamp,
+                cumulative_irradiance,
+                inclined_cumulative
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             `,
-       [
-    campus,
-    irradiance,
-    temperature,
-    mqttTimestamp instanceof Date
-        ? mqttTimestamp.getTime()
-        : getDate(mqttTimestamp).getTime(),
-    cumulativeEnergy
-]
+            [
+                campus,
+                irradiance,
+                inclinedIrradiance,
+                temperature,
+
+                mqttTimestamp instanceof Date
+                    ? mqttTimestamp.getTime()
+                    : getDate(mqttTimestamp).getTime(),
+
+                cumulativeEnergy,
+                inclinedCumulative
+            ]
         );
 
         console.log(
-            `✅ WEATHER SAVED | ${campus} | ${irradiance}`
+            `✅ WEATHER SAVED | ${campus} | ` +
+            `I:${irradiance} | ` +
+            `Inclined:${inclinedIrradiance} | ` +
+            `Cum:${Number(cumulativeEnergy).toFixed(3)} | ` +
+            `Inclined Cum:${Number(inclinedCumulative).toFixed(3)}`
         );
 
-    }
-    catch (err) {
+    } catch (err) {
 
         console.log(
             "Weather DB Insert Error ❌",
@@ -527,103 +556,103 @@ VALUES
         );
     }
 }
-
-// =====================================================
-// PROCESS WEATHER
-// MQTT 10 SEC DATA
-// MEMORY CALCULATION ONLY
-// =====================================================
-
 function processWeather(
     campus,
     irradiance,
     temperature,
-    mqttTimestamp
+    mqttTimestamp,
+    inclinedIrradiance = null
 ) {
 
-    const memory =
-        weatherCalculation[campus];
+    const memory = weatherCalculation[campus];
 
     if (!memory) {
         return;
     }
 
+    const now = getDate(mqttTimestamp);
 
-    const now =
-        getDate(mqttTimestamp);
+    // =========================================
+    // NEW DAY CHECK
+    // =========================================
 
-        // =========================================
-// NEW DAY CHECK
-// =========================================
+    const currentDate = getISTDateKey(now);
 
-const currentDate =
-    getISTDateKey(now);
+    if (
+        memory.calculationDate !== null &&
+        memory.calculationDate !== currentDate
+    ) {
 
-if (
-    memory.calculationDate !== null &&
-    memory.calculationDate !== currentDate
-) {
+        console.log(
+            `🌅 NEW DAY | ${campus} | ` +
+            `Previous: ${memory.calculationDate} | ` +
+            `New: ${currentDate}`
+        );
 
-    console.log(
-        `🌅 NEW DAY | ${campus} | ` +
-        `Previous: ${memory.calculationDate} | ` +
-        `New: ${currentDate}`
-    );
+        // Existing irradiance reset
+        memory.cumulativeEnergy = 0;
+        memory.intervalEnergy = 0;
+        memory.previousIrradiance = null;
 
-    // Reset daily cumulative
-    memory.cumulativeEnergy = 0;
+        // NUPPL inclined reset only
+        if (campus === "NUPPL") {
 
-    // Reset 15-min interval
-    memory.intervalEnergy = 0;
+            memory.inclinedCumulative = 0;
+            memory.inclinedIntervalEnergy = 0;
+            memory.previousInclined = null;
 
-    // Start fresh from today's first reading
-    memory.previousIrradiance = null;
-    memory.previousTimestamp = null;
+            memory.latestInclinedIrradiance = 0;
+        }
 
-    memory.latestIrradiance = 0;
-    memory.latestTemperature = 0;
-    memory.latestTimestamp = null;
+        memory.previousTimestamp = null;
 
-    memory.hasData = false;
-}
+        memory.latestIrradiance = 0;
+        memory.latestTemperature = 0;
+        memory.latestTimestamp = null;
 
-// Always keep current calculation date
-memory.calculationDate = currentDate;
+        memory.hasData = false;
+    }
 
+    memory.calculationDate = currentDate;
 
     // =========================================
     // FIRST READING
     // =========================================
 
-    if (
-        memory.previousTimestamp === null
-    ) {
+    if (memory.previousTimestamp === null) {
 
-        memory.previousIrradiance =
-            irradiance;
+        memory.previousIrradiance = irradiance;
 
-        memory.previousTimestamp =
-            now;
+        if (campus === "NUPPL") {
 
-        memory.latestIrradiance =
-            irradiance;
+            memory.previousInclined =
+                Number(inclinedIrradiance) || 0;
 
-        memory.latestTemperature =
-            temperature;
+            memory.latestInclinedIrradiance =
+                Number(inclinedIrradiance) || 0;
+        }
 
-        memory.latestTimestamp =
-            now;
+        memory.previousTimestamp = now;
+
+        memory.latestIrradiance = irradiance;
+        memory.latestTemperature = temperature;
+        memory.latestTimestamp = now;
 
         memory.hasData = true;
 
         console.log(
             `🟢 ${campus} MEMORY START | ` +
-            `I:${irradiance} | T:${temperature}`
+            `I:${irradiance} | ` +
+            `T:${temperature}` +
+            (
+                campus === "NUPPL"
+                    ? ` | Inclined:${Number(inclinedIrradiance) || 0}`
+                    : ""
+            )
         );
 
         return;
     }
-
 
     // =========================================
     // TIME DIFFERENCE
@@ -635,7 +664,6 @@ memory.calculationDate = currentDate;
             memory.previousTimestamp.getTime()
         ) / 1000;
 
-
     // MQTT normally 10 sec
     if (
         seconds <= 0 ||
@@ -644,9 +672,8 @@ memory.calculationDate = currentDate;
         seconds = 10;
     }
 
-
     // =========================================
-    // IRRADIANCE CALCULATION
+    // NORMAL IRRADIANCE CALCULATION
     // =========================================
 
     const averageIrradiance =
@@ -655,47 +682,65 @@ memory.calculationDate = currentDate;
             irradiance
         ) / 2;
 
-
     const energy =
         averageIrradiance *
         seconds /
         3600;
 
+    memory.cumulativeEnergy += energy;
+    memory.intervalEnergy += energy;
 
-   memory.cumulativeEnergy += energy;
-memory.intervalEnergy += energy;
+    // =========================================
+    // NUPPL INCLINED IRRADIANCE CALCULATION
+    // SAME AS GII FORMULA
+    // =========================================
 
+    if (campus === "NUPPL") {
+
+        const currentInclined =
+            Number(inclinedIrradiance) || 0;
+
+        const inclinedAverage =
+            (
+                memory.previousInclined +
+                currentInclined
+            ) / 2;
+
+        const inclinedEnergy =
+            inclinedAverage *
+            seconds /
+            3600;
+
+        memory.inclinedCumulative +=
+            inclinedEnergy;
+
+        memory.inclinedIntervalEnergy +=
+            inclinedEnergy;
+
+        memory.previousInclined =
+            currentInclined;
+
+        memory.latestInclinedIrradiance =
+            currentInclined;
+    }
 
     // =========================================
     // UPDATE PREVIOUS
     // =========================================
 
-    memory.previousIrradiance =
-        irradiance;
-
-    memory.previousTimestamp =
-        now;
-
+    memory.previousIrradiance = irradiance;
+    memory.previousTimestamp = now;
 
     // =========================================
     // LATEST VALUE
     // =========================================
 
-    memory.latestIrradiance =
-        irradiance;
-
-    memory.latestTemperature =
-        temperature;
-
-    memory.latestTimestamp =
-        now;
+    memory.latestIrradiance = irradiance;
+    memory.latestTemperature = temperature;
+    memory.latestTimestamp = now;
 
     memory.hasData = true;
-
-
-   
 }
-
 
 // =====================================================
 // GII 15 MIN SAVE
@@ -1082,21 +1127,13 @@ giiCalculation.inclinedCumulative
 // =====================================================
 // =====================================================
 // WEATHER 15 MINUTE DATABASE SAVE
-// =====================================================
-
 async function saveWeather15Minute(campus, saveTime) {
 
-    const memory =
-        weatherCalculation[campus];
+    const memory = weatherCalculation[campus];
 
     if (!memory) {
         return;
     }
-
-
-    // =========================================
-    // NO MQTT DATA
-    // =========================================
 
     if (!memory.hasData) {
 
@@ -1107,56 +1144,57 @@ async function saveWeather15Minute(campus, saveTime) {
         return;
     }
 
+    const irradiance = memory.latestIrradiance;
+    const temperature = memory.latestTemperature;
 
-    // =========================================
-    // SAVE LATEST IRRADIANCE
-    // =========================================
+    const inclinedIrradiance =
+        campus === "NUPPL"
+            ? memory.latestInclinedIrradiance
+            : 0;
 
-    const irradiance =
-        memory.latestIrradiance;
-
-    const temperature =
-        memory.latestTemperature;
-
-  const mqttTimestamp = saveTime;
+    const inclinedCumulative =
+        campus === "NUPPL"
+            ? memory.inclinedCumulative
+            : 0;
 
     try {
 
-       await saveWeather(
-    campus,
-    irradiance,
-    temperature,
-    mqttTimestamp,
-    memory.cumulativeEnergy
-);
+        await saveWeather(
+            campus,
+            irradiance,
+            temperature,
+            saveTime,
+            memory.cumulativeEnergy,
+            inclinedIrradiance,
+            inclinedCumulative
+        );
 
+        // Normal 15-min interval reset
+        memory.intervalEnergy = 0;
 
-      
+        // NUPPL inclined interval reset
+        if (campus === "NUPPL") {
+            memory.inclinedIntervalEnergy = 0;
+        }
 
+        console.log(
+            `🔄 ${campus} NEW 15-MIN INTERVAL | ` +
+            `Cumulative continues:${memory.cumulativeEnergy.toFixed(3)}` +
+            (
+                campus === "NUPPL"
+                    ? ` | Inclined:${memory.inclinedCumulative.toFixed(3)}`
+                    : ""
+            )
+        );
 
-        // =========================================
-        // RESET AFTER SUCCESSFUL SAVE
-        // =========================================
-
-       memory.intervalEnergy = 0;
-
-console.log(
-    `🔄 ${campus} NEW 15-MIN INTERVAL | ` +
-    `Cumulative continues:${memory.cumulativeEnergy.toFixed(3)}`
-);
-
-    }
-    catch (err) {
+    } catch (err) {
 
         console.log(
             `❌ ${campus} 15-MIN SAVE ERROR:`,
             err.message
         );
-
-        // DB fail என்றால் memory reset ஆகாது
     }
 }
-
 
 function resetGIIMemory() {
 
@@ -1266,32 +1304,48 @@ processWeather(
 
    
 }
+if (topic === "nuppl/rx") {
 
-       if (topic === "nuppl/rx") {
+    const oldNuppl = latestWeather.NUPPL || {};
 
     latestWeather.NUPPL = {
 
+        ...oldNuppl,
+
         irradiance:
-            Number(status.Param_1) || 0,
+            status.Param_1 !== undefined
+                ? Number(status.Param_1)
+                : oldNuppl.irradiance || 0,
 
         temperature:
-            (
-                Number(status.Param_2) || 0
-            ) / 10,
+            status.Param_2 !== undefined
+                ? Number(status.Param_2) / 10
+                : oldNuppl.temperature || 0,
 
-        mqttTimestamp:
-            mqttTimestamp,
+        inclinedIrradiance:
+            status.Param_3 !== undefined
+                ? Number(status.Param_3)
+                : oldNuppl.inclinedIrradiance || 0,
 
-        lastUpdate:
-            Date.now()
+        mqttTimestamp: mqttTimestamp,
+        lastUpdate: Date.now()
     };
 
-    processWeather(
-    "NUPPL",
-    latestWeather.NUPPL.irradiance,
-    latestWeather.NUPPL.temperature,
-    latestWeather.NUPPL.mqttTimestamp
-);
+
+    // Param_1 + Param_2 + Param_3 values merge ஆன பிறகு
+    // ஒரே ஒரு முறை cumulative calculation
+    if (status.Param_3 !== undefined) {
+
+        processWeather(
+            "NUPPL",
+            latestWeather.NUPPL.irradiance,
+            latestWeather.NUPPL.temperature,
+            latestWeather.NUPPL.mqttTimestamp,
+            latestWeather.NUPPL.inclinedIrradiance
+        );
+
+    }
+
 
   
 }
@@ -1477,7 +1531,6 @@ processWeather(
 // =====================================================
 // LIVE WEATHER
 // =====================================================
-
 function getMQTTWeather(campus) {
 
     const data =
@@ -1490,6 +1543,7 @@ function getMQTTWeather(campus) {
 
             irradiance: 0,
             temperature: 0,
+            inclinedIrradiance: 0,
             online: false
         };
     }
@@ -1506,6 +1560,7 @@ function getMQTTWeather(campus) {
 
             irradiance: 0,
             temperature: 0,
+            inclinedIrradiance: 0,
             online: false
         };
     }
@@ -1514,15 +1569,17 @@ function getMQTTWeather(campus) {
     return {
 
         irradiance:
-            data.irradiance,
+            data.irradiance || 0,
 
         temperature:
-            data.temperature,
+            data.temperature || 0,
+
+        inclinedIrradiance:
+            data.inclinedIrradiance || 0,
 
         online: true
     };
 }
-
 
 // =====================================================
 // EXPORT

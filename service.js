@@ -1269,7 +1269,9 @@ async function getPgtReport(stationId, date, fromTime, toTime) {
 
                 inclined_irradiance,
 
-                temperature
+                temperature,
+
+                  inclined_cumulative
 
             FROM gii_weather_logs
 
@@ -1306,7 +1308,13 @@ async function getPgtReport(stationId, date, fromTime, toTime) {
                 moduleTemp:
                     Number(
                         row.temperature || 0
-                    )
+                    ),
+
+                      inclinedCumulative:
+            row.inclined_cumulative !== null &&
+            row.inclined_cumulative !== undefined
+                ? Number(row.inclined_cumulative)
+                : null
 
             }));
 
@@ -1438,29 +1446,25 @@ async function getPgtReport(stationId, date, fromTime, toTime) {
             }
 
 
-            // =================================================
-            // 4C. CALCULATE POA IRRADIATION FOR INTERVAL
-            // =================================================
+           // =================================================
+// 4C. USE INCLINED CUMULATIVE AS POA IRRADIATION
+// =================================================
 
-            let poaIrradiationInterval = null;
+let poaIrradiationInterval = null;
 
+if (nearestWeather) {
 
-            if (
-                nearestWeather &&
-                previousGII !== null
-            ) {
+    poaIrradiationInterval =
+        nearestWeather.inclinedCumulative !== null &&
+        nearestWeather.inclinedCumulative !== undefined
+            ? Number(
+                Number(
+                    nearestWeather.inclinedCumulative
+                ).toFixed(2)
+            )
+            : null;
 
-                poaIrradiationInterval =
-                    Number(
-                        (
-                            (
-                                previousGII +
-                                nearestWeather.gii
-                            ) / 2 * 0.25
-                        ).toFixed(2)
-                    );
-
-            }
+}
 
 
             // =================================================
@@ -1586,116 +1590,248 @@ async function getPgtReport(stationId, date, fromTime, toTime) {
             );
 
 
-        const totalPoaIrradiation =
-            Number(
-                report
-                    .reduce(
-                        (sum, row) =>
-                            sum +
-                            Number(
-                                row.poaIrradiationInterval || 0
-                            ),
-                        0
-                    )
-                    .toFixed(2)
-            );
-            
+     
 
-            // =================================================
-// 7A. FIND ACTUAL TEST START / END TIME
+         // =================================================
+// 7A. MANAGER PGT START / END CONDITION
 // =================================================
 
-// First actual generation point
-const firstGenerationRow =
-    report.find(row =>
-        row.inverterEnergyInterval !== null &&
-        Number(row.inverterEnergyInterval) > 0
-    );
+// START:
+// First row where GII is greater than 750 W/m²
 
-// Last actual generation point
-const generationRows =
-    report.filter(row =>
-        row.inverterEnergyInterval !== null &&
-        Number(row.inverterEnergyInterval) > 0
-    );
+const pgtStartRow = report.find(row =>
+    row.gii !== null &&
+    row.gii !== undefined &&
+    Number(row.gii) > 750
+);
 
-const lastGenerationRow =
-    generationRows.length > 0
-        ? generationRows[generationRows.length - 1]
+
+// END:
+// First row where POA / Inclined cumulative reaches 5000 Wh/m²
+//
+// NOTE:
+// poaIrradiationInterval currently contains
+// inclined_cumulative from database.
+
+const pgtEndRow = pgtStartRow
+    ? report.find(row =>
+        row.time >= pgtStartRow.time &&
+        row.poaIrradiationInterval !== null &&
+        row.poaIrradiationInterval !== undefined &&
+        Number(row.poaIrradiationInterval) >= 5000
+    )
+    : null;
+
+
+    // =========================================================
+// TOTAL POA FOR PGT TEST
+// =========================================================
+
+// POA cumulative at final reading
+// minus POA cumulative when GII > 750
+
+const startPoaCumulative =
+    pgtStartRow?.poaIrradiationInterval !== null &&
+    pgtStartRow?.poaIrradiationInterval !== undefined
+        ? Number(pgtStartRow.poaIrradiationInterval)
+        : null;
+
+const endPoaCumulative =
+    pgtEndRow?.poaIrradiationInterval !== null &&
+    pgtEndRow?.poaIrradiationInterval !== undefined
+        ? Number(pgtEndRow.poaIrradiationInterval)
+        : null;
+
+const totalPoaIrradiation =
+    startPoaCumulative !== null &&
+    endPoaCumulative !== null
+        ? Number(
+            (
+                endPoaCumulative -
+                startPoaCumulative
+            ).toFixed(2)
+        )
         : null;
 
 
-// Actual Test Start Date & Time
+// =================================================
+// INITIAL / FINAL INVERTER ENERGY
+// =================================================
+
+const initialInverterEnergy =
+    pgtStartRow?.inverterEnergy !== null &&
+    pgtStartRow?.inverterEnergy !== undefined
+        ? Number(pgtStartRow.inverterEnergy)
+        : null;
+
+const finalInverterEnergy =
+    pgtEndRow?.inverterEnergy !== null &&
+    pgtEndRow?.inverterEnergy !== undefined
+        ? Number(pgtEndRow.inverterEnergy)
+        : null;
+
+
+// =================================================
+// TEST START / END
+// =================================================
+
 const testStartDateTime =
-    firstGenerationRow
-        ? `${date} ${firstGenerationRow.time}`
+    pgtStartRow
+        ? `${date} ${pgtStartRow.time}`
         : null;
 
-
-// Actual Test End Date & Time
 const testEndDateTime =
-    lastGenerationRow
-        ? `${date} ${lastGenerationRow.time}`
+    pgtEndRow
+        ? `${date} ${pgtEndRow.time}`
         : null;
 
-        // =================================================
-        // 8. PGT CALCULATION
-        // =================================================
+ 
 
-        // Installed DC Capacity from Library Building
-        const installedDcCapacity = 50.85;
+       
 
 
-        // POA Irradiation:
-        // Wh/m² -> kWh/m²
+       // =================================================
+// 8. PGT CALCULATION
+// =================================================
 
-        const totalPoaKwh =
-            Number(
+const installedDcCapacity = 50.85;
+
+
+// =================================================
+// TOTAL POA IRRADIATION
+// Start cumulative = when GII > 750
+// End cumulative   = when POA cumulative >= 5000
+//
+// Difference is in Wh/m²
+// Convert to kWh/m²
+// =================================================
+
+const totalPoaKwh =
+    totalPoaIrradiation !== null
+        ? totalPoaIrradiation / 1000
+        : null;
+
+
+// =================================================
+// INITIAL INVERTER ENERGY
+// Value when GII > 750
+// =================================================
+
+const initialInverterEnergyValue =
+    initialInverterEnergy !== null
+        ? Number(
+            initialInverterEnergy.toFixed(2)
+        )
+        : null;
+
+
+// =================================================
+// FINAL INVERTER ENERGY
+// Value when POA cumulative >= 5000
+// =================================================
+
+const finalInverterEnergyValue =
+    finalInverterEnergy !== null
+        ? Number(
+            finalInverterEnergy.toFixed(2)
+        )
+        : null;
+
+
+// =================================================
+// TOTAL AC ENERGY GENERATED
+// Final Inverter Energy - Initial Inverter Energy
+// =================================================
+
+const totalAcEnergyGenerated =
+    initialInverterEnergyValue !== null &&
+    finalInverterEnergyValue !== null
+        ? Number(
+            (
+                finalInverterEnergyValue -
+                initialInverterEnergyValue
+            ).toFixed(2)
+        )
+        : null;
+
+
+// =================================================
+// REFERENCE YIELD
+//
+// Total POA kWh/m² × Installed DC Capacity
+//
+// Example:
+// 3.60242 × 50.85 = 183.2
+// =================================================
+
+const referenceYield =
+    totalPoaKwh !== null
+        ? Number(
+            (
+                totalPoaKwh *
+                installedDcCapacity
+            ).toFixed(1)
+        )
+        : null;
+
+
+// =================================================
+// FINAL YIELD
+//
+// Total AC Energy - 1%
+// =================================================
+
+const finalYield =
+    totalAcEnergyGenerated !== null
+        ? Number(
+            (
+                totalAcEnergyGenerated -
                 (
-                    totalPoaIrradiation / 1000
-                ).toFixed(2)
-            );
+                    totalAcEnergyGenerated * 0.01
+                )
+            ).toFixed(3)
+        )
+        : null;
 
 
-        // Net Meter is not available from Deye Cloud
-        const initialNetMeterEnergy = null;
+// =================================================
+// PERFORMANCE RATIO
+//
+// (Final Yield / Reference Yield) × 100
+// =================================================
 
-        const finalNetMeterEnergy = null;
-
-
-        // AC Energy cannot be calculated
-        // until Net Meter data is available
-
-        const totalAcEnergyGenerated = null;
-
-
-        // Reference Yield can be calculated
-        // from POA Irradiation
-
-        const referenceYield =
-            totalPoaKwh;
-
-
-        // Final Yield requires AC Energy
-
-        const finalYield = null;
+const performanceRatio =
+    finalYield !== null &&
+    referenceYield !== null &&
+    referenceYield !== 0
+        ? Number(
+            (
+                (
+                    finalYield /
+                    referenceYield
+                ) * 100
+            ).toFixed(2)
+        )
+        : null;
 
 
-        // Performance Ratio requires Final Yield
+// =================================================
+// GUARANTEED PR
+// =================================================
 
-        const performanceRatio = null;
-
-
-        // Guaranteed PR from PGT Excel
-
-        const guaranteedPr = 75;
+const guaranteedPr = 75;
 
 
-        // Result cannot be determined
-        // without Net Meter / AC Energy
+// =================================================
+// PGT RESULT
+// =================================================
 
-        const pgtResult = "PENDING";
-
+const pgtResult =
+    performanceRatio !== null
+        ? performanceRatio >= guaranteedPr
+            ? "PASS"
+            : "FAIL"
+        : "PENDING";
 
         // =================================================
         // 9. LOG RESULT
@@ -1721,8 +1857,8 @@ const testEndDateTime =
             {
                 installedDcCapacity,
                 totalPoaKwh,
-                initialNetMeterEnergy,
-                finalNetMeterEnergy,
+                  initialInverterEnergyValue,
+        finalInverterEnergyValue,
                 totalAcEnergyGenerated,
                 referenceYield,
                 finalYield,
@@ -1766,45 +1902,44 @@ const testEndDateTime =
             // PGT CALCULATION
             // =================================================
 
-            pgtCalculation: {
+           pgtCalculation: {
 
-                installedDcCapacity:
-                    installedDcCapacity,
+    installedDcCapacity:
+        installedDcCapacity,
 
-              testStartDateTime:
-    testStartDateTime,
+    testStartDateTime:
+        testStartDateTime,
 
-testEndDateTime:
-    testEndDateTime,
+    testEndDateTime:
+        testEndDateTime,
 
-                totalPoaIrradiation:
-                    totalPoaKwh,
+    totalPoaIrradiation:
+        totalPoaKwh,
 
-                initialNetMeterEnergy:
-                    initialNetMeterEnergy,
+    initialInverterEnergy:
+        initialInverterEnergyValue,
 
-                finalNetMeterEnergy:
-                    finalNetMeterEnergy,
+    finalInverterEnergy:
+        finalInverterEnergyValue,
 
-                totalAcEnergyGenerated:
-                    totalAcEnergyGenerated,
+    totalAcEnergyGenerated:
+        totalAcEnergyGenerated,
 
-                referenceYield:
-                    referenceYield,
+    referenceYield:
+        referenceYield,
 
-                finalYield:
-                    finalYield,
+    finalYield:
+        finalYield,
 
-                performanceRatio:
-                    performanceRatio,
+    performanceRatio:
+        performanceRatio,
 
-                guaranteedPr:
-                    guaranteedPr,
+    guaranteedPr:
+        guaranteedPr,
 
-                pgtResult:
-                    pgtResult
-
-            }
+    pgtResult:
+        pgtResult
+}
 
         };
 

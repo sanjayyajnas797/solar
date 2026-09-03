@@ -29,6 +29,7 @@ const [toTime, setToTime] = useState("16:00");
         poaIrradiationInterval: null
     });
 
+     const [pgtCalculation, setPgtCalculation] = useState(null);
     const [loading, setLoading] = useState(false);
 
 
@@ -113,6 +114,10 @@ if (fromTime >= toTime) {
                 res.data.totals || {}
             );
 
+            setPgtCalculation(
+    res.data.pgtCalculation || null
+);
+
 
         }
         catch (err) {
@@ -137,7 +142,7 @@ if (fromTime >= toTime) {
     };
 
 
-
+  
 
     // =========================================================
     // FORMAT DATE
@@ -159,6 +164,60 @@ if (fromTime >= toTime) {
 
     };
 
+// =========================================================
+// PGT CALCULATION FROM BACKEND
+// =========================================================
+
+const previewInstalledCapacity =
+    pgtCalculation?.installedDcCapacity !== null &&
+    pgtCalculation?.installedDcCapacity !== undefined
+        ? Number(pgtCalculation.installedDcCapacity)
+        : null;
+
+const previewInitialEnergy =
+    pgtCalculation?.initialInverterEnergy !== null &&
+    pgtCalculation?.initialInverterEnergy !== undefined
+        ? Number(pgtCalculation.initialInverterEnergy)
+        : null;
+
+const previewFinalEnergy =
+    pgtCalculation?.finalInverterEnergy !== null &&
+    pgtCalculation?.finalInverterEnergy !== undefined
+        ? Number(pgtCalculation.finalInverterEnergy)
+        : null;
+
+const previewTotalAC =
+    pgtCalculation?.totalAcEnergyGenerated !== null &&
+    pgtCalculation?.totalAcEnergyGenerated !== undefined
+        ? Number(pgtCalculation.totalAcEnergyGenerated)
+        : null;
+
+const previewReferenceYield =
+    pgtCalculation?.referenceYield !== null &&
+    pgtCalculation?.referenceYield !== undefined
+        ? Number(pgtCalculation.referenceYield)
+        : null;
+
+const previewFinalYield =
+    pgtCalculation?.finalYield !== null &&
+    pgtCalculation?.finalYield !== undefined
+        ? Number(pgtCalculation.finalYield)
+        : null;
+
+const previewPerformanceRatio =
+    pgtCalculation?.performanceRatio !== null &&
+    pgtCalculation?.performanceRatio !== undefined
+        ? Number(pgtCalculation.performanceRatio)
+        : null;
+
+const previewGuaranteedPR =
+    pgtCalculation?.guaranteedPr !== null &&
+    pgtCalculation?.guaranteedPr !== undefined
+        ? Number(pgtCalculation.guaranteedPr)
+        : null;
+
+const previewPgtResult =
+    pgtCalculation?.pgtResult || "-";
 
 
 // =====================================================
@@ -228,22 +287,20 @@ const downloadExcel = async () => {
         // COLUMN WIDTHS
         // =========================================================
 
-        worksheet.columns = [
+       worksheet.columns = [
 
-            { width: 8 },   // A Sl No
-            { width: 14 },  // B Date
-            { width: 12 },  // C Time
-            { width: 13 },  // D GHI
-            { width: 14 },  // E GII
-            { width: 15 },  // F Module Temp
-            { width: 16 },  // G Inverter Energy
-            { width: 19 },  // H Inverter Interval
-            { width: 17 },  // I Net Meter
-            { width: 20 },  // J Net Export
-            { width: 21 },  // K POA
-            { width: 14 }   // L Remarks
+    { width: 8 },   // A Sl No
+    { width: 14 },  // B Date
+    { width: 12 },  // C Time
+    { width: 13 },  // D GHI
+    { width: 14 },  // E GII / POA
+    { width: 15 },  // F Module Temp
+    { width: 16 },  // G Inverter Energy
+    { width: 19 },  // H Inverter Interval
+    { width: 21 },  // I POA
+    { width: 14 }   // J Remarks
 
-        ];
+];
 
      // =========================================================
 // COMPANY HEADER - TOP
@@ -316,7 +373,7 @@ worksheet.getRow(2).height = 42;
 // No G/H separate merge.
 // No column-based logo/text alignment.
 
-worksheet.mergeCells("A1:L2");
+worksheet.mergeCells("A1:J2");
 
 
 // =====================================================
@@ -370,7 +427,7 @@ const createHeaderImage = async (
     // HEADER SIZE
     // -------------------------------------------------
 
-    const width = 1280;
+  const width = 1020;
     const height = 108;
 
 
@@ -651,7 +708,7 @@ worksheet.addImage(
             row: 0
         },
         ext: {
-            width: 1280,
+              width: 1020,
             height: 108
         }
     }
@@ -662,9 +719,13 @@ worksheet.addImage(
 // REMOVE CELL VISUAL CONTENT
 // =====================================================
 
+// =====================================================
+// HEADER CELL BACKGROUND - A:J ONLY
+// =====================================================
+
 for (let row = 1; row <= 2; row++) {
 
-    for (let col = 1; col <= 12; col++) {
+    for (let col = 1; col <= 10; col++) {
 
         const cell =
             worksheet.getCell(row, col);
@@ -680,7 +741,6 @@ for (let row = 1; row <= 2; row++) {
         cell.border = {};
     }
 }
-
 
 // =====================================================
 // ROW 3 - WHITE GAP
@@ -721,11 +781,11 @@ worksheet.getCell("F2").border = {
 };
 
 
-// =========================================================
-// HEADER BOTTOM LINE
-// =========================================================
+// =====================================================
+// HEADER BOTTOM LINE - A:J ONLY
+// =====================================================
 
-for (let col = 1; col <= 12; col++) {
+for (let col = 1; col <= 10; col++) {
 
     worksheet.getCell(2, col).border = {
         bottom: {
@@ -761,7 +821,7 @@ for (let col = 1; col <= 12; col++) {
         // TITLE ROW
         // =========================================================
 
-       worksheet.mergeCells("A4:I4");
+      worksheet.mergeCells("A4:G4");
 
         const titleCell =
            worksheet.getCell("A4");
@@ -801,8 +861,7 @@ for (let col = 1; col <= 12; col++) {
 // REPORT DATE
 // =========================================================
 
-const dateLabel =
-    worksheet.getCell("J4");
+const dateLabel = worksheet.getCell("H4");
 
 dateLabel.value = "Date:";
 
@@ -832,7 +891,7 @@ dateLabel.border = thinBorder;
 // REPORT DATE VALUE
 // ---------------------------------------------------------
 
-worksheet.mergeCells("K4:L4");
+worksheet.mergeCells("I4:J4");
 
 const reportDate =
     reportData[0]?.date
@@ -840,7 +899,7 @@ const reportDate =
         : formatDate(fromDate);
 
 const dateCell =
-    worksheet.getCell("K4");
+    worksheet.getCell("I4");
 
 dateCell.value = reportDate;
 
@@ -888,10 +947,6 @@ dateCell.border = thinBorder;
             "Inverter\nEnergy\n(kWh)",
 
             "Inverter Energy\nfor Interval\n(kWh)",
-
-            "Net Meter Reading\n(kWh)",
-
-            "Net Export Energy\nfor Interval\n(kWh)",
 
             "POA Irradiation\nfor Interval\n(Wh/m²)",
 
@@ -1034,47 +1089,29 @@ dateCell.border = thinBorder;
                     ? Number(row.inverterEnergyInterval)
                     : "-";
 
-            // -----------------------------------------------------
-            // NET METER
-            // -----------------------------------------------------
+           
+          
+          // -----------------------------------------------------
+// POA IRRADIATION INTERVAL
+// -----------------------------------------------------
 
-            current.getCell(9).value =
-                row.netMeterReading !== null &&
-                row.netMeterReading !== undefined
-                    ? Number(row.netMeterReading)
-                    : "-";
+current.getCell(9).value =
+    row.poaIrradiationInterval !== null &&
+    row.poaIrradiationInterval !== undefined
+        ? Number(row.poaIrradiationInterval)
+        : "-";
 
-            // -----------------------------------------------------
-            // NET EXPORT INTERVAL
-            // -----------------------------------------------------
+// -----------------------------------------------------
+// REMARKS
+// -----------------------------------------------------
 
-            current.getCell(10).value =
-                row.netExportEnergyInterval !== null &&
-                row.netExportEnergyInterval !== undefined
-                    ? Number(row.netExportEnergyInterval)
-                    : "-";
-
-            // -----------------------------------------------------
-            // POA IRRADIATION INTERVAL
-            // -----------------------------------------------------
-
-            current.getCell(11).value =
-                row.poaIrradiationInterval !== null &&
-                row.poaIrradiationInterval !== undefined
-                    ? Number(row.poaIrradiationInterval)
-                    : "-";
-
-            // -----------------------------------------------------
-            // REMARKS
-            // -----------------------------------------------------
-
-            current.getCell(12).value = "-";
+current.getCell(10).value = "-";
 
             // -----------------------------------------------------
             // STYLE
             // -----------------------------------------------------
 
-            for (let col = 1; col <= 12; col++) {
+           for (let col = 1; col <= 10; col++) {
 
                 const cell =
                     current.getCell(col);
@@ -1095,22 +1132,138 @@ dateCell.border = thinBorder;
 
                 cell.border = thinBorder;
 
-                // Alternate row
-                if (index % 2 === 1) {
-
-                    cell.fill = {
-                        type: "pattern",
-                        pattern: "solid",
-                        fgColor: {
-                            argb: LIGHT_GREY
-                        }
-                    };
-
-                }
+              cell.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: {
+        argb: WHITE
+    }
+};
 
             }
+// =====================================================
+// PGT START / END ROW HIGHLIGHT
+// MATCH BY TIME FROM PGT CALCULATION
+// =====================================================
 
-            current.height = 22;
+// -----------------------------------------------------
+// GET START TIME FROM CALCULATION
+// -----------------------------------------------------
+
+const startDateTime =
+    pgtCalculation?.testStartDateTime
+        ? String(pgtCalculation.testStartDateTime).trim()
+        : null;
+
+
+// -----------------------------------------------------
+// GET END TIME FROM CALCULATION
+// -----------------------------------------------------
+
+const endDateTime =
+    pgtCalculation?.testEndDateTime
+        ? String(pgtCalculation.testEndDateTime).trim()
+        : null;
+
+
+// -----------------------------------------------------
+// EXTRACT HH:MM:SS
+// Works for:
+// 2026-08-26 10:15:00
+// 26-08-2026 10:15:00
+// 2026-08-26T10:15:00
+// -----------------------------------------------------
+
+const extractTime = (value) => {
+
+    if (!value) {
+        return null;
+    }
+
+    const match =
+        String(value).match(
+            /(\d{2}):(\d{2}):(\d{2})/
+        );
+
+    return match
+        ? `${match[1]}:${match[2]}:${match[3]}`
+        : null;
+};
+
+
+// -----------------------------------------------------
+// CALCULATION START / END TIME
+// -----------------------------------------------------
+
+const calculationStartTime =
+    extractTime(startDateTime);
+
+const calculationEndTime =
+    extractTime(endDateTime);
+
+
+// -----------------------------------------------------
+// CURRENT EXCEL ROW TIME
+// -----------------------------------------------------
+
+const currentTime =
+    row.time
+        ? String(row.time).trim()
+        : null;
+
+
+// =====================================================
+// START ROW
+// =====================================================
+
+const isStartRow =
+    calculationStartTime !== null &&
+    currentTime === calculationStartTime;
+
+
+// =====================================================
+// END ROW
+// =====================================================
+
+const isEndRow =
+    calculationEndTime !== null &&
+    currentTime === calculationEndTime;
+
+
+// =====================================================
+// HIGHLIGHT START / END ROW ONLY
+// =====================================================
+
+if (isStartRow || isEndRow) {
+
+    for (let col = 1; col <= 10; col++) {
+
+        const cell =
+            current.getCell(col);
+
+        cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: {
+                argb: "70AD47"
+            }
+        };
+
+        cell.font = {
+            name: "Calibri",
+            size: 11,
+            bold: true,
+            color: {
+                argb: BLACK
+            }
+        };
+
+    }
+
+}
+
+
+current.height = 22;
 
         });
 
@@ -1157,44 +1310,22 @@ dateCell.border = thinBorder;
                 )
                 : "-";
 
-        // I - Net Meter
-        worksheet.getCell(
-            totalRow,
-            9
-        ).value = "-";
+       // I - POA
+// I - POA TOTAL
+// POA total should NOT be displayed
+worksheet.getCell(
+    totalRow,
+    9
+).value = "-";
 
-        // J - Net Export
-        worksheet.getCell(
-            totalRow,
-            10
-        ).value =
-            totals.netExportEnergyInterval !== null &&
-            totals.netExportEnergyInterval !== undefined
-                ? Number(
-                    totals.netExportEnergyInterval
-                )
-                : "-";
-
-        // K - POA
-        worksheet.getCell(
-            totalRow,
-            11
-        ).value =
-            totals.poaIrradiationInterval !== null &&
-            totals.poaIrradiationInterval !== undefined
-                ? Number(
-                    totals.poaIrradiationInterval
-                )
-                : "-";
-
-        // L
-        worksheet.getCell(
-            totalRow,
-            12
-        ).value = "-";
+// J - Remarks
+worksheet.getCell(
+    totalRow,
+    10
+).value = "-";
 
         // Style total row
-        for (let col = 1; col <= 12; col++) {
+       for (let col = 1; col <= 10; col++) {
 
             const cell =
                 worksheet.getCell(
@@ -1246,7 +1377,7 @@ dateCell.border = thinBorder;
 // =========================================================
 
 worksheet.mergeCells(
-    `G${calcHeadingRow}:L${calcHeadingRow}`
+    `G${calcHeadingRow}:J${calcHeadingRow}`
 );
 
 const calcHeading =
@@ -1289,46 +1420,41 @@ worksheet.getRow(
             calcHeadingRow
         ).height = 24;
 
-        // =========================================================
-        // CALCULATION VALUES
-        // =========================================================
+       const installedCapacity =
+    pgtCalculation?.installedDcCapacity ?? null;
 
-        const firstRow =
-            reportData[0];
+const testStartDateTime =
+    pgtCalculation?.testStartDateTime ?? null;
 
-        const lastRow =
-            reportData[
-                reportData.length - 1
-            ];
-const installedCapacity = 50.85;
+const testEndDateTime =
+    pgtCalculation?.testEndDateTime ?? null;
 
 const totalPOA =
-    totals.poaIrradiationInterval !== null &&
-    totals.poaIrradiationInterval !== undefined
-        ? Number(
-            totals.poaIrradiationInterval
-        ) / 1000
-        : null;
+    pgtCalculation?.totalPoaIrradiation ?? null;
 
-// =========================================================
-// NET METER NOT AVAILABLE
-// Do NOT use Inverter Energy for PGT calculation
-// =========================================================
+const initialInverterEnergy =
+    pgtCalculation?.initialInverterEnergy ?? null;
 
-const totalAC = null;
+const finalInverterEnergy =
+    pgtCalculation?.finalInverterEnergy ?? null;
 
-const finalYield = null;
+const totalAC =
+    pgtCalculation?.totalAcEnergyGenerated ?? null;
 
 const referenceYield =
-    totalPOA !== null
-        ? totalPOA
-        : null;
+    pgtCalculation?.referenceYield ?? null;
 
-const performanceRatio = null;
+const finalYield =
+    pgtCalculation?.finalYield ?? null;
 
-const guaranteedPR = 75;
+const performanceRatio =
+    pgtCalculation?.performanceRatio ?? null;
 
-const pgtResult = "-";
+const guaranteedPR =
+    pgtCalculation?.guaranteedPr ?? null;
+
+const pgtResult =
+    pgtCalculation?.pgtResult ?? "-";
         // =========================================================
         // CALCULATION DATA
         // =========================================================
@@ -1341,21 +1467,27 @@ const pgtResult = "-";
         installedCapacity
     ],
 
-    [
-        "Test Start Date & Time",
-        firstRow?.date
-            ? formatDate(firstRow.date)
-            : "-",
-        firstRow?.time || "-"
-    ],
+   [
+    "Test Start Date & Time",
+    "",
+    testStartDateTime
+        ? testStartDateTime.split(" ")[0]
+        : "-",
+    testStartDateTime
+        ? testStartDateTime.split(" ")[1]
+        : "-"
+],
 
-    [
-        "Test End Date & Time",
-        lastRow?.date
-            ? formatDate(lastRow.date)
-            : "-",
-        lastRow?.time || "-"
-    ],
+[
+    "Test End Date & Time",
+    "",
+    testEndDateTime
+        ? testEndDateTime.split(" ")[0]
+        : "-",
+    testEndDateTime
+        ? testEndDateTime.split(" ")[1]
+        : "-"
+],
 
     [
         "Total POA Irradiation",
@@ -1365,55 +1497,65 @@ const pgtResult = "-";
             : "-"
     ],
 
-    [
-        "Initial Net Meter Energy",
-        "kWh",
-        "-"
-    ],
+   [
+    "Initial Inverter Energy",
+    "kWh",
+    initialInverterEnergy !== null
+        ? Number(initialInverterEnergy.toFixed(2))
+        : "-"
+],
 
-    [
-        "Final Net Meter Energy",
-        "kWh",
-        "-"
-    ],
+[
+    "Final Inverter Energy",
+    "kWh",
+    finalInverterEnergy !== null
+        ? Number(finalInverterEnergy.toFixed(2))
+        : "-"
+],
 
-    [
-        "Total AC Energy Generated",
-        "kWh",
-        "-"
-    ],
+[
+    "Total AC Energy Generated",
+    "kWh",
+    totalAC !== null
+        ? Number(totalAC.toFixed(2))
+        : "-"
+],
 
     [
         "Reference Yield",
-        "h",
+        "kwh",
         referenceYield !== null
             ? Number(referenceYield.toFixed(2))
             : "-"
     ],
 
     [
-        "Final Yield",
-        "kWh/kWp",
-        "-"
-    ],
+    "Final Yield",
+    "kWh/kWp",
+    finalYield !== null
+        ? Number(finalYield.toFixed(2))
+        : "-"
+],
 
-    [
-        "Performance Ratio (PR)",
-        "%",
-        "-"
-    ],
+[
+    "Performance Ratio (PR)",
+    "%",
+    performanceRatio !== null
+        ? Number(performanceRatio.toFixed(2))
+        : "-"
+],
 
-    [
-        "Guaranteed PR",
-        "%",
-        guaranteedPR
-    ],
+[
+    "Guaranteed PR",
+    "%",
+    guaranteedPR
+],
 
-    [
-        "PGT Result",
-        "",
-        "-"
-    ]
+[
+    "PGT Result",
+    "",
+    pgtResult
+]
 
 ];
         // =========================================================
@@ -1434,49 +1576,43 @@ const pgtResult = "-";
 // LABEL = G:I
 // -----------------------------------------------------
 
+// LABEL = G:H
 worksheet.mergeCells(
-    `G${rowNo}:I${rowNo}`
+    `G${rowNo}:H${rowNo}`
 );
 
 const labelCell =
-    worksheet.getCell(
-        rowNo,
-        7
-    );
+    worksheet.getCell(rowNo, 7);
 
-
-// -----------------------------------------------------
-// UNIT = J
-// -----------------------------------------------------
-
+// UNIT = I
 const unitCell =
-    worksheet.getCell(
-        rowNo,
-        10
-    );
+    worksheet.getCell(rowNo, 9);
 
-
-// -----------------------------------------------------
-// VALUE = K:L
-// -----------------------------------------------------
-
-worksheet.mergeCells(
-    `K${rowNo}:L${rowNo}`
-);
-
+// VALUE = J
 const valueCell =
-    worksheet.getCell(
-        rowNo,
-        11
-    );
-                labelCell.value =
-                    item[0];
+    worksheet.getCell(rowNo, 10);
+               labelCell.value =
+    item[0];
 
-                unitCell.value =
-                    item[1];
+if (index === 1 || index === 2) {
 
-                valueCell.value =
-                    item[2];
+    // DATE
+    unitCell.value =
+        item[2];
+
+    // TIME
+    valueCell.value =
+        item[3];
+
+} else {
+
+    unitCell.value =
+        item[1];
+
+    valueCell.value =
+        item[2];
+
+}
 
                 // -------------------------------------------------
                 // STYLE
@@ -1621,10 +1757,10 @@ const valueCell =
         ) {
 
             for (
-                let col = 1;
-                col <= 12;
-                col++
-            ) {
+    let col = 1;
+    col <= 10;
+    col++
+) {
 
                 worksheet
                     .getCell(row, col)
@@ -1690,8 +1826,8 @@ const valueCell =
         // PRINT AREA
         // =========================================================
 
-        worksheet.printArea =
-            `A1:L${finalCalcRow}`;
+      worksheet.printArea =
+    `A1:J${finalCalcRow}`;
 
         // =========================================================
         // FOOTER
@@ -2308,18 +2444,7 @@ const valueCell =
                                         </td>
 
 
-                                        <td>
-
-                                            {totals.poaIrradiationInterval !== null &&
-                                             totals.poaIrradiationInterval !== undefined
-
-                                                ? totals.poaIrradiationInterval
-
-                                                : "-"
-
-                                            }
-
-                                        </td>
+                                      
 
 
                                         <td>
@@ -2362,59 +2487,64 @@ const valueCell =
                                     kWp
                                 </div>
 
-                                <strong>
-                                    50.85
-                                </strong>
+                               <strong>
+    {previewInstalledCapacity !== null
+        ? previewInstalledCapacity.toFixed(2)
+        : "-"
+    }
+</strong>
 
                             </div>
 
 
                             {/* Start */}
 
-                            <div className="pgt-calc-line">
+                          <div className="pgt-calc-line">
 
-                                <div>
-                                    Test Start Date & Time
-                                </div>
+    <div>
+        Test Start Date & Time
+    </div>
 
-                                <div>
-                                    {formatDate(
-                                        reportData[0]?.date
-                                    )}
-                                </div>
+    <div>
+        {pgtCalculation?.testStartDateTime
+            ? pgtCalculation.testStartDateTime.split(" ")[0]
+            : "-"
+        }
+    </div>
 
-                                <strong>
-                                    {reportData[0]?.time || "-"}
-                                </strong>
+    <strong>
+        {pgtCalculation?.testStartDateTime
+            ? pgtCalculation.testStartDateTime.split(" ")[1]
+            : "-"
+        }
+    </strong>
 
-                            </div>
+</div>
 
 
                             {/* End */}
 
-                            <div className="pgt-calc-line">
+                           <div className="pgt-calc-line">
 
-                                <div>
-                                    Test End Date & Time
-                                </div>
+    <div>
+        Test End Date & Time
+    </div>
 
-                                <div>
-                                    {formatDate(
-                                        reportData[
-                                            reportData.length - 1
-                                        ]?.date
-                                    )}
-                                </div>
+    <div>
+        {pgtCalculation?.testEndDateTime
+            ? pgtCalculation.testEndDateTime.split(" ")[0]
+            : "-"
+        }
+    </div>
 
-                                <strong>
-                                    {
-                                        reportData[
-                                            reportData.length - 1
-                                        ]?.time || "-"
-                                    }
-                                </strong>
+    <strong>
+        {pgtCalculation?.testEndDateTime
+            ? pgtCalculation.testEndDateTime.split(" ")[1]
+            : "-"
+        }
+    </strong>
 
-                            </div>
+</div>
 
 
                             {/* Total POA */}
@@ -2431,102 +2561,82 @@ const valueCell =
 
                                 <strong>
 
-                                    {totals.poaIrradiationInterval !== null &&
-                                     totals.poaIrradiationInterval !== undefined
-
-                                        ? (
-                                            Number(
-                                                totals.poaIrradiationInterval
-                                            ) / 1000
-                                        ).toFixed(2)
-
-                                        : "-"
-
-                                    }
+                                   {pgtCalculation?.totalPoaIrradiation !== null &&
+ pgtCalculation?.totalPoaIrradiation !== undefined
+    ? Number(
+        pgtCalculation.totalPoaIrradiation
+      ).toFixed(2)
+    : "-"
+}
 
                                 </strong>
 
                             </div>
 
+{/* Initial Inverter Energy */}
 
-                            {/* Initial Net Meter */}
+<div className="pgt-calc-line">
 
-                            <div className="pgt-calc-line">
+    <div>
+        Initial Inverter Energy
+    </div>
 
-                                <div>
-                                    Initial Net Meter Energy
-                                </div>
+    <div>
+        kWh
+    </div>
 
-                                <div>
-                                    kWh
-                                </div>
+    <strong>
+       {previewInitialEnergy !== null
+    ? previewInitialEnergy.toFixed(2)
+    : "-"
+}
+    </strong>
 
-                                <strong>
-
-                                    {reportData[0]?.netMeterReading !== null &&
-                                     reportData[0]?.netMeterReading !== undefined
-
-                                        ? reportData[0].netMeterReading
-
-                                        : "-"
-
-                                    }
-
-                                </strong>
-
-                            </div>
+</div>
 
 
-                            {/* Final Net Meter */}
+{/* Final Inverter Energy */}
 
-                            <div className="pgt-calc-line">
+<div className="pgt-calc-line">
 
-                                <div>
-                                    Final Net Meter Energy
-                                </div>
+    <div>
+        Final Inverter Energy
+    </div>
 
-                                <div>
-                                    kWh
-                                </div>
+    <div>
+        kWh
+    </div>
 
-                                <strong>
+    <strong>
+       {previewFinalEnergy !== null
+    ? previewFinalEnergy.toFixed(2)
+    : "-"
+}
+    </strong>
 
-                                    {reportData[
-                                        reportData.length - 1
-                                    ]?.netMeterReading !== null &&
-                                     reportData[
-                                        reportData.length - 1
-                                     ]?.netMeterReading !== undefined
-
-                                        ? reportData[
-                                            reportData.length - 1
-                                          ].netMeterReading
-
-                                        : "-"
-
-                                    }
-
-                                </strong>
-
-                            </div>
+</div>
 
 
-                            {/* Total AC Energy */}
+                           {/* Total AC Energy */}
 
-                            <div className="pgt-calc-line">
+<div className="pgt-calc-line">
 
-                                <div>
-                                    Total AC Energy Generated
-                                </div>
+    <div>
+        Total AC Energy Generated
+    </div>
 
-                                <div>
-                                    kWh
-                                </div>
+    <div>
+        kWh
+    </div>
 
-                              <strong>-</strong>
+    <strong>
+       {previewTotalAC !== null
+    ? previewTotalAC.toFixed(2)
+    : "-"
+}
+    </strong>
 
-                            </div>
-
+</div>
 
                             {/* Reference Yield */}
 
@@ -2537,23 +2647,15 @@ const valueCell =
                                 </div>
 
                                 <div>
-                                    h
+                                    kwh
                                 </div>
 
                                 <strong>
 
-                                    {totals.poaIrradiationInterval !== null &&
-                                     totals.poaIrradiationInterval !== undefined
-
-                                        ? (
-                                            Number(
-                                                totals.poaIrradiationInterval
-                                            ) / 1000
-                                        ).toFixed(2)
-
-                                        : "-"
-
-                                    }
+                                  {previewReferenceYield !== null
+    ? previewReferenceYield.toFixed(2)
+    : "-"
+}
 
                                 </strong>
 
@@ -2572,7 +2674,12 @@ const valueCell =
                                     kWh/kWp
                                 </div>
 
-                               <strong>-</strong>
+                            <strong>
+    {previewFinalYield !== null
+        ? previewFinalYield.toFixed(2)
+        : "-"
+    }
+</strong>
 
                             </div>
 
@@ -2589,7 +2696,12 @@ const valueCell =
                                     %
                                 </div>
 
-                               <strong>-</strong>
+                            <strong>
+    {previewPerformanceRatio !== null
+        ? previewPerformanceRatio.toFixed(2)
+        : "-"
+    }
+</strong>
 
                             </div>
 
@@ -2606,9 +2718,12 @@ const valueCell =
                                     %
                                 </div>
 
-                                <strong>
-                                    75.00%
-                                </strong>
+                              <strong>
+    {previewGuaranteedPR !== null
+        ? previewGuaranteedPR.toFixed(2) + "%"
+        : "-"
+    }
+</strong>
 
                             </div>
 
@@ -2624,7 +2739,9 @@ const valueCell =
                                 <div>
                                 </div>
 
-                               <strong>-</strong>
+                              <strong>
+   {previewPgtResult}
+</strong>
 
                             </div>
 
