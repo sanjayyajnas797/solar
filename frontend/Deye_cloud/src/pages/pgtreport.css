@@ -621,3 +621,13 @@
 .pgt-pdf-btn:hover {
     background: #0d78bd;
 }
+
+/* =====================================================
+   PGT START / END ROW HIGHLIGHT
+   ===================================================== */
+
+.pgt-start-end-row td {
+    background-color: #70AD47 !important;
+    color: #000000 !important;
+    font-weight: 700;
+}
