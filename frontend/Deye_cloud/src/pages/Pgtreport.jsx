@@ -1750,14 +1750,30 @@ const totalAC =
 const referenceYield =
     pgtCalculation?.referenceYield ?? null;
 
-const finalYield = 0;
+const finalYield =
+    pgtCalculation?.finalYield !== null &&
+    pgtCalculation?.finalYield !== undefined
+        ? Number(pgtCalculation.finalYield)
+        : null;
 
-const performanceRatio = 0;
+const performanceRatio =
+    pgtCalculation?.performanceRatio !== null &&
+    pgtCalculation?.performanceRatio !== undefined
+        ? Number(pgtCalculation.performanceRatio)
+        : null;
 
 const guaranteedPR =
-    pgtCalculation?.guaranteedPr ?? null;
+    pgtCalculation?.guaranteedPr !== null &&
+    pgtCalculation?.guaranteedPr !== undefined
+        ? Number(pgtCalculation.guaranteedPr)
+        : 75;
 
-const pgtResult = "-";
+const pgtResult =
+    performanceRatio !== null
+        ? performanceRatio >= guaranteedPR
+            ? "PASS"
+            : "FAIL"
+        : "PENDING";
 
 // =====================================================
 // FIND PGT START / END EXCEL ROWS
@@ -2306,27 +2322,59 @@ worksheet.getCell(
 
 // -----------------------------------------------------
 // FINAL YIELD
-// MANUAL CALCULATION REQUIRED
-// NET METER / DIFFERENTIAL READING NOT AVAILABLE YET
-// KEEP 0 FOR NOW
+// (TOTAL AC - DIFFERENTIAL) / INSTALLED DC CAPACITY
 // -----------------------------------------------------
 
-worksheet.getCell(
-    finalYieldRow,
-    10
-).value = 0;
+if (
+    installedCapacityRow !== null &&
+    totalAcRow !== null &&
+    differentialEnergyRow !== null
+) {
+    worksheet.getCell(
+        finalYieldRow,
+        10
+    ).value = {
+        formula:
+            `(J${totalAcRow}-J${differentialEnergyRow})/J${installedCapacityRow}`,
+        result:
+            finalYield !== null
+                ? Number(finalYield)
+                : 0
+    };
+
+    worksheet.getCell(
+        finalYieldRow,
+        10
+    ).numFmt = "0.00";
+}
 
 
 // -----------------------------------------------------
 // PERFORMANCE RATIO
-// KEEP 0 UNTIL NET METER IS ENTERED
+// (FINAL YIELD / REFERENCE YIELD) × 100
 // -----------------------------------------------------
 
-worksheet.getCell(
-    performanceRatioRow,
-    10
-).value = 0;
+if (
+    finalYieldRow !== null &&
+    referenceYieldRow !== null
+) {
+    worksheet.getCell(
+        performanceRatioRow,
+        10
+    ).value = {
+        formula:
+            `(J${finalYieldRow}/J${referenceYieldRow})*100`,
+        result:
+            performanceRatio !== null
+                ? Number(performanceRatio)
+                : 0
+    };
 
+    worksheet.getCell(
+        performanceRatioRow,
+        10
+    ).numFmt = "0.00";
+}
 
 // -----------------------------------------------------
 // GUARANTEED PR
@@ -2344,13 +2392,14 @@ worksheet.getCell(
 
 // -----------------------------------------------------
 // PGT RESULT
-// KEEP "-" UNTIL FINAL PR IS AVAILABLE
+// PR >= GUARANTEED PR => PASS
+// PR < GUARANTEED PR  => FAIL
 // -----------------------------------------------------
 
 worksheet.getCell(
     pgtResultRow,
     10
-).value = "-";
+).value = pgtResult;
         // =========================================================
         // ALIGNMENT FOR DATA TABLE
         // =========================================================
@@ -3201,48 +3250,48 @@ worksheet.getCell(
                             </div>
 
 
-                            {/* Final Yield */}
+                           {/* Final Yield */}
 
-                            <div className="pgt-calc-line">
+<div className="pgt-calc-line">
+    <div>
+        Final Yield
+    </div>
 
-                                <div>
-                                    Final Yield
-                                </div>
+    <div>
+        kWh/kWp
+    </div>
 
-                                <div>
-                                    kWh/kWp
-                                </div>
-
-                            <strong>
-    {previewFinalYield !== null
-        ? previewFinalYield.toFixed(2)
-        : "-"
-    }
-</strong>
-
-                            </div>
+    <strong>
+        {pgtCalculation?.finalYield !== null &&
+         pgtCalculation?.finalYield !== undefined
+            ? Number(pgtCalculation.finalYield).toFixed(2)
+            : "-"
+        }
+    </strong>
+</div>
 
 
-                            {/* PR */}
+                           {/* PR */}
 
-                            <div className="pgt-calc-line pgt-pr-row">
+<div className="pgt-calc-line pgt-pr-row">
 
-                                <div>
-                                    Performance Ratio (PR)
-                                </div>
+    <div>
+        Performance Ratio (PR)
+    </div>
 
-                                <div>
-                                    %
-                                </div>
+    <div>
+        %
+    </div>
 
-                            <strong>
-    {previewPerformanceRatio !== null
-        ? previewPerformanceRatio.toFixed(2)
-        : "-"
-    }
-</strong>
+    <strong>
+        {pgtCalculation?.performanceRatio !== null &&
+         pgtCalculation?.performanceRatio !== undefined
+            ? Number(pgtCalculation.performanceRatio).toFixed(2)
+            : "-"
+        }
+    </strong>
 
-                            </div>
+</div>
 
 
                             {/* Guaranteed PR */}
@@ -3267,22 +3316,21 @@ worksheet.getCell(
                             </div>
 
 
-                            {/* RESULT */}
+                          {/* RESULT */}
 
-                            <div className="pgt-calc-line pgt-result-row">
+<div className="pgt-calc-line pgt-result-row">
 
-                                <div>
-                                    PGT Result
-                                </div>
+    <div>
+        PGT Result
+    </div>
 
-                                <div>
-                                </div>
+    <div></div>
 
-                              <strong>
-   {previewPgtResult}
-</strong>
+    <strong>
+        {pgtCalculation?.pgtResult || "PENDING"}
+    </strong>
 
-                            </div>
+</div>
 
                         </div>
 
