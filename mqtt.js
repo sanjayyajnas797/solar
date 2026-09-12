@@ -371,11 +371,12 @@ function getISTDateKey(date) {
 
 // =====================================================
 // RESTORE CUMULATIVE AFTER SERVER RESTART
+// TODAY ONLY - IST
 // =====================================================
 
 async function loadCumulativeFromDatabase() {
 
-    console.log("🔄 Loading previous cumulative values...");
+    console.log("🔄 Loading TODAY cumulative values...");
 
     const campuses = [
         "NLCIL",
@@ -385,59 +386,130 @@ async function loadCumulativeFromDatabase() {
         "BTPS"
     ];
 
+    // =====================================================
+    // WEATHER CUMULATIVE RESTORE
+    // ONLY TODAY'S DATA
+    // =====================================================
+
     for (const campus of campuses) {
 
         try {
 
             const result = await db.query(
                 `
-                SELECT cumulative_irradiance
+                SELECT
+                    cumulative_irradiance,
+                    inclined_cumulative,
+                    mqtt_timestamp
                 FROM weather_logs
                 WHERE campus = $1
+
+                AND DATE(
+                    to_timestamp(mqtt_timestamp / 1000)
+                    AT TIME ZONE 'Asia/Kolkata'
+                ) = CURRENT_DATE
+
                 ORDER BY mqtt_timestamp DESC
                 LIMIT 1
                 `,
                 [campus]
             );
 
-           if (result.rows.length > 0) {
 
-    weatherCalculation[campus].cumulativeEnergy =
-        Number(result.rows[0].cumulative_irradiance) || 0;
+            // =================================================
+            // TODAY DATA AVAILABLE
+            // =================================================
 
-    if (campus === "NUPPL") {
+            if (result.rows.length > 0) {
 
-        const inclinedResult = await db.query(
-            `
-            SELECT inclined_cumulative
-            FROM weather_logs
-            WHERE campus = 'NUPPL'
-            ORDER BY mqtt_timestamp DESC
-            LIMIT 1
-            `
-        );
+                const row = result.rows[0];
 
-        if (inclinedResult.rows.length > 0) {
 
-            weatherCalculation.NUPPL.inclinedCumulative =
-                Number(
-                    inclinedResult.rows[0].inclined_cumulative
-                ) || 0;
+                // ---------------------------------------------
+                // NORMAL CUMULATIVE
+                // ---------------------------------------------
+
+                weatherCalculation[campus].cumulativeEnergy =
+                    Number(
+                        row.cumulative_irradiance
+                    ) || 0;
+
+
+                // ---------------------------------------------
+                // IMPORTANT:
+                // TELL MEMORY THAT THIS IS TODAY
+                // ---------------------------------------------
+
+                weatherCalculation[campus].calculationDate =
+                    getISTDateKey(new Date());
+
+
+                // ---------------------------------------------
+                // NUPPL INCLINED CUMULATIVE
+                // ---------------------------------------------
+
+                if (campus === "NUPPL") {
+
+                    weatherCalculation.NUPPL.inclinedCumulative =
+                        Number(
+                            row.inclined_cumulative
+                        ) || 0;
+
+
+                    console.log(
+                        `♻️ NUPPL TODAY RESTORED | ` +
+                        `Normal:${weatherCalculation.NUPPL.cumulativeEnergy.toFixed(3)} | ` +
+                        `Inclined:${weatherCalculation.NUPPL.inclinedCumulative.toFixed(3)}`
+                    );
+
+                }
+                else {
+
+                    console.log(
+                        `♻️ ${campus} TODAY RESTORED | ` +
+                        `${weatherCalculation[campus].cumulativeEnergy.toFixed(3)}`
+                    );
+
+                }
+
+            }
+
+
+            // =================================================
+            // NO TODAY DATA
+            // START FROM ZERO
+            // =================================================
+
+            else {
+
+                weatherCalculation[campus].cumulativeEnergy = 0;
+                weatherCalculation[campus].intervalEnergy = 0;
+                weatherCalculation[campus].previousIrradiance = null;
+                weatherCalculation[campus].previousTimestamp = null;
+
+                weatherCalculation[campus].calculationDate =
+                    getISTDateKey(new Date());
+
+
+                if (campus === "NUPPL") {
+
+                    weatherCalculation.NUPPL.inclinedCumulative = 0;
+                    weatherCalculation.NUPPL.inclinedIntervalEnergy = 0;
+                    weatherCalculation.NUPPL.previousInclined = null;
+                    weatherCalculation.NUPPL.latestInclinedIrradiance = 0;
+
+                }
+
+
+                console.log(
+                    `🆕 ${campus} | NO TODAY DATA | Cumulative START = 0`
+                );
+
+            }
+
+
         }
-
-        console.log(
-            `♻️ NUPPL Inclined restored: ` +
-            `${weatherCalculation.NUPPL.inclinedCumulative.toFixed(3)}`
-        );
-    }
-
-    console.log(
-        `♻️ ${campus} cumulative restored: ` +
-        `${weatherCalculation[campus].cumulativeEnergy.toFixed(3)}`
-    );
-}
-
-        } catch (err) {
+        catch (err) {
 
             console.error(
                 `❌ ${campus} cumulative restore failed:`,
@@ -445,11 +517,14 @@ async function loadCumulativeFromDatabase() {
             );
 
         }
+
     }
 
-    // =========================================
+
+    // =====================================================
     // GII CUMULATIVE RESTORE
-    // =========================================
+    // ONLY TODAY'S DATA
+    // =====================================================
 
     try {
 
@@ -457,33 +532,88 @@ async function loadCumulativeFromDatabase() {
             `
             SELECT
                 horizontal_cumulative,
-                inclined_cumulative
+                inclined_cumulative,
+                mqtt_timestamp
             FROM gii_weather_logs
+
+            WHERE DATE(
+                to_timestamp(mqtt_timestamp / 1000)
+                AT TIME ZONE 'Asia/Kolkata'
+            ) = CURRENT_DATE
+
             ORDER BY mqtt_timestamp DESC
             LIMIT 1
             `
         );
 
+
+        // =================================================
+        // TODAY GII DATA AVAILABLE
+        // =================================================
+
         if (result.rows.length > 0) {
 
+            const row = result.rows[0];
+
+
             giiCalculation.horizontalCumulative =
-                Number(result.rows[0].horizontal_cumulative) || 0;
+                Number(
+                    row.horizontal_cumulative
+                ) || 0;
+
 
             giiCalculation.inclinedCumulative =
-                Number(result.rows[0].inclined_cumulative) || 0;
+                Number(
+                    row.inclined_cumulative
+                ) || 0;
+
+
+            // IMPORTANT
+            // Mark calculation as TODAY
+
+            giiCalculation.calculationDate =
+                getISTDateKey(new Date());
+
 
             console.log(
-                `♻️ GII Horizontal restored: ` +
-                `${giiCalculation.horizontalCumulative.toFixed(3)}`
+                `♻️ GII TODAY RESTORED | ` +
+                `Horizontal:${giiCalculation.horizontalCumulative.toFixed(3)} | ` +
+                `Inclined:${giiCalculation.inclinedCumulative.toFixed(3)}`
             );
 
-            console.log(
-                `♻️ GII Inclined restored: ` +
-                `${giiCalculation.inclinedCumulative.toFixed(3)}`
-            );
         }
 
-    } catch (err) {
+
+        // =================================================
+        // NO TODAY GII DATA
+        // START FROM ZERO
+        // =================================================
+
+        else {
+
+            giiCalculation.horizontalCumulative = 0;
+            giiCalculation.inclinedCumulative = 0;
+
+            giiCalculation.horizontalEnergy = 0;
+            giiCalculation.inclinedEnergy = 0;
+
+            giiCalculation.previousHorizontal = null;
+            giiCalculation.previousInclined = null;
+            giiCalculation.previousTimestamp = null;
+
+            giiCalculation.calculationDate =
+                getISTDateKey(new Date());
+
+
+            console.log(
+                "🆕 GII | NO TODAY DATA | Cumulative START = 0"
+            );
+
+        }
+
+
+    }
+    catch (err) {
 
         console.error(
             "❌ GII cumulative restore failed:",
@@ -492,7 +622,10 @@ async function loadCumulativeFromDatabase() {
 
     }
 
-    console.log("✅ CUMULATIVE RESTORE COMPLETED");
+
+    console.log(
+        "✅ TODAY CUMULATIVE RESTORE COMPLETED"
+    );
 }
 
 async function saveWeather(

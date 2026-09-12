@@ -2254,3 +2254,54 @@ select {
 
     cursor: default;
 }
+
+/* =========================================================
+   PGT REPORT BUTTON
+   ========================================================= */
+
+.pgt-header-badge {
+    height: 38px;
+    padding: 0 18px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #2196f3;
+    color: #ffffff;
+
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+
+    cursor: pointer;
+
+    box-shadow: 0 4px 10px rgba(33, 150, 243, 0.25);
+
+    transition: all 0.2s ease;
+}
+
+/* Mouse cursor வைத்து hover பண்ணும்போது */
+.pgt-header-badge:hover {
+    background: #1976d2;
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 6px 16px rgba(33, 150, 243, 0.40);
+}
+
+/* Click பண்ணும்போது */
+.pgt-header-badge:active {
+    transform: translateY(0);
+
+    background: #1565c0;
+
+    box-shadow:
+        0 3px 8px rgba(33, 150, 243, 0.30);
+}

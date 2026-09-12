@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -32,7 +32,140 @@ const [toTime, setToTime] = useState("16:00");
      const [pgtCalculation, setPgtCalculation] = useState(null);
     const [loading, setLoading] = useState(false);
 
+    // =========================================================
+// PGT NLCIL BUILDING SELECTION
+// =========================================================
 
+const [pgtStations, setPgtStations] = useState([]);
+const [selectedStationId, setSelectedStationId] = useState("");
+const [selectedBuildingName, setSelectedBuildingName] = useState("");
+const [selectedCampus, setSelectedCampus] = useState("NLCIL");
+const [isBuildingDropdownOpen, setIsBuildingDropdownOpen] = useState(false);
+
+
+// =========================================================
+// PGT BUILDING CACHE
+// LOAD NLCIL + NUPPL ONCE
+// =========================================================
+
+const [pgtStationCache, setPgtStationCache] = useState({
+    NLCIL: [],
+    NUPPL: []
+});
+
+const [pgtStationsLoading, setPgtStationsLoading] = useState(true);
+
+
+// =========================================================
+// LOAD BOTH CAMPUSES ON PAGE LOAD
+// =========================================================
+
+useEffect(() => {
+
+    const loadAllPgtStations = async () => {
+
+        try {
+
+            setPgtStationsLoading(true);
+
+            const [nlcilRes, nupplRes] = await Promise.all([
+                axios.get(
+                    `${API_BASE}/pgt/stations`,
+                    {
+                        params: {
+                            campus: "NLCIL"
+                        }
+                    }
+                ),
+
+                axios.get(
+                    `${API_BASE}/pgt/stations`,
+                    {
+                        params: {
+                            campus: "NUPPL"
+                        }
+                    }
+                )
+            ]);
+
+            const nlcilStations =
+                Array.isArray(nlcilRes.data)
+                    ? nlcilRes.data
+                    : [];
+
+            const nupplStations =
+                Array.isArray(nupplRes.data)
+                    ? nupplRes.data
+                    : [];
+
+            setPgtStationCache({
+                NLCIL: nlcilStations,
+                NUPPL: nupplStations
+            });
+
+            // Set currently selected campus buildings
+            setPgtStations(
+                selectedCampus === "NUPPL"
+                    ? nupplStations
+                    : nlcilStations
+            );
+
+            console.log("PGT NLCIL BUILDINGS:", nlcilStations);
+            console.log("PGT NUPPL BUILDINGS:", nupplStations);
+
+        }
+        catch (error) {
+
+            console.error(
+                "PGT Buildings Load Error:",
+                error
+            );
+
+            setPgtStationCache({
+                NLCIL: [],
+                NUPPL: []
+            });
+
+            setPgtStations([]);
+
+        }
+        finally {
+
+            setPgtStationsLoading(false);
+
+        }
+
+    };
+
+    loadAllPgtStations();
+
+}, []);
+
+
+// =========================================================
+// SWITCH BUILDINGS INSTANTLY WHEN CAMPUS CHANGES
+// =========================================================
+
+useEffect(() => {
+
+    const stations =
+        pgtStationCache[selectedCampus] || [];
+
+    setPgtStations(stations);
+
+    setSelectedStationId("");
+    setSelectedBuildingName("");
+
+    // Optional: clear previous report
+    setReportData([]);
+    setTotals({
+        inverterEnergyInterval: null,
+        netExportEnergyInterval: null,
+        poaIrradiationInterval: null
+    });
+    setPgtCalculation(null);
+
+}, [selectedCampus, pgtStationCache]);
     // =========================================================
     // GENERATE REPORT
     // =========================================================
@@ -81,23 +214,55 @@ if (fromTime >= toTime) {
             setLoading(true);
 
 
-            const stationId = "61858673";
+          // =========================================================
+// VALIDATE BUILDING
+// =========================================================
+
+if (!selectedStationId) {
+
+    alert("Please select Building.");
+
+    return;
+
+}
+
+const stationId = selectedStationId;
 
 
-            const res = await axios.get(
+// =========================================================
+// GET PGT REPORT
+// =========================================================
 
-    `${API_BASE}/pgt/report/${stationId}`,
+let res;
 
-    {
-        params: {
-            date: fromDate,
-            fromTime: fromTime,
-            toTime: toTime
+if (selectedCampus === "NLCIL") {
+
+    res = await axios.get(
+        `${API_BASE}/pgt/report/${stationId}`,
+        {
+            params: {
+                date: fromDate,
+                fromTime: fromTime,
+                toTime: toTime
+            }
         }
-    }
+    );
 
-);
+}
+else if (selectedCampus === "NUPPL") {
 
+    res = await axios.get(
+        `${API_BASE}/pgt/nuppl/report/${stationId}`,
+        {
+            params: {
+                date: fromDate,
+                fromTime: fromTime,
+                toTime: toTime
+            }
+        }
+    );
+
+}
 
             console.log(
                 "PGT REPORT RESPONSE:",
@@ -938,8 +1103,8 @@ for (let col = 1; col <= 12; col++) {
         const titleCell =
            worksheet.getCell("A4");
 
-        titleCell.value =
-            "NLCIL - Roof Top Solar – Performance Guarantee Test (PGT) - Library Building";
+      titleCell.value =
+    `${selectedCampus} - Roof Top Solar – Performance Guarantee Test (PGT) - ${selectedBuildingName || selectedCampus}`;
 
         titleCell.font = {
             name: "Calibri",
@@ -1694,7 +1859,7 @@ const calcHeading =
     );
 
 calcHeading.value =
-    "PG TEST CALCULATION - Library Building";
+    `PG TEST CALCULATION - ${selectedBuildingName || selectedCampus}`;
 
 calcHeading.font = {
     name: "Calibri",
@@ -2522,8 +2687,16 @@ worksheet.getCell(
 
         link.href = url;
 
-        link.download =
-            `PGT_Report_Library_Building_${fromDate}.xlsx`;
+     const safeBuildingName =
+    (selectedBuildingName || "NLCIL")
+        .replace(/[^a-zA-Z0-9]+/g, "_");
+
+const safeCampus =
+    (selectedCampus || "NLCIL")
+        .replace(/[^a-zA-Z0-9]+/g, "_");
+
+link.download =
+    `PGT_Report_${safeCampus}_${safeBuildingName}_${fromDate}.xlsx`;
 
         document.body.appendChild(link);
 
@@ -2694,6 +2867,195 @@ worksheet.getCell(
                     <div className="pgt-filter-grid">
 
 
+                        {/* =================================================
+    CAMPUS
+================================================= */}
+
+<div className="pgt-filter-item">
+
+    <label>
+        Campus
+    </label>
+
+    <select
+        value={selectedCampus}
+        onChange={(e) => {
+
+            const campus =
+                e.target.value;
+
+            setSelectedCampus(campus);
+
+            // Clear previous building
+            setSelectedStationId("");
+
+            setSelectedBuildingName("");
+
+            // Clear previous report
+            setReportData([]);
+
+            setTotals({
+                inverterEnergyInterval: null,
+                netExportEnergyInterval: null,
+                poaIrradiationInterval: null
+            });
+
+            setPgtCalculation(null);
+
+        }}
+    >
+
+        <option value="NLCIL">
+            NLCIL
+        </option>
+
+        <option value="NUPPL">
+            NUPPL
+        </option>
+
+    </select>
+
+</div>
+<div className="pgt-filter-item">
+
+    <label>
+        Building
+    </label>
+
+    <div className="pgt-custom-building-dropdown">
+
+        {/* SELECTED BUILDING */}
+        <button
+            type="button"
+            className={`pgt-building-trigger ${
+                isBuildingDropdownOpen ? "active" : ""
+            }`}
+            onClick={() =>
+                setIsBuildingDropdownOpen(
+                    !isBuildingDropdownOpen
+                )
+            }
+        >
+
+            <span className="pgt-building-selected">
+
+                <span className="pgt-building-icon">
+                    🏢
+                </span>
+
+                {selectedBuildingName ||
+                    "Select Building"}
+
+            </span>
+
+            <span
+                className={`pgt-building-arrow ${
+                    isBuildingDropdownOpen
+                        ? "rotate"
+                        : ""
+                }`}
+            >
+                ▼
+            </span>
+
+        </button>
+
+
+        {/* BUILDING LIST */}
+        {isBuildingDropdownOpen && (
+
+            <div className="pgt-building-menu">
+
+                <div className="pgt-building-menu-title">
+                    Select Building
+                </div>
+
+                <div className="pgt-building-list">
+
+                    {pgtStations.length === 0 ? (
+
+                        <div className="pgt-no-building">
+                            No buildings available
+                        </div>
+
+                    ) : (
+
+                        pgtStations.map((station) => (
+
+                            <button
+                                type="button"
+                                key={station.stationId}
+                                className={`pgt-building-option ${
+                                    selectedStationId ===
+                                    station.stationId
+                                        ? "selected"
+                                        : ""
+                                }`}
+                                onClick={() => {
+
+                                    setSelectedStationId(
+                                        station.stationId
+                                    );
+
+                                    setSelectedBuildingName(
+                                        station.buildingName
+                                    );
+
+                                    setIsBuildingDropdownOpen(
+                                        false
+                                    );
+
+                                }}
+                            >
+
+                                <span className="pgt-option-icon">
+                                    🏢
+                                </span>
+
+                                <span className="pgt-option-content">
+
+                                    <span className="pgt-option-name">
+                                        {station.buildingName}
+                                    </span>
+
+                                    {station.capacity !==
+                                        undefined &&
+                                        station.capacity !==
+                                        null && (
+
+                                        <span className="pgt-option-capacity">
+                                            {station.capacity} kWp
+                                        </span>
+
+                                    )}
+
+                                </span>
+
+                                {selectedStationId ===
+                                    station.stationId && (
+
+                                    <span className="pgt-option-check">
+                                        ✓
+                                    </span>
+
+                                )}
+
+                            </button>
+
+                        ))
+
+                    )}
+
+                </div>
+
+            </div>
+
+        )}
+
+    </div>
+
+</div>
+
                         {/* FROM DATE */}
 
                         <div className="pgt-filter-item">
@@ -2810,9 +3172,10 @@ worksheet.getCell(
 
                        <div className="pgt-report-title">
 
-    <h2>
-        NLCIL - Roof Top Solar - Performance Guarantee Test (PGT) - Library Building
-    </h2>
+  <h2>
+   {selectedCampus} - Roof Top Solar - Performance Guarantee Test (PGT) -
+{selectedBuildingName || selectedCampus}
+</h2>
 
     <div className="pgt-title-actions">
 
@@ -3062,12 +3425,9 @@ worksheet.getCell(
                         <div className="pgt-calculation-section">
 
 
-                            <div className="pgt-calculation-heading">
-
-                                PG TEST CALCULATION - Library Building
-
-                            </div>
-
+                           <div className="pgt-calculation-heading">
+   PG TEST CALCULATION - {selectedBuildingName || selectedCampus}
+</div>
 
                             {/* Installed DC Capacity */}
 

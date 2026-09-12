@@ -23,7 +23,15 @@ const {
     
    getPgtInverterEnergy,
 
-   getPgtReport
+   getPgtReport,
+
+   getNLCILPgtStations,
+
+
+
+   getNUPPLPgtReport,
+
+   getNUPPLPgtStations
    
 
 } = require("./service");
@@ -456,4 +464,216 @@ router.get(
 
     }
 );
+
+// =====================================================
+// PGT - BUILDING LIST BY CAMPUS
+// =====================================================
+
+router.get(
+    "/pgt/stations",
+    async (req, res) => {
+
+        try {
+
+            const campus =
+                String(
+                    req.query.campus || "NLCIL"
+                )
+                .trim()
+                .toUpperCase();
+
+
+            // =============================================
+            // NLCIL
+            // =============================================
+
+            if (campus === "NLCIL") {
+
+                const data =
+                    await getNLCILPgtStations();
+
+                return res.json(data);
+
+            }
+
+
+            // =============================================
+            // NUPPL
+            // =============================================
+
+            if (campus === "NUPPL") {
+
+                const data =
+                    await getNUPPLPgtStations();
+
+                return res.json(data);
+
+            }
+
+
+            // =============================================
+            // INVALID CAMPUS
+            // =============================================
+
+            return res.status(400).json({
+
+                error:
+                    "Invalid campus. Use NLCIL or NUPPL."
+
+            });
+
+        }
+
+        catch (err) {
+
+            console.error(
+                "PGT Stations Route Error:",
+                err.message
+            );
+
+            res.status(500).json({
+
+                error:
+                    err.message
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// NUPPL PGT REPORT - SELECTED BUILDING
+// =====================================================
+
+router.get(
+    "/pgt/nuppl/report/:stationId",
+    async (req, res) => {
+
+        try {
+
+            const {
+                stationId
+            } = req.params;
+
+
+            const {
+                date,
+                fromTime,
+                toTime
+            } = req.query;
+
+
+            // =============================================
+            // VALIDATE STATION
+            // =============================================
+
+            if (!stationId) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Station ID is required"
+
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE DATE
+            // =============================================
+
+            if (!date) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Date is required"
+
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE TIME
+            // =============================================
+
+            if (
+                !fromTime ||
+                !toTime
+            ) {
+
+                return res.status(400).json({
+
+                    error:
+                        "From Time and To Time are required"
+
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE TIME ORDER
+            // =============================================
+
+            if (
+                fromTime >= toTime
+            ) {
+
+                return res.status(400).json({
+
+                    error:
+                        "To Time must be greater than From Time"
+
+                });
+
+            }
+
+
+            // =============================================
+            // GET SELECTED NUPPL PGT
+            // =============================================
+
+            const data =
+                await getNUPPLPgtReport(
+                    date,
+                    fromTime,
+                    toTime,
+                    stationId
+                );
+
+
+            // =============================================
+            // RESPONSE
+            // =============================================
+
+            res.json(data);
+
+        }
+
+        catch (err) {
+
+            console.error(
+                "NUPPL PGT Report Route Error:",
+                err.message
+            );
+
+
+            res.status(500).json({
+
+                error:
+                    err.message
+
+            });
+
+        }
+
+    }
+);
+
 module.exports = router;

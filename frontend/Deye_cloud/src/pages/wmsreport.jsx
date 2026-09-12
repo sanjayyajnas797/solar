@@ -528,8 +528,8 @@ else{
     </div>
 
     <div>
-        <button onClick={pg}>
-            PGT REPORT
+        <button onClick={pg} className="pgt-header-badge">
+            📊 PGT REPORT
         </button>
     </div>
 
