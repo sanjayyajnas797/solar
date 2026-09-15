@@ -1885,23 +1885,37 @@ async function getPgtReport(
                 : null;
 
 
-     // =================================================
+   // =====================================================
 // 8. PGT END
 //
-// RULE:
+// FINAL RULE:
 //
 // 1. Start from PGT START
-// 2. Continue while GHI / GII are valid
-// 3. Add cumulative GII irradiation
-// 4. If cumulative GII reaches 5000:
-//      -> CURRENT ROW = PGT END
-// 5. If GHI / GII becomes invalid before 5000:
-//      -> PREVIOUS VALID ROW = PGT END
+// 2. Continue checking until selected TO TIME
+// 3. If GHI/GII values are missing in between,
+//    DO NOT STOP the PGT
+// 4. Continue searching for the next actual GHI/GII values
+// 5. Low irradiance values like 40, 20, 10 are VALID
+// 6. If cumulative GII reaches 5000 Wh/m²:
+//       -> CURRENT VALID ROW = PGT END
+// 7. If 5000 is NOT reached:
+//       -> LAST ACTUAL VALID GHI/GII ROW
+//          within selected time range = PGT END
 //
 // IMPORTANT:
-// Low irradiance values such as 40, 20, 10
-// are VALID and must NOT stop the test.
-// =================================================
+// Missing irradiance in the middle must NOT become PGT END.
+// Example:
+// 10:00 valid
+// 10:15 valid
+// 12:00 missing
+// 12:15 valid
+// 17:45 valid
+// 18:00 missing
+//
+// If 5000 is not reached:
+// PGT END = 17:45
+//
+// =====================================================
 
 let pgtEndIndex = -1;
 
@@ -1909,6 +1923,10 @@ let pgtCumulativeGii = 0;
 
 let pgtReached5000 = false;
 
+
+// =====================================================
+// START PGT END SEARCH
+// =====================================================
 
 if (pgtStartIndex >= 0) {
 
@@ -1918,7 +1936,8 @@ if (pgtStartIndex >= 0) {
         i++
     ) {
 
-        const row = report[i];
+        const row =
+            report[i];
 
 
         // =================================================
@@ -1948,9 +1967,12 @@ if (pgtStartIndex >= 0) {
 
 
         // =================================================
-        // IRRADIANCE NOT AVAILABLE
+        // INVALID / MISSING IRRADIANCE
         //
-        // END = PREVIOUS VALID ROW
+        // DO NOT STOP
+        //
+        // Simply skip this row and continue searching
+        // for the next actual GHI/GII values.
         // =================================================
 
         if (
@@ -1958,15 +1980,23 @@ if (pgtStartIndex >= 0) {
             !giiValid
         ) {
 
-            pgtEndIndex =
-                i - 1;
-
-            break;
+            continue;
         }
 
 
         // =================================================
-        // ADD GII IRRADIATION INTERVAL
+        // VALID GHI + GII ROW
+        //
+        // This is the latest actual irradiance row.
+        // Therefore keep it as possible PGT END.
+        // =================================================
+
+        pgtEndIndex =
+            i;
+
+
+        // =================================================
+        // ADD GII IRRADIATION
         // =================================================
 
         const interval =
@@ -1982,6 +2012,7 @@ if (pgtStartIndex >= 0) {
         // =================================================
         // 5000 Wh/m² REACHED
         //
+        // FIRST CONDITION WINS
         // CURRENT ROW = PGT END
         // =================================================
 
@@ -1989,30 +2020,33 @@ if (pgtStartIndex >= 0) {
             pgtCumulativeGii >= 5000
         ) {
 
-            pgtEndIndex = i;
+            pgtEndIndex =
+                i;
 
-            pgtReached5000 = true;
+            pgtReached5000 =
+                true;
 
             break;
         }
-
-
-        // =================================================
-        // KEEP CURRENT ROW AS LAST VALID ROW
-        //
-        // If irradiance becomes invalid later,
-        // this row will become PGT END.
-        // =================================================
-
-        pgtEndIndex = i;
     }
 }
+
+
+// =====================================================
+// FINAL PGT END ROW
+//
+// If 5000 was reached:
+//     -> row where 5000 was reached
+//
+// Otherwise:
+//     -> last actual valid GHI/GII row
+//        before selected TO TIME
+// =====================================================
 
 const pgtEndRow =
     pgtEndIndex >= 0
         ? report[pgtEndIndex]
         : null;
-
 
 
 
@@ -3354,92 +3388,184 @@ const totalNUPPLInstalledDcCapacity =
                 ]
                 : null;
 
+// =====================================================
+// 11. PGT END
+//
+// FINAL NUPPL PGT END RULE:
+//
+// 1. Start from PGT START
+// 2. Continue until selected TO TIME
+// 3. Missing GHI/GII in the middle
+//    must NOT stop the PGT
+// 4. Continue searching for next valid GHI/GII row
+// 5. Low irradiance values like 40, 20, 10
+//    are VALID
+// 6. If cumulative GII reaches 5000 Wh/m²:
+//       -> CURRENT VALID ROW = PGT END
+// 7. If 5000 is NOT reached:
+//       -> LAST VALID GHI/GII ROW = PGT END
+//
+// Example:
+//
+// 11:30  valid
+// 11:45  valid
+// 12:00  missing
+// 12:15  valid
+// 12:30  valid
+// ...
+// 17:45  valid
+// 18:00  missing
+//
+// If 5000 is not reached:
+//
+// PGT END = 17:45
+//
+// =====================================================
+
+let pgtEndIndex =
+    -1;
+
+let pgtCumulativeGii =
+    0;
+
+let pgtReached5000 =
+    false;
+
+
+// =====================================================
+// START PGT END SEARCH
+// =====================================================
+
+if (
+    pgtStartIndex >= 0
+) {
+
+    for (
+        let i =
+            pgtStartIndex;
+
+        i < report.length;
+
+        i++
+    ) {
+
+        const row =
+            report[i];
+
 
         // =================================================
-        // 11. PGT END
-        //
-        // SAME LOGIC AS EXISTING PGT
-        //
-        // Once PGT starts:
-        //
-        // GHI + GII valid -> continue
-        //
-        // GHI/GII invalid/null -> stop
-        //
-        // Last valid row = PGT END
+        // CHECK GHI VALID
         // =================================================
 
-        let pgtEndIndex =
-            -1;
+        const ghiValid =
+            row.ghi !== null &&
+            row.ghi !== undefined &&
+            row.ghi !== "" &&
+            !isNaN(
+                Number(
+                    row.ghi
+                )
+            );
 
+
+        // =================================================
+        // CHECK GII VALID
+        // =================================================
+
+        const giiValid =
+            row.gii !== null &&
+            row.gii !== undefined &&
+            row.gii !== "" &&
+            !isNaN(
+                Number(
+                    row.gii
+                )
+            );
+
+
+        // =================================================
+        // MISSING GHI / GII
+        //
+        // DO NOT STOP
+        //
+        // Just skip this row and continue.
+        // =================================================
 
         if (
-            pgtStartIndex >= 0
+            !ghiValid ||
+            !giiValid
         ) {
 
-            for (
-                let i =
-                    pgtStartIndex;
-
-                i < report.length;
-
-                i++
-            ) {
-
-                const row =
-                    report[i];
-
-
-                const ghiValid =
-                    row.ghi !== null &&
-                    row.ghi !== undefined &&
-                    row.ghi !== "" &&
-                    !isNaN(
-                        Number(
-                            row.ghi
-                        )
-                    );
-
-
-                const giiValid =
-                    row.gii !== null &&
-                    row.gii !== undefined &&
-                    row.gii !== "" &&
-                    !isNaN(
-                        Number(
-                            row.gii
-                        )
-                    );
-
-
-                if (
-                    ghiValid &&
-                    giiValid
-                ) {
-
-                    pgtEndIndex =
-                        i;
-
-                }
-                else {
-
-                    break;
-
-                }
-
-            }
+            continue;
 
         }
 
 
-        const pgtEndRow =
-            pgtEndIndex >= 0
-                ? report[
-                    pgtEndIndex
-                ]
-                : null;
+        // =================================================
+        // VALID GHI + GII
+        //
+        // Keep this as latest possible PGT END.
+        // =================================================
+
+        pgtEndIndex =
+            i;
 
 
+        // =================================================
+        // ADD GII IRRADIATION
+        // =================================================
+
+        const interval =
+            Number(
+                row.giiIrradiationInterval || 0
+            );
+
+
+        pgtCumulativeGii +=
+            interval;
+
+
+        // =================================================
+        // 5000 Wh/m² REACHED
+        //
+        // CURRENT VALID ROW = PGT END
+        // =================================================
+
+        if (
+            pgtCumulativeGii >= 5000
+        ) {
+
+            pgtEndIndex =
+                i;
+
+            pgtReached5000 =
+                true;
+
+            break;
+        }
+
+    }
+
+}
+
+
+// =====================================================
+// FINAL PGT END ROW
+//
+// 5000 reached:
+//     -> row where cumulative GII reaches 5000
+//
+// 5000 NOT reached:
+//     -> last actual valid GHI/GII row
+//        within selected TO TIME
+// =====================================================
+
+const pgtEndRow =
+    pgtEndIndex >= 0
+        ? report[
+            pgtEndIndex
+        ]
+        : null;
         // =================================================
         // 12. LIMIT REPORT CALCULATION TO PGT RANGE
         // =================================================
@@ -3856,6 +3982,371 @@ async function getNUPPLPgtStations() {
     }
 
 }
+
+// =====================================================
+// NLCIL PGT SUMMARY REPORT
+// =====================================================
+// Returns all NLCIL buildings with Performance Ratio
+// =====================================================
+
+async function getNLCILPgtSummary(
+    date,
+    fromTime,
+    toTime
+) {
+    try {
+
+        console.log(
+            "========================================"
+        );
+
+        console.log(
+            "NLCIL PGT SUMMARY REPORT START"
+        );
+
+        // =================================================
+        // 1. GET ALL NLCIL BUILDINGS
+        // =================================================
+
+        const stations =
+            await getNLCILPgtStations();
+
+
+        // =================================================
+        // 2. CALCULATE PGT FOR ALL BUILDINGS
+        // =================================================
+
+        const results =
+            await Promise.allSettled(
+
+                stations.map(
+                    async (station) => {
+
+                        try {
+
+                            const report =
+                                await getPgtReport(
+                                    station.stationId,
+                                    date,
+                                    fromTime,
+                                    toTime
+                                );
+
+
+                            const calculation =
+                                report?.pgtCalculation;
+
+
+                          return {
+    buildingName:
+        station.buildingName,
+
+    performanceRatio:
+        calculation?.performanceRatio
+        ?? null
+};
+
+                        }
+                        catch (err) {
+
+                            console.error(
+                                "NLCIL SUMMARY BUILDING ERROR:",
+                                station.buildingName,
+                                err.message
+                            );
+
+
+                           return {
+    buildingName:
+        station.buildingName,
+
+    performanceRatio:
+        null
+};
+
+                        }
+
+                    }
+                )
+
+            );
+
+
+        // =================================================
+        // 3. CONVERT RESULTS
+        // =================================================
+
+        const summary =
+            results.map(
+                result => {
+
+                    if (
+                        result.status ===
+                        "fulfilled"
+                    ) {
+
+                        return result.value;
+
+                    }
+
+
+                    return {
+    buildingName:
+        "Unknown",
+
+    performanceRatio:
+        null
+};
+
+                }
+            );
+
+
+        // =================================================
+        // 4. SORT BY BUILDING NAME
+        // =================================================
+
+        summary.sort(
+            (a, b) =>
+                String(
+                    a.buildingName
+                ).localeCompare(
+                    String(
+                        b.buildingName
+                    )
+                )
+        );
+
+
+        // =================================================
+        // 5. FINAL RESPONSE
+        // =================================================
+
+        return {
+
+            campus:
+                "NLCIL",
+
+            date,
+
+            fromTime,
+
+            toTime,
+
+            guaranteedPr:
+                75,
+
+            totalBuildings:
+                summary.length,
+
+            buildings:
+                summary
+
+        };
+
+    }
+    catch (err) {
+
+        console.error(
+            "NLCIL PGT SUMMARY ERROR:",
+            err
+        );
+
+        throw err;
+
+    }
+}
+
+
+// =====================================================
+// NUPPL PGT SUMMARY REPORT
+// =====================================================
+// Returns ALL NUPPL buildings with Performance Ratio
+// =====================================================
+
+async function getNUPPLPgtSummary(
+    date,
+    fromTime,
+    toTime
+) {
+    try {
+
+        console.log(
+            "========================================"
+        );
+
+        console.log(
+            "NUPPL PGT SUMMARY REPORT START"
+        );
+
+
+        // =================================================
+        // 1. GET ALL NUPPL BUILDINGS
+        // =================================================
+
+        const stations =
+            await getNUPPLPgtStations();
+
+
+        // =================================================
+        // 2. CALCULATE PGT FOR EACH BUILDING
+        // =================================================
+
+        const results =
+            await Promise.allSettled(
+
+                stations.map(
+                    async (station) => {
+
+                        try {
+
+                            const report =
+                                await getNUPPLPgtReport(
+                                    date,
+                                    fromTime,
+                                    toTime,
+                                    station.stationId
+                                );
+
+
+                            const calculation =
+                                report?.pgtCalculation;
+
+
+                            return {
+
+                                stationId:
+                                    station.stationId,
+
+                                buildingName:
+                                    station.buildingName,
+
+                                performanceRatio:
+                                    calculation?.performanceRatio
+                                    ?? null
+
+                            };
+
+                        }
+                        catch (err) {
+
+                            console.error(
+                                "NUPPL SUMMARY BUILDING ERROR:",
+                                station.buildingName,
+                                err.message
+                            );
+
+
+                            return {
+
+                                stationId:
+                                    station.stationId,
+
+                                buildingName:
+                                    station.buildingName,
+
+                                performanceRatio:
+                                    null
+
+                            };
+
+                        }
+
+                    }
+                )
+
+            );
+
+
+        // =================================================
+        // 3. CONVERT RESULTS
+        // =================================================
+
+        const summary =
+            results.map(
+                result => {
+
+                    if (
+                        result.status ===
+                        "fulfilled"
+                    ) {
+
+                        return result.value;
+
+                    }
+
+
+                    return {
+
+                        stationId:
+                            null,
+
+                        buildingName:
+                            "Unknown",
+
+                        performanceRatio:
+                            null
+
+                    };
+
+                }
+            );
+
+
+        // =================================================
+        // 4. SORT BY BUILDING NAME
+        // =================================================
+
+        summary.sort(
+            (a, b) =>
+                String(
+                    a.buildingName
+                ).localeCompare(
+                    String(
+                        b.buildingName
+                    )
+                )
+        );
+
+
+        // =================================================
+        // 5. FINAL RESPONSE
+        // =================================================
+
+        return {
+
+            campus:
+                "NUPPL",
+
+            date,
+
+            fromTime,
+
+            toTime,
+
+            guaranteedPr:
+                75,
+
+            totalBuildings:
+                summary.length,
+
+            buildings:
+                summary
+
+        };
+
+    }
+    catch (err) {
+
+        console.error(
+            "NUPPL PGT SUMMARY ERROR:",
+            err
+        );
+
+        throw err;
+
+    }
+}
 // ================= EXPORT =================
 
 module.exports={
@@ -3873,6 +4364,8 @@ getGraph,
  getPgtReport,
  getNLCILPgtStations,
  getNUPPLPgtReport,
- getNUPPLPgtStations
+ getNUPPLPgtStations,
+ getNLCILPgtSummary,
+  getNUPPLPgtSummary
 
 };

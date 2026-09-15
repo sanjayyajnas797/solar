@@ -31,7 +31,11 @@ const {
 
    getNUPPLPgtReport,
 
-   getNUPPLPgtStations
+   getNUPPLPgtStations,
+
+   getNLCILPgtSummary,
+
+   getNUPPLPgtSummary
    
 
 } = require("./service");
@@ -660,6 +664,171 @@ router.get(
 
             console.error(
                 "NUPPL PGT Report Route Error:",
+                err.message
+            );
+
+
+            res.status(500).json({
+
+                error:
+                    err.message
+
+            });
+
+        }
+
+    }
+);
+
+// =====================================================
+// NLCIL PGT SUMMARY REPORT
+// =====================================================
+
+router.get(
+    "/pgt/summary",
+    async (req, res) => {
+
+        try {
+
+           const {
+    campus,
+    date,
+    fromTime,
+    toTime
+} = req.query;
+
+
+            // =============================================
+            // VALIDATE DATE
+            // =============================================
+
+            if (!date) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Date is required"
+
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE TIME RANGE
+            // =============================================
+
+            if (
+                !fromTime ||
+                !toTime
+            ) {
+
+                return res.status(400).json({
+
+                    error:
+                        "From Time and To Time are required"
+
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE TIME ORDER
+            // =============================================
+
+            if (
+                fromTime >= toTime
+            ) {
+
+                return res.status(400).json({
+
+                    error:
+                        "To Time must be greater than From Time"
+
+                });
+
+            }
+
+
+            // =============================================
+            // GET NLCIL SUMMARY
+            // =============================================
+
+          
+
+
+            // =============================================
+            // RESPONSE
+            // =============================================
+
+         // =============================================
+// GET PGT SUMMARY BY CAMPUS
+// =============================================
+
+const selectedCampus =
+    String(
+        campus || "NLCIL"
+    )
+    .trim()
+    .toUpperCase();
+
+
+// =============================================
+// NLCIL
+// =============================================
+
+if (
+    selectedCampus === "NLCIL"
+) {
+
+    const data =
+        await getNLCILPgtSummary(
+            date,
+            fromTime,
+            toTime
+        );
+
+    return res.json(data);
+}
+
+
+// =============================================
+// NUPPL
+// =============================================
+
+if (
+    selectedCampus === "NUPPL"
+) {
+
+    const data =
+        await getNUPPLPgtSummary(
+            date,
+            fromTime,
+            toTime
+        );
+
+    return res.json(data);
+}
+
+
+// =============================================
+// INVALID CAMPUS
+// =============================================
+
+return res.status(400).json({
+
+    error:
+        "Invalid campus. Use NLCIL or NUPPL."
+
+});
+
+        }
+
+        catch (err) {
+
+            console.error(
+                "NLCIL PGT Summary Route Error:",
                 err.message
             );
 

@@ -2916,143 +2916,52 @@ link.download =
     </select>
 
 </div>
+{/* BUILDING */}
+
 <div className="pgt-filter-item">
 
     <label>
         Building
     </label>
 
-    <div className="pgt-custom-building-dropdown">
+    <select
+        value={selectedStationId}
+        onChange={(e) => {
 
-        {/* SELECTED BUILDING */}
-        <button
-            type="button"
-            className={`pgt-building-trigger ${
-                isBuildingDropdownOpen ? "active" : ""
-            }`}
-            onClick={() =>
-                setIsBuildingDropdownOpen(
-                    !isBuildingDropdownOpen
-                )
-            }
-        >
+            const stationId = e.target.value;
 
-            <span className="pgt-building-selected">
+            const station =
+                pgtStations.find(
+                    item =>
+                        String(item.stationId) ===
+                        String(stationId)
+                );
 
-                <span className="pgt-building-icon">
-                    🏢
-                </span>
+            setSelectedStationId(stationId);
 
-                {selectedBuildingName ||
-                    "Select Building"}
+            setSelectedBuildingName(
+                station?.buildingName || ""
+            );
 
-            </span>
+        }}
+    >
 
-            <span
-                className={`pgt-building-arrow ${
-                    isBuildingDropdownOpen
-                        ? "rotate"
-                        : ""
-                }`}
+        <option value="">
+            Select Building
+        </option>
+
+        {pgtStations.map((station) => (
+
+            <option
+                key={station.stationId}
+                value={station.stationId}
             >
-                ▼
-            </span>
+                {station.buildingName}
+            </option>
 
-        </button>
+        ))}
 
-
-        {/* BUILDING LIST */}
-        {isBuildingDropdownOpen && (
-
-            <div className="pgt-building-menu">
-
-                <div className="pgt-building-menu-title">
-                    Select Building
-                </div>
-
-                <div className="pgt-building-list">
-
-                    {pgtStations.length === 0 ? (
-
-                        <div className="pgt-no-building">
-                            No buildings available
-                        </div>
-
-                    ) : (
-
-                        pgtStations.map((station) => (
-
-                            <button
-                                type="button"
-                                key={station.stationId}
-                                className={`pgt-building-option ${
-                                    selectedStationId ===
-                                    station.stationId
-                                        ? "selected"
-                                        : ""
-                                }`}
-                                onClick={() => {
-
-                                    setSelectedStationId(
-                                        station.stationId
-                                    );
-
-                                    setSelectedBuildingName(
-                                        station.buildingName
-                                    );
-
-                                    setIsBuildingDropdownOpen(
-                                        false
-                                    );
-
-                                }}
-                            >
-
-                                <span className="pgt-option-icon">
-                                    🏢
-                                </span>
-
-                                <span className="pgt-option-content">
-
-                                    <span className="pgt-option-name">
-                                        {station.buildingName}
-                                    </span>
-
-                                    {station.capacity !==
-                                        undefined &&
-                                        station.capacity !==
-                                        null && (
-
-                                        <span className="pgt-option-capacity">
-                                            {station.capacity} kWp
-                                        </span>
-
-                                    )}
-
-                                </span>
-
-                                {selectedStationId ===
-                                    station.stationId && (
-
-                                    <span className="pgt-option-check">
-                                        ✓
-                                    </span>
-
-                                )}
-
-                            </button>
-
-                        ))
-
-                    )}
-
-                </div>
-
-            </div>
-
-        )}
-
-    </div>
+    </select>
 
 </div>
 

@@ -461,7 +461,7 @@ SUN Industrial Automations & Solutions Pvt Ltd
     className="report-btn"
     onClick={() => navigate("/report")}
 >
-    📄 REPORT
+    📄 PGT SUMMARY REPORT
 </button>
 
 <div className="live-container">
