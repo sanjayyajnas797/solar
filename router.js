@@ -27,20 +27,26 @@ const {
 
    getNLCILPgtStations,
 
-
-
    getNUPPLPgtReport,
 
    getNUPPLPgtStations,
 
    getNLCILPgtSummary,
 
-   getNUPPLPgtSummary
+   getNUPPLPgtSummary,
+
+   getBTPSPgtReport,
+   getBTPSPgtStations,
+   getBTPSPgtSummary
    
 
 } = require("./service");
 
 const { getGIIStatus } = require("./mqtt");
+
+const {
+    getActiveAlerts
+} = require("./alertService");
 
 const db = require("./db");
 
@@ -514,6 +520,18 @@ router.get(
 
             }
 
+            // =============================================
+// BTPS
+// =============================================
+
+if (campus === "BTPS") {
+
+    const data =
+        await getBTPSPgtStations();
+
+    return res.json(data);
+}
+
 
             // =============================================
             // INVALID CAMPUS
@@ -811,6 +829,24 @@ if (
     return res.json(data);
 }
 
+// =============================================
+// BTPS
+// =============================================
+
+if (
+    selectedCampus === "BTPS"
+) {
+
+    const data =
+        await getBTPSPgtSummary(
+            date,
+            fromTime,
+            toTime
+        );
+
+    return res.json(data);
+}
+
 
 // =============================================
 // INVALID CAMPUS
@@ -844,5 +880,146 @@ return res.status(400).json({
 
     }
 );
+
+
+// =====================================================
+// BTPS PGT REPORT - SELECTED BUILDING
+// =====================================================
+
+router.get(
+    "/pgt/btps/report/:stationId",
+    async (req, res) => {
+
+        try {
+
+            const {
+                stationId
+            } = req.params;
+
+            const {
+                date,
+                fromTime,
+                toTime
+            } = req.query;
+
+
+            // =============================================
+            // VALIDATE STATION
+            // =============================================
+
+            if (!stationId) {
+
+                return res.status(400).json({
+                    error: "Station ID is required"
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE DATE
+            // =============================================
+
+            if (!date) {
+
+                return res.status(400).json({
+                    error: "Date is required"
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE TIME
+            // =============================================
+
+            if (!fromTime || !toTime) {
+
+                return res.status(400).json({
+                    error:
+                        "From Time and To Time are required"
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE TIME ORDER
+            // =============================================
+
+            if (fromTime >= toTime) {
+
+                return res.status(400).json({
+                    error:
+                        "To Time must be greater than From Time"
+                });
+
+            }
+
+
+            // =============================================
+            // GET BTPS PGT
+            // =============================================
+
+            const data =
+                await getBTPSPgtReport(
+                    date,
+                    fromTime,
+                    toTime,
+                    stationId
+                );
+
+
+            // =============================================
+            // RESPONSE
+            // =============================================
+
+            res.json(data);
+
+        }
+
+        catch (err) {
+
+            console.error(
+                "BTPS PGT Report Route Error:",
+                err.message
+            );
+
+            res.status(500).json({
+                error: err.message
+            });
+
+        }
+
+    }
+);
+
+// ================= INVERTER ALERTS =================
+
+router.get("/alerts", (req, res) => {
+    try {
+
+        const alerts = getActiveAlerts();
+
+        res.json({
+            success: true,
+            count: alerts.length,
+            alerts
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Alert API error:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch alerts"
+        });
+
+    }
+});
 
 module.exports = router;

@@ -561,6 +561,10 @@ const res = await axios.get(
     <option value="NUPPL">
         NUPPL
     </option>
+
+    <option value="BTPS">
+    BTPS
+</option>
 </select>
 
                 </div>

@@ -43,6 +43,92 @@ const [weatherData,setWeatherData] = useState(()=>{
 });
 const [updateTime,setUpdateTime] = useState("");
 
+const [activeAlerts, setActiveAlerts] = useState([]);
+
+const [alertPosition, setAlertPosition] = useState({
+  top: 120,
+  left: null
+});
+
+const alertDragRef = useRef(null);
+
+const handleAlertMouseDown = (e) => {
+
+  if (e.button !== 0) return;
+
+  // Scrollbar click/drag should not move popup
+  if (e.target.closest("::-webkit-scrollbar")) {
+    return;
+  }
+
+  const popup = e.currentTarget;
+  const rect = popup.getBoundingClientRect();
+
+  alertDragRef.current = {
+    offsetX: e.clientX - rect.left,
+    offsetY: e.clientY - rect.top
+  };
+
+  const handleMouseMove = (event) => {
+
+    const popupWidth = rect.width;
+    const popupHeight = rect.height;
+
+    let left =
+      event.clientX - alertDragRef.current.offsetX;
+
+    let top =
+      event.clientY - alertDragRef.current.offsetY;
+
+    // Keep popup inside screen
+    left = Math.max(
+      5,
+      Math.min(
+        left,
+        window.innerWidth - popupWidth - 5
+      )
+    );
+
+    top = Math.max(
+      5,
+      Math.min(
+        top,
+        window.innerHeight - popupHeight - 5
+      )
+    );
+
+    setAlertPosition({
+      top,
+      left
+    });
+  };
+
+  const handleMouseUp = () => {
+
+    document.removeEventListener(
+      "mousemove",
+      handleMouseMove
+    );
+
+    document.removeEventListener(
+      "mouseup",
+      handleMouseUp
+    );
+
+    alertDragRef.current = null;
+  };
+
+  document.addEventListener(
+    "mousemove",
+    handleMouseMove
+  );
+
+  document.addEventListener(
+    "mouseup",
+    handleMouseUp
+  );
+};
+
 const [giiData,setGiiData]=useState({
     horizontal_irradiance:0,
     inclined_irradiance:0,
@@ -184,6 +270,49 @@ const fetchLiveWeather = async () => {
   } finally {
 
     liveRequestRef.current = false;
+
+  }
+
+};
+
+// =====================================================
+// LIVE INVERTER ALERTS
+// =====================================================
+
+const fetchAlerts = async () => {
+
+  try {
+
+    const res = await fetch(
+      `${API_BASE}/alerts`
+    );
+
+    if (!res.ok) {
+      throw new Error("Alert API failed");
+    }
+
+    const result = await res.json();
+
+    if (result.success) {
+
+      setActiveAlerts(
+        Array.isArray(result.alerts)
+          ? result.alerts
+          : []
+      );
+
+    } else {
+
+      setActiveAlerts([]);
+
+    }
+
+  } catch (err) {
+
+    console.log(
+      "Alert Fetch Error:",
+      err
+    );
 
   }
 
@@ -382,16 +511,17 @@ console.log("Mainbuilding error:",e);
 // =====================================================
 // START LIVE UPDATE
 // =====================================================
-
 useEffect(() => {
 
-  // First load immediately
+  // First load
   fetchData();
 
   fetchLiveWeather();
 
+  fetchAlerts();
 
-  // Building / energy data
+
+  // Building / Energy data
   const buildingTimer =
     setInterval(
       fetchData,
@@ -399,11 +529,18 @@ useEffect(() => {
     );
 
 
-  // MQTT weather + GII
-  // Check every 1 second
+  // MQTT Weather + GII
   const liveTimer =
     setInterval(
       fetchLiveWeather,
+      5000
+    );
+
+
+  // Inverter Alerts
+  const alertTimer =
+    setInterval(
+      fetchAlerts,
       5000
     );
 
@@ -416,6 +553,10 @@ useEffect(() => {
 
     clearInterval(
       liveTimer
+    );
+
+    clearInterval(
+      alertTimer
     );
 
   };
@@ -483,6 +624,162 @@ Logout
 <div className="header-energy-flow"></div>
 
 </div>
+
+{/* =====================================================
+    FLOATING INVERTER ALERTS
+===================================================== */}
+
+{activeAlerts.length > 0 && (
+
+  <div
+  onMouseDown={handleAlertMouseDown}
+  style={{
+    position: "fixed",
+    top: `${alertPosition.top}px`,
+
+  ...(alertPosition.left !== null
+    ? { left: `${alertPosition.left}px` }
+    : { right: "24px" }
+  ),
+
+  width: "420px",
+      maxHeight: "280px",
+      overflowY: "auto",
+
+      zIndex: 9999,
+
+      background: "rgba(35, 20, 45, 0.97)",
+      border: "1px solid #ff3b3b",
+      borderRadius: "10px",
+
+      boxShadow: "0 0 18px rgba(255, 40, 40, 0.30)",
+
+      padding: "10px 12px"
+    }}
+  >
+
+    {/* ALERT HEADER */}
+
+   <div
+  
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+
+    color: "#ff5555",
+    fontSize: "14px",
+    fontWeight: "700",
+
+    marginBottom: "8px",
+    paddingBottom: "7px",
+
+    borderBottom: "1px solid rgba(255, 70, 70, 0.35)"
+
+   
+  }}
+>
+
+      <span>
+        🚨 ACTIVE INVERTER ALERTS
+      </span>
+
+      <span
+        style={{
+          background: "#ff3030",
+          color: "#fff",
+          borderRadius: "12px",
+          padding: "2px 8px",
+          fontSize: "11px"
+        }}
+      >
+        {activeAlerts.length}
+      </span>
+
+    </div>
+
+
+    {/* ALERT LIST */}
+
+    {activeAlerts.map((alert) => (
+
+      <div
+        key={alert.id}
+        style={{
+          background: "rgba(0, 0, 0, 0.28)",
+          borderRadius: "6px",
+
+          padding: "8px 10px",
+          marginBottom: "6px",
+
+          borderLeft: "3px solid #ff3b3b"
+        }}
+      >
+
+        {/* INVERTER + BUILDING */}
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+
+            fontSize: "13px",
+            marginBottom: "4px"
+          }}
+        >
+
+          <span
+            style={{
+              color: "#ff5555",
+              fontWeight: "700"
+            }}
+          >
+            {alert.inverterName}
+          </span>
+
+          <span
+            style={{
+              color: "#ffffff"
+            }}
+          >
+            {alert.buildingName}
+          </span>
+
+        </div>
+
+
+        {/* PROBLEM */}
+
+        <div
+          style={{
+            color:
+              alert.type === "INVERTER_OFFLINE"
+                ? "#ff5555"
+                : "#ffc107",
+
+            fontSize: "12px",
+            fontWeight: "600"
+          }}
+        >
+
+          {alert.type === "INVERTER_OFFLINE"
+            ? "OFFLINE"
+            : "DATA STUCK"}
+
+          {" — "}
+
+          {alert.reason}
+
+        </div>
+
+      </div>
+
+    ))}
+
+  </div>
+
+)}
 
 <div className="scada-container">
 

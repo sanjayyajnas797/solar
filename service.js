@@ -12,6 +12,10 @@ const { getMQTTWeather } = require('./mqtt');
 
 const db = require("./db");
 
+const {
+    checkInverter
+} = require("./alertService");
+
 const axiosInstance = axios.create({
     httpAgent: new http.Agent({ keepAlive: true }),
     httpsAgent: new https.Agent({ keepAlive: true }),
@@ -278,89 +282,175 @@ const latestResults = await Promise.all(
   inverters.map(inv => getLatest(inv.deviceSn))
 );
 
-for (let i = 0; i < inverters.length; i++) {
+      for (let i = 0; i < inverters.length; i++) {
 
   const latest = latestResults[i];
 
-  // ================= STATUS =================
+  // =====================================================
+// INVERTER ALERT CHECK
+// =====================================================
 
-      // ================= STATUS =================
+checkInverter({
 
-      if (latest?.deviceState === 3) {
+    stationId: station.id,
 
-        deviceStatus = "ALERT";
+    buildingName:
+        station.name,
 
-      }
-      else if (latest?.deviceState === 1) {
+   campus:
+    String(station.name).toUpperCase().includes("NLCIL")
+        ? "NLCIL"
+        : String(station.name).toUpperCase().includes("NLCIC")
+            ? "NLCIC"
+            : String(station.name).toUpperCase().includes("NTPL")
+                ? "NTPL"
+                : String(station.name).toUpperCase().includes("NUPPL")
+                    ? "NUPPL"
+                    : String(station.name).toUpperCase().includes("BTPS")
+                        ? "BTPS"
+                        : "OTHERS",
 
-        deviceStatus = "ONLINE";
+    inverterName:
+        `INV-${i + 1}`,
 
-      }
-      else {
+    deviceSn:
+        String(inverters[i].deviceSn),
 
-        deviceStatus = "OFFLINE";
+    latest
 
-      }
+});
 
-      // ================= MPPT =================
+  // =====================================================
+  // CHECK LATEST INVERTER DATA FRESHNESS
+  // Deye collectionTime is Unix timestamp in seconds
+  // =====================================================
 
-      for (let pv = 1; pv <= 8; pv++) {
+  const collectionTime =
+    Number(latest?.collectionTime || 0);
 
-        const voltage = Number(
-          latest?.dataList?.find(
-            d => d.key === `DCVoltagePV${pv}`
-          )?.value || 0
-        );
+  const nowSeconds =
+    Math.floor(Date.now() / 1000);
 
-        const current = Number(
-          latest?.dataList?.find(
-            d => d.key === `DCCurrentPV${pv}`
-          )?.value || 0
-        );
+  const dataAge =
+    nowSeconds - collectionTime;
 
-        const power = voltage * current;
+  // 2 minutes tolerance
+  const isStale =
+    collectionTime === 0 ||
+    dataAge > 480;
 
-        if (voltage > 0 || current > 0) {
 
-          mpptData[`inv${i + 1}_pv${pv}`] = {
 
-            voltage,
-            current,
-            power: Number(power.toFixed(1))
 
-          };
+  // =====================================================
+  // IF DATA IS STALE
+  // DON'T USE OLD INVERTER VALUES
+  // =====================================================
 
-          totalMPPTPower += power;
+  if (isStale) {
 
-        }
 
-      }
 
-      // ================= PRODUCTION =================
+    // Do NOT calculate:
+    // today
+    // currentPower
+    // MPPT
 
-      today += Number(
-        latest?.dataList?.find(
-          d => d.key === "DailyActiveProduction"
-        )?.value || 0
-      );
+    continue;
+  }
 
-      total += Number(
-        latest?.dataList?.find(
-          d => d.key === "TotalActiveProduction"
-        )?.value || 0
-      );
 
-      const powerRaw = Number(
-        latest?.dataList?.find(
-          d => d.key === "TotalActiveACOutputPower"
-        )?.value || 0
-      );
+  // =====================================================
+  // DATA IS FRESH → REAL STATUS
+  // =====================================================
 
-      currentPower += powerRaw / 1000;
+  if (latest?.deviceState === 3) {
 
+    deviceStatus = "ALERT";
+
+  }
+  else if (latest?.deviceState === 1) {
+
+    deviceStatus = "ONLINE";
+
+  }
+  else {
+
+    deviceStatus = "OFFLINE";
+
+  }
+
+
+  // =====================================================
+  // MPPT
+  // =====================================================
+
+  for (let pv = 1; pv <= 8; pv++) {
+
+    const voltage = Number(
+      latest?.dataList?.find(
+        d => d.key === `DCVoltagePV${pv}`
+      )?.value || 0
+    );
+
+    const current = Number(
+      latest?.dataList?.find(
+        d => d.key === `DCCurrentPV${pv}`
+      )?.value || 0
+    );
+
+    const power = voltage * current;
+
+    if (voltage > 0 || current > 0) {
+
+      mpptData[`inv${i + 1}_pv${pv}`] = {
+        voltage,
+        current,
+        power: Number(power.toFixed(1))
+      };
+
+      totalMPPTPower += power;
     }
+  }
 
-    const totalMPPTkW = totalMPPTPower / 1000;
+
+  // =====================================================
+  // TODAY PRODUCTION
+  // =====================================================
+
+  today += Number(
+    latest?.dataList?.find(
+      d => d.key === "DailyActiveProduction"
+    )?.value || 0
+  );
+
+
+  // =====================================================
+  // CUMULATIVE
+  // =====================================================
+
+  total += Number(
+    latest?.dataList?.find(
+      d => d.key === "TotalActiveProduction"
+    )?.value || 0
+  );
+
+
+  // =====================================================
+  // LIVE POWER
+  // =====================================================
+
+  const powerRaw = Number(
+    latest?.dataList?.find(
+      d => d.key === "TotalActiveACOutputPower"
+    )?.value || 0
+  );
+
+  currentPower += powerRaw / 1000;
+
+}
+
+    
 
     // ================= CAMPUS FIND =================
 
@@ -414,7 +504,7 @@ for (let i = 0; i < inverters.length; i++) {
 
       currentPower: Number(currentPower.toFixed(1)),
 
-      mpptTotalPower: Number(totalMPPTkW.toFixed(1)),
+     mpptTotalPower: Number(totalMPPTPower.toFixed(1)),
 
       mppt: mpptData
 
@@ -1241,23 +1331,23 @@ const capacityMap = {
 
     "NLCILEDUCATIONOFFICE": 23.73,
 
-    "NLCILLDCMAINBUILDINGINV225KW": 72.5,
+    "NLCILLDCMAINBUILDINGINV225KW": 145.77,
 
-    "NLCILLDCMAINBULIDINGINV1": 72.5,
+    "NLCILLDCMAINBULIDINGINV1": 145.77,
 
-    "NLCILGIRLSHIGHSCHOOLINV1": 125.43,
+    "NLCILGIRLSHIGHSCHOOLINV1": 250.86,
 
-    "NLCILGIRLSHIGHSCHOOLINV2": 125.43,
+    "NLCILGIRLSHIGHSCHOOLINV2": 250.86,
 
-    "NLCILBOYSHIGHSCHOOLINV1": 125.43,
+    "NLCILBOYSHIGHSCHOOLINV1": 250.86,
 
-    "NLCILBOYSHIGHSCHOOLINV2": 125.43,
+    "NLCILBOYSHIGHSCHOOLINV2": 250.86,
 
     "NLCILTPS2EXPSWITCHYARD40KW": 36.13,
 
-    "NLCILTPS2SWITCHYARDBUILDINGINV1": 71.19,
+    "NLCILTPS2SWITCHYARDBUILDINGINV1": 142.38,
 
-    "NLCILTPS2SWITCHYARDBUILDINGINV2": 71.19,
+    "NLCILTPS2SWITCHYARDBUILDINGINV2": 142.38,
 
     "NLCILPSTCBUILDING": 123.17,
 
@@ -4343,6 +4433,1573 @@ async function getNUPPLPgtSummary(
 
     }
 }
+
+// =====================================================
+// BTPS PGT CAPACITY MAP
+// =====================================================
+
+const btpsCapacityMap = {
+
+    "NLCBTPSOHCBUILDING25KW": 23.73,
+
+    "NLCBTPSOFFICERSCLUB": 27.12,
+
+    "NLCBTPSTAOFFICE25KW": 23.73,
+
+    "NLCBTPSNEWSCHOOLBUILDINGINV2": 149.16,
+
+    "NLCBTPSNEWSCHOOLBUILDINGINV1": 149.16,
+
+    "NLCBTPSEMPLOYEESCLUB": 28.82,
+
+    "NLCBTPSNEWCISFBARRACKS": 80.23,
+
+    "NLCBTPSTHERMALCANTEEN": 67.24
+
+};
+
+
+// =====================================================
+// GET BTPS INSTALLED DC CAPACITY
+// =====================================================
+
+function getBTPSInstalledDcCapacity(buildingName) {
+
+    const key =
+        normalizeBuildingName(buildingName);
+
+    const capacity =
+        btpsCapacityMap[key];
+
+    if (
+        capacity === undefined ||
+        capacity === null
+    ) {
+
+        console.warn(
+            "⚠️ BTPS PGT CAPACITY NOT FOUND",
+            {
+                buildingName,
+                normalizedKey: key
+            }
+        );
+
+        return null;
+    }
+
+    return Number(capacity);
+}
+
+
+// =====================================================
+// GET ALL BTPS STATIONS
+// =====================================================
+
+async function getBTPSStations() {
+
+    const buildings =
+        await getSubBuildings();
+
+    const btpsStations =
+        buildings.filter(
+            building =>
+                String(
+                    building.campus || ""
+                )
+                .toUpperCase() === "BTPS"
+        );
+
+    if (!btpsStations.length) {
+
+        throw new Error(
+            "No BTPS stations found"
+        );
+    }
+
+    return btpsStations;
+}
+
+
+// =====================================================
+// BTPS PGT COMBINED REPORT
+// =====================================================
+
+async function getBTPSPgtReport(
+    date,
+    fromTime,
+    toTime,
+    selectedStationId = null
+) {
+
+    try {
+
+        console.log(
+            "========================================"
+        );
+
+        console.log(
+            "BTPS PGT REPORT START"
+        );
+
+
+        // =================================================
+        // 1. GET ALL BTPS STATIONS
+        // =================================================
+
+        const btpsStations =
+            await getBTPSStations();
+
+
+        // =================================================
+        // SELECTED BUILDING
+        // =================================================
+
+        let reportStations =
+            btpsStations;
+
+        if (selectedStationId) {
+
+            reportStations =
+                btpsStations.filter(
+                    building =>
+                        Number(
+                            building.stationId ||
+                            building.id
+                        ) ===
+                        Number(
+                            selectedStationId
+                        )
+                );
+
+            if (!reportStations.length) {
+
+                throw new Error(
+                    `BTPS station not found: ${selectedStationId}`
+                );
+            }
+        }
+
+
+        // =================================================
+        // GET CAPACITY
+        // =================================================
+
+        const btpsStationDetails =
+            reportStations.map(
+                building => {
+
+                    const stationId =
+                        Number(
+                            building.stationId ||
+                            building.id
+                        );
+
+                    const buildingName =
+                        String(
+                            building.name || ""
+                        ).trim();
+
+                    const installedDcCapacity =
+                        getBTPSInstalledDcCapacity(
+                            buildingName
+                        );
+
+                    if (
+                        installedDcCapacity === null ||
+                        installedDcCapacity <= 0
+                    ) {
+
+                        throw new Error(
+                            `BTPS Installed DC capacity not configured for ${buildingName}`
+                        );
+                    }
+
+                    return {
+
+                        stationId,
+
+                        buildingName,
+
+                        campus: "BTPS",
+
+                        installedDcCapacity
+
+                    };
+
+                }
+            );
+
+
+        // =================================================
+        // TOTAL BTPS INSTALLED CAPACITY
+        // =================================================
+
+        const totalBTPSInstalledDcCapacity =
+            Number(
+                btpsStationDetails
+                    .reduce(
+                        (
+                            sum,
+                            station
+                        ) =>
+                            sum +
+                            station.installedDcCapacity,
+                        0
+                    )
+                    .toFixed(2)
+            );
+
+
+        // =================================================
+        // 2. GET INVERTER DATA
+        // =================================================
+
+        const stationReports =
+            await Promise.all(
+                reportStations.map(
+                    async building => {
+
+                        const stationId =
+                            Number(
+                                building.stationId ||
+                                building.id
+                            );
+
+                        const data =
+                            await getPgtInverterEnergy(
+                                stationId,
+                                date
+                            );
+
+                        return {
+
+                            stationId,
+
+                            buildingName:
+                                building.name,
+
+                            data
+
+                        };
+
+                    }
+                )
+            );
+
+
+        // =================================================
+        // 3. COMBINE INVERTER DATA
+        // =================================================
+
+        const combinedTimeMap = {};
+
+
+        for (
+            const stationReport
+            of stationReports
+        ) {
+
+            for (
+                const row
+                of stationReport.data
+            ) {
+
+                if (
+                    !row ||
+                    !row.time
+                ) {
+                    continue;
+                }
+
+
+                const time =
+                    String(row.time)
+                        .substring(0, 5);
+
+
+                // Selected time range
+                if (
+                    time < fromTime ||
+                    time > toTime
+                ) {
+                    continue;
+                }
+
+
+                const energy =
+                    Number(
+                        row.inverterEnergy
+                    );
+
+
+                if (
+                    !Number.isFinite(
+                        energy
+                    )
+                ) {
+                    continue;
+                }
+
+
+                if (
+                    !combinedTimeMap[time]
+                ) {
+
+                    combinedTimeMap[time] =
+                        0;
+
+                }
+
+
+                combinedTimeMap[time] +=
+                    energy;
+
+            }
+
+        }
+
+
+        // =================================================
+        // 4. SORT COMBINED INVERTER DATA
+        // =================================================
+
+        const combinedInverterData =
+            Object.keys(
+                combinedTimeMap
+            )
+            .sort()
+            .map(time => ({
+
+                time:
+                    `${date} ${time}:00`,
+
+                inverterEnergy:
+                    Number(
+                        combinedTimeMap[time]
+                            .toFixed(2)
+                    )
+
+            }));
+
+
+        // =================================================
+        // 5. GET BTPS WEATHER DATA
+        //
+        // weather_logs
+        // campus = BTPS
+        //
+        // irradiance -> GHI
+        // inclined_irradiance -> GII
+        // =================================================
+
+        const weatherResult =
+            await db.query(
+                `
+                SELECT
+
+                    to_char(
+                        created_at
+                            AT TIME ZONE 'Asia/Kolkata',
+                        'YYYY-MM-DD HH24:MI:SS'
+                    ) AS time,
+
+                    irradiance,
+
+                    temperature,
+
+                    inclined_irradiance,
+
+                    cumulative_irradiance,
+
+                    inclined_cumulative
+
+                FROM weather_logs
+
+                WHERE campus = 'BTPS'
+
+                AND DATE(
+                    created_at
+                        AT TIME ZONE 'Asia/Kolkata'
+                ) = $1::date
+
+                ORDER BY created_at ASC
+                `,
+                [date]
+            );
+
+
+        const weatherData =
+            weatherResult.rows.map(
+                row => ({
+
+                    time:
+                        row.time,
+
+                    ghi:
+                        row.irradiance !== null &&
+                        row.irradiance !== undefined
+                            ? Number(
+                                row.irradiance
+                            )
+                            : null,
+
+                    gii:
+                        row.inclined_irradiance !== null &&
+                        row.inclined_irradiance !== undefined
+                            ? Number(
+                                row.inclined_irradiance
+                            )
+                            : null,
+
+                    moduleTemp:
+                        row.temperature !== null &&
+                        row.temperature !== undefined
+                            ? Number(
+                                row.temperature
+                            )
+                            : null,
+
+                    cumulative:
+                        row.cumulative_irradiance !== null &&
+                        row.cumulative_irradiance !== undefined
+                            ? Number(
+                                row.cumulative_irradiance
+                            )
+                            : null,
+
+                    inclinedCumulative:
+                        row.inclined_cumulative !== null &&
+                        row.inclined_cumulative !== undefined
+                            ? Number(
+                                row.inclined_cumulative
+                            )
+                            : null
+
+                })
+            );
+
+
+        // =================================================
+        // 6. COMBINE INVERTER + WEATHER
+        // =================================================
+
+        const report = [];
+
+
+        for (
+            const inverterRow
+            of combinedInverterData
+        ) {
+
+            const targetTime =
+                String(
+                    inverterRow.time
+                )
+                .substring(11, 16);
+
+
+            const targetParts =
+                targetTime.split(":");
+
+
+            const targetMinutes =
+                (
+                    Number(
+                        targetParts[0]
+                    ) * 60
+                )
+                +
+                Number(
+                    targetParts[1]
+                );
+
+
+            let nearestWeather =
+                null;
+
+            let minDifference =
+                Infinity;
+
+
+            // =================================================
+            // FIND NEAREST WEATHER
+            // =================================================
+
+            for (
+                const weatherRow
+                of weatherData
+            ) {
+
+                if (
+                    !weatherRow.time
+                ) {
+                    continue;
+                }
+
+
+                const weatherTime =
+                    weatherRow.time
+                        .split(" ")[1]
+                        .substring(0, 5);
+
+
+                const weatherParts =
+                    weatherTime.split(":");
+
+
+                const weatherMinutes =
+                    (
+                        Number(
+                            weatherParts[0]
+                        ) * 60
+                    )
+                    +
+                    Number(
+                        weatherParts[1]
+                    );
+
+
+                const difference =
+                    Math.abs(
+                        targetMinutes -
+                        weatherMinutes
+                    );
+
+
+                if (
+                    difference <
+                    minDifference
+                ) {
+
+                    minDifference =
+                        difference;
+
+                    nearestWeather =
+                        weatherRow;
+
+                }
+
+            }
+
+
+            // =================================================
+            // WEATHER WITHIN 10 MINUTES
+            // =================================================
+
+            if (
+                nearestWeather &&
+                minDifference <= 10
+            ) {
+
+                report.push({
+
+                    date,
+
+                    time:
+                        targetTime,
+
+                    ghi:
+                        nearestWeather.ghi,
+
+                    gii:
+                        nearestWeather.gii,
+
+                    moduleTemp:
+                        nearestWeather.moduleTemp,
+
+                    inverterEnergy:
+                        inverterRow.inverterEnergy,
+
+                    inverterEnergyInterval:
+                        null,
+
+                    netMeterReading:
+                        null,
+
+                    netExportEnergyInterval:
+                        null,
+
+                    ghiIrradiationInterval:
+                        null,
+
+                    giiIrradiationInterval:
+                        null
+
+                });
+
+            }
+            else {
+
+                report.push({
+
+                    date,
+
+                    time:
+                        targetTime,
+
+                    ghi: null,
+
+                    gii: null,
+
+                    moduleTemp: null,
+
+                    inverterEnergy:
+                        inverterRow.inverterEnergy,
+
+                    inverterEnergyInterval:
+                        null,
+
+                    netMeterReading:
+                        null,
+
+                    netExportEnergyInterval:
+                        null,
+
+                    ghiIrradiationInterval:
+                        null,
+
+                    giiIrradiationInterval:
+                        null
+
+                });
+
+            }
+
+        }
+
+
+        // =================================================
+        // 7. INVERTER ENERGY INTERVAL
+        // =================================================
+
+        let previousInverterEnergy =
+            null;
+
+
+        for (
+            const row
+            of report
+        ) {
+
+            if (
+                previousInverterEnergy !== null &&
+                row.inverterEnergy !== null &&
+                row.inverterEnergy !== undefined
+            ) {
+
+                row.inverterEnergyInterval =
+                    Number(
+                        (
+                            Number(
+                                row.inverterEnergy
+                            )
+                            -
+                            Number(
+                                previousInverterEnergy
+                            )
+                        ).toFixed(2)
+                    );
+
+
+                // Meter reset protection
+                if (
+                    row.inverterEnergyInterval < 0
+                ) {
+
+                    row.inverterEnergyInterval =
+                        0;
+
+                }
+
+            }
+
+
+            previousInverterEnergy =
+                row.inverterEnergy;
+
+        }
+
+
+        // =================================================
+        // 8. IRRADIATION INTERVAL
+        //
+        // ((CURRENT + NEXT) / 2) * 0.25
+        //
+        // IMPORTANT:
+        // Calculation starts from selected FROM TIME.
+        // PGT START does NOT control this calculation.
+        // =================================================
+
+        for (
+            let i = 0;
+            i < report.length - 1;
+            i++
+        ) {
+
+            const current =
+                report[i];
+
+            const next =
+                report[i + 1];
+
+
+            // =================================================
+            // GHI INTERVAL
+            // =================================================
+
+            if (
+                current.ghi !== null &&
+                current.ghi !== undefined &&
+                next.ghi !== null &&
+                next.ghi !== undefined
+            ) {
+
+                current.ghiIrradiationInterval =
+                    Number(
+                        (
+                            (
+                                Number(
+                                    current.ghi
+                                )
+                                +
+                                Number(
+                                    next.ghi
+                                )
+                            ) / 2
+                            * 0.25
+                        ).toFixed(2)
+                    );
+
+            }
+
+
+            // =================================================
+            // GII INTERVAL
+            // =================================================
+
+            if (
+                current.gii !== null &&
+                current.gii !== undefined &&
+                next.gii !== null &&
+                next.gii !== undefined
+            ) {
+
+                current.giiIrradiationInterval =
+                    Number(
+                        (
+                            (
+                                Number(
+                                    current.gii
+                                )
+                                +
+                                Number(
+                                    next.gii
+                                )
+                            ) / 2
+                            * 0.25
+                        ).toFixed(2)
+                    );
+
+            }
+
+        }
+
+
+        // =================================================
+        // LAST ROW INTERVAL = NULL
+        // =================================================
+
+        if (
+            report.length > 0
+        ) {
+
+            report[
+                report.length - 1
+            ].ghiIrradiationInterval =
+                null;
+
+            report[
+                report.length - 1
+            ].giiIrradiationInterval =
+                null;
+
+        }
+
+
+        // =================================================
+        // 9. TOTAL INVERTER ENERGY INTERVAL
+        // =================================================
+
+        const totalInverterEnergyInterval =
+            Number(
+                report
+                    .reduce(
+                        (
+                            sum,
+                            row
+                        ) =>
+                            sum +
+                            Number(
+                                row.inverterEnergyInterval ||
+                                0
+                            ),
+                        0
+                    )
+                    .toFixed(2)
+            );
+
+
+        // =================================================
+        // 10. PGT START
+        //
+        // FIRST GHI > 750
+        // =================================================
+
+        const pgtStartIndex =
+            report.findIndex(
+                row =>
+                    row.ghi !== null &&
+                    row.ghi !== undefined &&
+                    Number(row.ghi) > 750
+            );
+
+
+        const pgtStartRow =
+            pgtStartIndex >= 0
+                ? report[
+                    pgtStartIndex
+                ]
+                : null;
+
+
+        // =================================================
+        // 11. PGT END
+        //
+        // FIRST:
+        // GII cumulative >= 5000
+        //
+        // OTHERWISE:
+        // LAST VALID GHI + GII ROW
+        //
+        // Missing middle row does NOT stop PGT.
+        // =================================================
+
+        let pgtEndIndex =
+            -1;
+
+        let pgtCumulativeGii =
+            0;
+
+        let pgtReached5000 =
+            false;
+
+
+        if (
+            pgtStartIndex >= 0
+        ) {
+
+            for (
+                let i =
+                    pgtStartIndex;
+
+                i < report.length;
+
+                i++
+            ) {
+
+                const row =
+                    report[i];
+
+
+                const ghiValid =
+                    row.ghi !== null &&
+                    row.ghi !== undefined &&
+                    row.ghi !== "" &&
+                    !isNaN(
+                        Number(
+                            row.ghi
+                        )
+                    );
+
+
+                const giiValid =
+                    row.gii !== null &&
+                    row.gii !== undefined &&
+                    row.gii !== "" &&
+                    !isNaN(
+                        Number(
+                            row.gii
+                        )
+                    );
+
+
+                // Missing row -> continue
+                if (
+                    !ghiValid ||
+                    !giiValid
+                ) {
+
+                    continue;
+
+                }
+
+
+                // Latest valid row
+                pgtEndIndex =
+                    i;
+
+
+                const interval =
+                    Number(
+                        row.giiIrradiationInterval ||
+                        0
+                    );
+
+
+                pgtCumulativeGii +=
+                    interval;
+
+
+                // 5000 reached -> stop
+                if (
+                    pgtCumulativeGii >= 5000
+                ) {
+
+                    pgtEndIndex =
+                        i;
+
+                    pgtReached5000 =
+                        true;
+
+                    break;
+
+                }
+
+            }
+
+        }
+
+
+        const pgtEndRow =
+            pgtEndIndex >= 0
+                ? report[
+                    pgtEndIndex
+                ]
+                : null;
+
+
+        // =================================================
+        // 12. PGT REPORT RANGE
+        // =================================================
+
+        let pgtReport =
+            report;
+
+
+        if (
+            pgtStartIndex >= 0 &&
+            pgtEndIndex >= pgtStartIndex
+        ) {
+
+            pgtReport =
+                report.slice(
+                    pgtStartIndex,
+                    pgtEndIndex + 1
+                );
+
+        }
+
+
+        // =================================================
+        // 13. TOTAL GII IRRADIATION
+        // =================================================
+
+        const totalPoaIrradiation =
+            Number(
+                pgtReport
+                    .reduce(
+                        (
+                            sum,
+                            row
+                        ) =>
+                            sum +
+                            Number(
+                                row.giiIrradiationInterval ||
+                                0
+                            ),
+                        0
+                    )
+                    .toFixed(2)
+            );
+
+
+        // =================================================
+        // 14. INITIAL INVERTER ENERGY
+        // =================================================
+
+        const initialInverterEnergy =
+            pgtStartRow &&
+            pgtStartRow.inverterEnergy !== null &&
+            pgtStartRow.inverterEnergy !== undefined
+                ? Number(
+                    Number(
+                        pgtStartRow.inverterEnergy
+                    ).toFixed(2)
+                )
+                : null;
+
+
+        // =================================================
+        // 15. FINAL INVERTER ENERGY
+        // =================================================
+
+        const finalInverterEnergy =
+            pgtEndRow &&
+            pgtEndRow.inverterEnergy !== null &&
+            pgtEndRow.inverterEnergy !== undefined
+                ? Number(
+                    Number(
+                        pgtEndRow.inverterEnergy
+                    ).toFixed(2)
+                )
+                : null;
+
+
+        // =================================================
+        // 16. TEST START / END
+        // =================================================
+
+        const testStartDateTime =
+            pgtStartRow
+                ? `${date} ${pgtStartRow.time}`
+                : null;
+
+
+        const testEndDateTime =
+            pgtEndRow
+                ? `${date} ${pgtEndRow.time}`
+                : null;
+
+
+        // =================================================
+        // 17. TOTAL AC ENERGY
+        // =================================================
+
+        const totalAcEnergyGenerated =
+            initialInverterEnergy !== null &&
+            finalInverterEnergy !== null
+                ? Number(
+                    (
+                        finalInverterEnergy -
+                        initialInverterEnergy
+                    ).toFixed(2)
+                )
+                : null;
+
+
+        // =================================================
+        // 18. DIFFERENTIAL ENERGY
+        // =================================================
+
+        const differentialEnergy =
+            0;
+
+
+        // =================================================
+        // 19. REFERENCE YIELD
+        // =================================================
+
+        const referenceYield =
+            Number(
+                (
+                    totalPoaIrradiation /
+                    1000
+                ).toFixed(5)
+            );
+
+
+        // =================================================
+        // 20. FINAL YIELD
+        //
+        // Selected building:
+        // selected building capacity
+        //
+        // Consolidated:
+        // total BTPS capacity
+        // =================================================
+
+        const calculationCapacity =
+            selectedStationId
+                ? (
+                    btpsStationDetails[0]
+                        ?.installedDcCapacity
+                    ?? null
+                )
+                : totalBTPSInstalledDcCapacity;
+
+
+        const finalYield =
+            totalAcEnergyGenerated !== null &&
+            calculationCapacity !== null &&
+            calculationCapacity > 0
+                ? Number(
+                    (
+                        (
+                            totalAcEnergyGenerated -
+                            differentialEnergy
+                        )
+                        /
+                        calculationCapacity
+                    ).toFixed(3)
+                )
+                : null;
+
+
+        // =================================================
+        // 21. PERFORMANCE RATIO
+        // =================================================
+
+        const performanceRatio =
+            finalYield !== null &&
+            referenceYield !== null &&
+            referenceYield !== 0
+                ? Number(
+                    (
+                        (
+                            finalYield /
+                            referenceYield
+                        )
+                        * 100
+                    ).toFixed(2)
+                )
+                : null;
+
+               
+
+        // =================================================
+        // 22. GUARANTEED PR
+        // =================================================
+
+        const guaranteedPr =
+            75;
+
+
+        // =================================================
+        // 23. PASS / FAIL
+        //
+        // Kept for individual PGT report compatibility.
+        // Summary will NOT display this.
+        // =================================================
+
+        const pgtResult =
+            performanceRatio !== null
+                ? (
+                    performanceRatio >=
+                    guaranteedPr
+                        ? "PASS"
+                        : "FAIL"
+                )
+                : "PENDING";
+
+
+        // =================================================
+        // 24. TOTAL POA kWh/m²
+        // =================================================
+
+        const totalPoaKwh =
+            Number(
+                (
+                    totalPoaIrradiation /
+                    1000
+                ).toFixed(5)
+            );
+
+
+        // =================================================
+        // RESPONSE DETAILS
+        // =================================================
+
+        const selectedStationDetails =
+            btpsStationDetails[0];
+
+
+        const responseStationId =
+            selectedStationId
+                ? Number(
+                    selectedStationId
+                )
+                : "BTPS";
+
+
+        const responseBuildingName =
+            selectedStationId
+                ? selectedStationDetails
+                    .buildingName
+                : "BTPS RTS";
+
+
+        // =================================================
+        // FINAL RESPONSE
+        // =================================================
+
+        return {
+
+            station: {
+
+                stationId:
+                    responseStationId,
+
+                buildingName:
+                    responseBuildingName,
+
+                campus:
+                    "BTPS",
+
+                installedDcCapacity:
+                    calculationCapacity
+
+            },
+
+
+            rows:
+                report,
+
+
+            totals: {
+
+                inverterEnergyInterval:
+                    totalInverterEnergyInterval,
+
+                netExportEnergyInterval:
+                    null,
+
+                poaIrradiationInterval:
+                    totalPoaIrradiation
+
+            },
+
+
+            pgtCalculation: {
+
+                buildingName:
+                    responseBuildingName,
+
+                stationId:
+                    responseStationId,
+
+                installedDcCapacity:
+                    calculationCapacity,
+
+                testStartDateTime,
+
+                testEndDateTime,
+
+                totalPoaIrradiation:
+                    totalPoaKwh,
+
+                initialInverterEnergy,
+
+                finalInverterEnergy,
+
+                totalAcEnergyGenerated,
+
+                differentialEnergy,
+
+                referenceYield,
+
+                finalYield,
+
+                performanceRatio,
+
+                guaranteedPr,
+
+                pgtResult
+
+            }
+
+        };
+
+    }
+    catch (err) {
+
+        console.error(
+            "BTPS PGT Report Error:",
+            err
+        );
+
+        throw err;
+
+    }
+
+}
+
+
+// =====================================================
+// GET ALL BTPS BUILDINGS FOR PGT
+// =====================================================
+
+async function getBTPSPgtStations() {
+
+    try {
+
+        const stations =
+            await getBTPSStations();
+
+
+        const result =
+            stations.map(
+                building => {
+
+                    const stationId =
+                        Number(
+                            building.stationId ||
+                            building.id
+                        );
+
+
+                    const buildingName =
+                        String(
+                            building.name || ""
+                        ).trim();
+
+
+                    const installedDcCapacity =
+                        getBTPSInstalledDcCapacity(
+                            buildingName
+                        );
+
+
+                    return {
+
+                        stationId,
+
+                        buildingName,
+
+                        campus:
+                            "BTPS",
+
+                        installedDcCapacity
+
+                    };
+
+                }
+            )
+            .filter(
+                station =>
+                    station.installedDcCapacity !== null &&
+                    station.installedDcCapacity > 0
+            );
+
+
+        return result;
+
+    }
+    catch (err) {
+
+        console.error(
+            "PGT BTPS STATIONS ERROR:",
+            err.message
+        );
+
+        throw err;
+
+    }
+
+}
+
+
+// =====================================================
+// BTPS PGT SUMMARY REPORT
+//
+// Building Name + Performance Ratio ONLY
+// =====================================================
+
+async function getBTPSPgtSummary(
+    date,
+    fromTime,
+    toTime
+) {
+
+    try {
+
+        console.log(
+            "========================================"
+        );
+
+        console.log(
+            "BTPS PGT SUMMARY REPORT START"
+        );
+
+
+        // =================================================
+        // 1. GET ALL BTPS BUILDINGS
+        // =================================================
+
+        const stations =
+            await getBTPSPgtStations();
+
+
+        // =================================================
+        // 2. CALCULATE PGT FOR EACH BUILDING
+        // =================================================
+
+        const results =
+            await Promise.allSettled(
+
+                stations.map(
+                    async station => {
+
+                        try {
+
+                            const report =
+                                await getBTPSPgtReport(
+                                    date,
+                                    fromTime,
+                                    toTime,
+                                    station.stationId
+                                );
+
+
+                            const calculation =
+                                report?.pgtCalculation;
+
+
+                            return {
+
+                                stationId:
+                                    station.stationId,
+
+                                buildingName:
+                                    station.buildingName,
+
+                                performanceRatio:
+                                    calculation
+                                        ?.performanceRatio
+                                    ?? null
+
+                            };
+
+                        }
+                        catch (err) {
+
+                            console.error(
+                                "BTPS SUMMARY BUILDING ERROR:",
+                                station.buildingName,
+                                err.message
+                            );
+
+
+                            return {
+
+                                stationId:
+                                    station.stationId,
+
+                                buildingName:
+                                    station.buildingName,
+
+                                performanceRatio:
+                                    null
+
+                            };
+
+                        }
+
+                    }
+                )
+
+            );
+
+
+        // =================================================
+        // 3. CONVERT RESULTS
+        // =================================================
+
+        const summary =
+            results.map(
+                result => {
+
+                    if (
+                        result.status ===
+                        "fulfilled"
+                    ) {
+
+                        return result.value;
+
+                    }
+
+
+                    return {
+
+                        stationId:
+                            null,
+
+                        buildingName:
+                            "Unknown",
+
+                        performanceRatio:
+                            null
+
+                    };
+
+                }
+            );
+
+
+        // =================================================
+        // 4. SORT BY BUILDING NAME
+        // =================================================
+
+        summary.sort(
+            (a, b) =>
+                String(
+                    a.buildingName
+                ).localeCompare(
+                    String(
+                        b.buildingName
+                    )
+                )
+        );
+
+
+        // =================================================
+        // 5. FINAL RESPONSE
+        // =================================================
+
+        return {
+
+            campus:
+                "BTPS",
+
+            date,
+
+            fromTime,
+
+            toTime,
+
+            guaranteedPr:
+                75,
+
+            totalBuildings:
+                summary.length,
+
+            buildings:
+                summary
+
+        };
+
+    }
+    catch (err) {
+
+        console.error(
+            "BTPS PGT SUMMARY ERROR:",
+            err
+        );
+
+        throw err;
+
+    }
+
+}
 // ================= EXPORT =================
 
 module.exports={
@@ -4362,6 +6019,9 @@ getGraph,
  getNUPPLPgtReport,
  getNUPPLPgtStations,
  getNLCILPgtSummary,
-  getNUPPLPgtSummary
+  getNUPPLPgtSummary,
+  getBTPSPgtReport,
+getBTPSPgtStations,
+getBTPSPgtSummary
 
 };

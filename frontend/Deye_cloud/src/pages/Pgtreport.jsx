@@ -50,7 +50,8 @@ const [isBuildingDropdownOpen, setIsBuildingDropdownOpen] = useState(false);
 
 const [pgtStationCache, setPgtStationCache] = useState({
     NLCIL: [],
-    NUPPL: []
+    NUPPL: [],
+     BTPS: []
 });
 
 const [pgtStationsLoading, setPgtStationsLoading] = useState(true);
@@ -68,25 +69,34 @@ useEffect(() => {
 
             setPgtStationsLoading(true);
 
-            const [nlcilRes, nupplRes] = await Promise.all([
-                axios.get(
-                    `${API_BASE}/pgt/stations`,
-                    {
-                        params: {
-                            campus: "NLCIL"
-                        }
-                    }
-                ),
+           const [nlcilRes, nupplRes, btpsRes] = await Promise.all([
+    axios.get(
+        `${API_BASE}/pgt/stations`,
+        {
+            params: {
+                campus: "NLCIL"
+            }
+        }
+    ),
 
-                axios.get(
-                    `${API_BASE}/pgt/stations`,
-                    {
-                        params: {
-                            campus: "NUPPL"
-                        }
-                    }
-                )
-            ]);
+    axios.get(
+        `${API_BASE}/pgt/stations`,
+        {
+            params: {
+                campus: "NUPPL"
+            }
+        }
+    ),
+
+    axios.get(
+        `${API_BASE}/pgt/stations`,
+        {
+            params: {
+                campus: "BTPS"
+            }
+        }
+    )
+]);
 
             const nlcilStations =
                 Array.isArray(nlcilRes.data)
@@ -98,17 +108,25 @@ useEffect(() => {
                     ? nupplRes.data
                     : [];
 
+                    const btpsStations =
+    Array.isArray(btpsRes.data)
+        ? btpsRes.data
+        : [];
+
             setPgtStationCache({
                 NLCIL: nlcilStations,
-                NUPPL: nupplStations
+                NUPPL: nupplStations,
+                BTPS: btpsStations
             });
 
             // Set currently selected campus buildings
-            setPgtStations(
-                selectedCampus === "NUPPL"
-                    ? nupplStations
-                    : nlcilStations
-            );
+          setPgtStations(
+    selectedCampus === "NUPPL"
+        ? nupplStations
+        : selectedCampus === "BTPS"
+            ? btpsStations
+            : nlcilStations
+);
 
             console.log("PGT NLCIL BUILDINGS:", nlcilStations);
             console.log("PGT NUPPL BUILDINGS:", nupplStations);
@@ -123,7 +141,8 @@ useEffect(() => {
 
             setPgtStationCache({
                 NLCIL: [],
-                NUPPL: []
+                NUPPL: [],
+                BTPS: []
             });
 
             setPgtStations([]);
@@ -253,6 +272,20 @@ else if (selectedCampus === "NUPPL") {
 
     res = await axios.get(
         `${API_BASE}/pgt/nuppl/report/${stationId}`,
+        {
+            params: {
+                date: fromDate,
+                fromTime: fromTime,
+                toTime: toTime
+            }
+        }
+    );
+
+}
+else if (selectedCampus === "BTPS") {
+
+    res = await axios.get(
+        `${API_BASE}/pgt/btps/report/${stationId}`,
         {
             params: {
                 date: fromDate,
@@ -1445,22 +1478,16 @@ const pgtEndExcelRow =
 // ((CURRENT GHI + NEXT GHI) / 2) * 0.25
 // -----------------------------------------------------
 if (
-    index >= pgtStartIndex &&
-    (
-        pgtEndIndex < 0 ||
-        index <= pgtEndIndex
-    ) &&
-    index < reportData.length - 1
+    index < reportData.length - 1 &&
+    row.ghiIrradiationInterval !== null &&
+    row.ghiIrradiationInterval !== undefined
 ) {
 
     current.getCell(8).value = {
         formula:
             `((D${excelRow}+D${excelRow + 1})/2)*0.25`,
         result:
-            row.ghiIrradiationInterval !== null &&
-            row.ghiIrradiationInterval !== undefined
-                ? Number(row.ghiIrradiationInterval)
-                : 0
+            Number(row.ghiIrradiationInterval)
     };
 
 } else {
@@ -1469,7 +1496,6 @@ if (
 
 }
 
-
 // -----------------------------------------------------
 // POA GII IRRADIATION INTERVAL
 // MANAGER EXCEL FORMULA
@@ -1477,22 +1503,16 @@ if (
 // -----------------------------------------------------
 
 if (
-    index >= pgtStartIndex &&
-    (
-        pgtEndIndex < 0 ||
-        index <= pgtEndIndex
-    ) &&
-    index < reportData.length - 1
+    index < reportData.length - 1 &&
+    row.giiIrradiationInterval !== null &&
+    row.giiIrradiationInterval !== undefined
 ) {
 
     current.getCell(9).value = {
         formula:
             `((E${excelRow}+E${excelRow + 1})/2)*0.25`,
         result:
-            row.giiIrradiationInterval !== null &&
-            row.giiIrradiationInterval !== undefined
-                ? Number(row.giiIrradiationInterval)
-                : 0
+            Number(row.giiIrradiationInterval)
     };
 
 } else {
@@ -2912,6 +2932,10 @@ link.download =
         <option value="NUPPL">
             NUPPL
         </option>
+
+        <option value="BTPS">
+    BTPS
+</option>
 
     </select>
 
