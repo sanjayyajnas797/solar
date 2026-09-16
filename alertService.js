@@ -8,6 +8,12 @@ const OFFLINE_THRESHOLD = 8 * 60; // 8 minutes
 const STUCK_THRESHOLD = 8 * 60;   // 8 minutes
 
 // =====================================================
+// DAILY REMINDER TIME
+// =====================================================
+
+const REMINDER_HOUR = 9; // 9:00 AM IST
+
+// =====================================================
 // EMAIL CONFIGURATION
 // =====================================================
 
@@ -31,7 +37,6 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
-
 // =====================================================
 // SEND ALERT EMAIL
 // =====================================================
@@ -45,13 +50,18 @@ async function sendAlertEmail(alert) {
                 ? "INVERTER OFFLINE"
                 : "INVERTER DATA STUCK";
 
+        const reminderText =
+            alert.isReminder
+                ? "DAILY REMINDER - Problem is still active"
+                : "NEW ALERT";
 
         const subject =
             `🚨 Solar Alert - ${problem} - ${alert.buildingName}`;
 
-
         const message = `
 SOLAR MONITORING ALERT
+
+${reminderText}
 
 Campus      : ${alert.campus}
 Building    : ${alert.buildingName}
@@ -65,8 +75,11 @@ ${alert.reason}
 
 Detected At:
 ${alert.detectedAt}
-        `;
 
+Reminder:
+This problem is still active.
+Please check the inverter/network status.
+        `;
 
         const info = await emailTransporter.sendMail({
 
@@ -77,20 +90,21 @@ ${alert.detectedAt}
             subject: subject,
 
             text: message
-        });
 
+        });
 
         console.log(
             "📧 ALERT EMAIL SENT:",
             info.messageId,
             alert.buildingName,
             alert.inverterName,
-            problem
+            problem,
+            alert.isReminder
+                ? "(DAILY REMINDER)"
+                : "(NEW ALERT)"
         );
 
-
         return info;
-
 
     } catch (error) {
 
@@ -102,6 +116,94 @@ ${alert.detectedAt}
         return null;
     }
 }
+
+// =====================================================
+// SEND DAILY REMINDER FOR ACTIVE ALERTS
+// =====================================================
+
+async function sendDailyAlertReminders() {
+
+    const now = new Date();
+
+    // India time
+    const indiaTime = new Date(
+        now.toLocaleString("en-US", {
+            timeZone: "Asia/Kolkata"
+        })
+    );
+
+    const currentHour =
+        indiaTime.getHours();
+
+    // Reminder only during 9 AM hour
+    if (currentHour !== REMINDER_HOUR) {
+        return;
+    }
+
+    const today =
+        indiaTime.toISOString().split("T")[0];
+
+
+    // ---------------------------------------------
+    // CHECK ALL ACTIVE ALERTS
+    // ---------------------------------------------
+
+    for (const alert of alertStore.values()) {
+
+        if (alert.status !== "ACTIVE") {
+            continue;
+        }
+
+
+        // -----------------------------------------
+        // ALREADY SENT TODAY?
+        // -----------------------------------------
+
+        if (
+            alert.lastReminderDate ===
+            today
+        ) {
+            continue;
+        }
+
+
+        // -----------------------------------------
+        // SEND DAILY REMINDER
+        // -----------------------------------------
+
+        console.log(
+            "📧 DAILY ALERT REMINDER:",
+            alert.buildingName,
+            alert.inverterName,
+            alert.type
+        );
+
+        await sendAlertEmail({
+
+            ...alert,
+
+            isReminder: true
+
+        });
+
+
+        // -----------------------------------------
+        // MARK REMINDER AS SENT
+        // -----------------------------------------
+
+        alert.lastReminderDate =
+            today;
+    }
+}
+
+// =====================================================
+// DAILY REMINDER SCHEDULER
+// =====================================================
+
+setInterval(
+    sendDailyAlertReminders,
+    60 * 1000
+);
 // =====================================================
 // GET CURRENT ACTIVE ALERTS
 // =====================================================
