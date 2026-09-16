@@ -1774,9 +1774,7 @@ async function getPgtReport(
 
 
             // GHI
-            if (
-    pgtStartIndex >= 0 &&
-    i >= pgtStartIndex &&
+       if (
     current.ghi !== null &&
     current.ghi !== undefined &&
     next.ghi !== null &&
@@ -1801,9 +1799,7 @@ async function getPgtReport(
             }
 
 
-           if (
-    pgtStartIndex >= 0 &&
-    i >= pgtStartIndex &&
+         if (
     current.gii !== null &&
     current.gii !== undefined &&
     next.gii !== null &&

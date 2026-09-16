@@ -842,22 +842,21 @@ campus === "GII"
                 </th>
 
                 {/* NUPPL EXTRA COLUMN */}
-                {campus === "NUPPL" && (
-                    <th>
-                        Inclined Irradiance
-                        <br />
-                        (W/m²)
-                    </th>
-                )}
+               {(campus === "NUPPL" || campus === "BTPS") && (
+    <th>
+        Inclined Irradiance
+        <br />
+        (W/m²)
+    </th>
+)}
 
-                {/* NUPPL EXTRA COLUMN */}
-                {campus === "NUPPL" && (
-                    <th>
-                        Inclined Cumulative
-                        <br />
-                        (Wh/m²)
-                    </th>
-                )}
+{(campus === "NUPPL" || campus === "BTPS") && (
+    <th>
+        Inclined Cumulative
+        <br />
+        (Wh/m²)
+    </th>
+)}
 
             </tr>
         </thead>
@@ -885,18 +884,17 @@ campus === "GII"
                     </td>
 
                     {/* NUPPL DATA */}
-                    {campus === "NUPPL" && (
-                        <td>
-                            {row.inclinedIrradiance}
-                        </td>
-                    )}
+                 {(campus === "NUPPL" || campus === "BTPS") && (
+    <td>
+        {row.inclinedIrradiance}
+    </td>
+)}
 
-                    {/* NUPPL DATA */}
-                    {campus === "NUPPL" && (
-                        <td>
-                            {row.inclinedCumulative}
-                        </td>
-                    )}
+{(campus === "NUPPL" || campus === "BTPS") && (
+    <td>
+        {row.inclinedCumulative}
+    </td>
+)}
 
                 </tr>
 

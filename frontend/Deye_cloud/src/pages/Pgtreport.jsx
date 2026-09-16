@@ -3254,12 +3254,7 @@ link.download =
 {/* POA GHI */}
 
 <td className="pgt-blue-cell">
-    {index >= pgtStartIndex &&
-     (
-        pgtEndIndex < 0 ||
-        index <= pgtEndIndex
-     ) &&
-     row.ghiIrradiationInterval !== null &&
+    {row.ghiIrradiationInterval !== null &&
      row.ghiIrradiationInterval !== undefined
         ? row.ghiIrradiationInterval
         : "-"
@@ -3270,12 +3265,7 @@ link.download =
 {/* POA GII */}
 
 <td className="pgt-blue-cell">
-    {index >= pgtStartIndex &&
-     (
-        pgtEndIndex < 0 ||
-        index <= pgtEndIndex
-     ) &&
-     row.giiIrradiationInterval !== null &&
+    {row.giiIrradiationInterval !== null &&
      row.giiIrradiationInterval !== undefined
         ? row.giiIrradiationInterval
         : "-"

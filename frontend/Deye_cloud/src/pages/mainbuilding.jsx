@@ -748,23 +748,23 @@ d="M0 20 Q 25 10 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 4
 </div>
 </div>
 </div>
-{c.name === "NUPPL" && (
-<div className="weather-row">
-    <WiDaySunny className="icon sun"/>
-    <div>
-        <div className="label">
-            INCLINED IRRADIANCE
-        </div>
+{(c.name === "NUPPL" || c.name === "BTPS") && (
+    <div className="weather-row">
+        <WiDaySunny className="icon sun"/>
+        <div>
+            <div className="label">
+                INCLINED IRRADIANCE
+            </div>
 
-        <div className="value green">
-            {
-                isOnline
-                    ? `${inclinedIrradiance} W/m²`
-                    : "NO LIVE DATA"
-            }
+            <div className="value green">
+                {
+                    isOnline
+                        ? `${inclinedIrradiance} W/m²`
+                        : "NO LIVE DATA"
+                }
+            </div>
         </div>
     </div>
-</div>
 )}
 
 </div>

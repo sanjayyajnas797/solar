@@ -36,11 +36,12 @@ const latestWeather = {
 },
 
     BTPS: {
-        irradiance: 0,
-        temperature: 0,
-        mqttTimestamp: null,
-        lastUpdate: 0
-    },
+    irradiance: 0,
+    inclinedIrradiance: 0,
+    temperature: 0,
+    mqttTimestamp: null,
+    lastUpdate: 0
+},
 
     LIBRARY: {
         irradiance: 0,
@@ -166,17 +167,26 @@ NUPPL: {
     calculationDate: null
 },
 
-    BTPS: {
-        previousIrradiance: null,
-        previousTimestamp: null,
-        cumulativeEnergy: 0,
-        intervalEnergy: 0,
-        latestIrradiance: 0,
-        latestTemperature: 0,
-        latestTimestamp: null,
-        hasData: false,
-         calculationDate: null
-    }
+   BTPS: {
+    previousIrradiance: null,
+    previousInclined: null,
+
+    previousTimestamp: null,
+
+    cumulativeEnergy: 0,
+    intervalEnergy: 0,
+
+    inclinedCumulative: 0,
+    inclinedIntervalEnergy: 0,
+
+    latestIrradiance: 0,
+    latestInclinedIrradiance: 0,
+    latestTemperature: 0,
+
+    latestTimestamp: null,
+    hasData: false,
+    calculationDate: null
+}
 };
 
 
@@ -448,21 +458,17 @@ async function loadCumulativeFromDatabase() {
                 // NUPPL INCLINED CUMULATIVE
                 // ---------------------------------------------
 
-                if (campus === "NUPPL") {
+             if (campus === "NUPPL" || campus === "BTPS") {
 
-                    weatherCalculation.NUPPL.inclinedCumulative =
-                        Number(
-                            row.inclined_cumulative
-                        ) || 0;
+    weatherCalculation[campus].inclinedCumulative =
+        Number(row.inclined_cumulative) || 0;
 
-
-                    console.log(
-                        `♻️ NUPPL TODAY RESTORED | ` +
-                        `Normal:${weatherCalculation.NUPPL.cumulativeEnergy.toFixed(3)} | ` +
-                        `Inclined:${weatherCalculation.NUPPL.inclinedCumulative.toFixed(3)}`
-                    );
-
-                }
+    console.log(
+        `♻️ ${campus} TODAY RESTORED | ` +
+        `Normal:${weatherCalculation[campus].cumulativeEnergy.toFixed(3)} | ` +
+        `Inclined:${weatherCalculation[campus].inclinedCumulative.toFixed(3)}`
+    );
+}
                 else {
 
                     console.log(
@@ -827,36 +833,34 @@ function processWeather(
     // NUPPL INCLINED IRRADIANCE CALCULATION
     // SAME AS GII FORMULA
     // =========================================
+if (campus === "NUPPL" || campus === "BTPS") {
 
-    if (campus === "NUPPL") {
+    const currentInclined =
+        Number(inclinedIrradiance) || 0;
 
-        const currentInclined =
-            Number(inclinedIrradiance) || 0;
+    const inclinedAverage =
+        (
+            memory.previousInclined +
+            currentInclined
+        ) / 2;
 
-        const inclinedAverage =
-            (
-                memory.previousInclined +
-                currentInclined
-            ) / 2;
+    const inclinedEnergy =
+        inclinedAverage *
+        seconds /
+        3600;
 
-        const inclinedEnergy =
-            inclinedAverage *
-            seconds /
-            3600;
+    memory.inclinedCumulative +=
+        inclinedEnergy;
 
-        memory.inclinedCumulative +=
-            inclinedEnergy;
+    memory.inclinedIntervalEnergy +=
+        inclinedEnergy;
 
-        memory.inclinedIntervalEnergy +=
-            inclinedEnergy;
+    memory.previousInclined =
+        currentInclined;
 
-        memory.previousInclined =
-            currentInclined;
-
-        memory.latestInclinedIrradiance =
-            currentInclined;
-    }
-
+    memory.latestInclinedIrradiance =
+        currentInclined;
+}
     // =========================================
     // UPDATE PREVIOUS
     // =========================================
@@ -1280,15 +1284,15 @@ async function saveWeather15Minute(campus, saveTime) {
     const irradiance = memory.latestIrradiance;
     const temperature = memory.latestTemperature;
 
-    const inclinedIrradiance =
-        campus === "NUPPL"
-            ? memory.latestInclinedIrradiance
-            : 0;
+ const inclinedIrradiance =
+    campus === "NUPPL" || campus === "BTPS"
+        ? memory.latestInclinedIrradiance
+        : 0;
 
-    const inclinedCumulative =
-        campus === "NUPPL"
-            ? memory.inclinedCumulative
-            : 0;
+const inclinedCumulative =
+    campus === "NUPPL" || campus === "BTPS"
+        ? memory.inclinedCumulative
+        : 0;
 
     try {
 
@@ -1306,9 +1310,9 @@ async function saveWeather15Minute(campus, saveTime) {
         memory.intervalEnergy = 0;
 
         // NUPPL inclined interval reset
-        if (campus === "NUPPL") {
-            memory.inclinedIntervalEnergy = 0;
-        }
+      if (campus === "NUPPL" || campus === "BTPS") {
+    memory.inclinedIntervalEnergy = 0;
+}
 
         console.log(
             `🔄 ${campus} NEW 15-MIN INTERVAL | ` +
@@ -1599,26 +1603,29 @@ if (topic === "library/rx") {
     }
 }
 
+if (topic === "rajashthan/rx") {
 
-        // =================================================
-        // BTPS
-        // =================================================
+    const oldBtps =
+        latestWeather.BTPS || {};
 
-       if (topic === "rajashthan/rx") {
+    latestWeather.BTPS = {
 
-    const weather = {
+        ...oldBtps,
 
         irradiance:
-            Number(status.Pyranometer) || 0,
+            status.Param_1 !== undefined
+                ? Number(status.Param_1)
+                : oldBtps.irradiance || 0,
 
         temperature:
-            (
-                Number(
-                    status.Module_temperature ||
-                    status.Module_temp ||
-                    0
-                )
-            ) / 10,
+            status.Param_2 !== undefined
+                ? Number(status.Param_2) / 10
+                : oldBtps.temperature || 0,
+
+        inclinedIrradiance:
+            status.Param_3 !== undefined
+                ? Number(status.Param_3)
+                : oldBtps.inclinedIrradiance || 0,
 
         mqttTimestamp:
             mqttTimestamp,
@@ -1628,19 +1635,24 @@ if (topic === "library/rx") {
     };
 
 
-    latestWeather.BTPS = {
-        ...weather
-    };
+    // =========================================
+    // Param_1 + Param_2 + Param_3
+    // MERGED DATA → ONE CALCULATION
+    // =========================================
 
-processWeather(
-    "BTPS",
-    weather.irradiance,
-    weather.temperature,
-    weather.mqttTimestamp
-);
-    
+    if (status.Param_3 !== undefined) {
+
+        processWeather(
+            "BTPS",
+            latestWeather.BTPS.irradiance,
+            latestWeather.BTPS.temperature,
+            latestWeather.BTPS.mqttTimestamp,
+            latestWeather.BTPS.inclinedIrradiance
+        );
+
+    }
+
 }
-
 
 // =====================================================
 // CLOSE MQTT MESSAGE HANDLER
