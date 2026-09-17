@@ -304,7 +304,10 @@ checkInverter({
             ? "NLCIC"
             : String(station.name).toUpperCase().includes("NTPL")
                 ? "NTPL"
-                : String(station.name).toUpperCase().includes("NUPPL")
+                : (
+    String(station.name).toUpperCase().includes("NUPPL") ||
+    String(station.name).toUpperCase().includes("NUPL")
+  )
                     ? "NUPPL"
                     : String(station.name).toUpperCase().includes("BTPS")
                         ? "BTPS"
@@ -473,11 +476,14 @@ checkInverter({
       campus = "NTPL";
 
     }
-    else if (upperName.includes("NUPPL")) {
+   else if (
+    upperName.includes("NUPPL") ||
+    upperName.includes("NUPL")
+) {
 
-      campus = "NUPPL";
+    campus = "NUPPL";
 
-    }
+}
     else if (upperName.includes("BTPS")) {
 
       campus = "BTPS";
@@ -2618,34 +2624,48 @@ const nupplCapacityMap = {
 
     "NUPPLTYPE4BLOCK4": 26.54,
 
-    "NUPPLTYPE4BLOCK6": 26.54
+    "NUPPLTYPE4BLOCK6": 26.54,
+
+   "NUPLTYPE4BLOCK5": 25.99,
+"NUPPLTYPE4BLOCK5": 25.99
 
 };
 
+function getNUPPLInstalledDcCapacity(buildingName) {
 
-// =====================================================
-// GET NUPPL INSTALLED DC CAPACITY
-// =====================================================
+    const key = normalizeBuildingName(buildingName);
 
-function getNUPPLInstalledDcCapacity(
-    buildingName
-) {
+    // ================================
+    // NUPPL TYPE-4 BLOCKS
+    // ================================
+    if (key.includes("NUPPLTYPE4BLOCK") || key.includes("NUPLTYPE4BLOCK")) {
 
-    const key =
-        normalizeBuildingName(
-            buildingName
-        );
+        // BLOCK 5
+        if (key.includes("BLOCK5")) {
+            return 25.99;
+        }
 
+        // BLOCK 1 to 11 - except BLOCK 5
+        const match = key.match(/TYPE4BLOCK(\d+)/);
 
-    const capacity =
-        nupplCapacityMap[key];
+        if (match) {
+            const blockNo = Number(match[1]);
 
+            if (blockNo >= 1 && blockNo <= 11) {
+                return 26.54;
+            }
+        }
+    }
+
+    // ================================
+    // EXISTING CAPACITY MAP
+    // ================================
+    const capacity = nupplCapacityMap[key];
 
     if (
         capacity === undefined ||
         capacity === null
     ) {
-
         console.warn(
             "⚠️ NUPPL PGT CAPACITY NOT FOUND",
             {
@@ -2655,14 +2675,10 @@ function getNUPPLInstalledDcCapacity(
         );
 
         return null;
-
     }
 
-
     return Number(capacity);
-
 }
-
 
 // =====================================================
 // GET ALL NUPPL STATIONS
@@ -4020,6 +4036,7 @@ async function getNUPPLPgtStations() {
 
         const stations =
             await getNUPPLStations();
+            
 
         const result =
             stations.map(building => {
