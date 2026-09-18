@@ -343,7 +343,16 @@ checkInverter({
     dataAge > 480;
 
 
+// =====================================================
+// CUMULATIVE
+// OFFLINE-ஆ இருந்தாலும் LAST AVAILABLE VALUE காட்ட வேண்டும்
+// =====================================================
 
+total += Number(
+  latest?.dataList?.find(
+    d => d.key === "TotalActiveProduction"
+  )?.value || 0
+);
 
   // =====================================================
   // IF DATA IS STALE
@@ -428,15 +437,7 @@ checkInverter({
   );
 
 
-  // =====================================================
-  // CUMULATIVE
-  // =====================================================
-
-  total += Number(
-    latest?.dataList?.find(
-      d => d.key === "TotalActiveProduction"
-    )?.value || 0
-  );
+ 
 
 
   // =====================================================
