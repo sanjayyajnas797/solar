@@ -2,8 +2,11 @@
 
 /* PAGE */
 .building-details-page {
-  padding: 0 ;   /* 🔥 top gap remove */
+  padding-top: 85px;
   min-height: 100vh;
+
+  position: relative;
+  overflow: visible;
 
   background: radial-gradient(circle at 20% 20%, #103252, #0f172a 60%),
               linear-gradient(135deg, #234c81, #425c97);
@@ -11,25 +14,27 @@
   color: #ffffff;
 }
 
-/* HEADER */
 .bd-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  width: 100%;
+
   z-index: 1000;
 
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-   padding: 8px 20px;
-  margin-bottom: 20px;
+  padding: 8px 20px;
+  box-sizing: border-box;
 
   background: linear-gradient(135deg, #020617, #0f172a);
-  border-radius: 16px;
+
+  border-radius: 0 0 16px 16px;
 
   box-shadow: 0 6px 30px rgba(0,0,0,0.6);
 }
-
 /* LEFT */
 .bd-header-left {
   display: flex;
@@ -4185,7 +4190,7 @@ body {
   /* HEADER */
 
   .bd-header {
-    position: relative;
+     position: fixed !important;
 
     flex-direction: column;
     align-items: stretch;
@@ -4692,6 +4697,41 @@ body {
 }
 
 
+
 /* ============================================================
    END FULL RESPONSIVE OVERRIDE
    ============================================================ */
+
+   /* =========================================================
+   FINAL HEADER FIX - DO NOT OVERRIDE
+   ========================================================= */
+/* =========================================================
+   FINAL HEADER FIX - DO NOT OVERRIDE
+   ========================================================= */
+
+.building-details-page {
+  position: relative !important;
+  overflow: visible !important;
+
+  /* HEADER SPACE */
+  padding-top: 120px !important;
+}
+
+.bd-header.bd-header-compact {
+  position: fixed !important;
+
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+
+  width: 100% !important;
+  max-width: 100% !important;
+
+  z-index: 999999 !important;
+
+  margin: 0 !important;
+
+  box-sizing: border-box !important;
+
+  overflow: visible !important;
+}
