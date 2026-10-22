@@ -25,7 +25,7 @@ const {
 
    getPgtReport,
 
-   getNLCILPgtStations,
+   
 
    getNUPPLPgtReport,
 
@@ -37,7 +37,10 @@ const {
 
    getBTPSPgtReport,
    getBTPSPgtStations,
-   getBTPSPgtSummary
+   getBTPSPgtSummary,
+   getAllNLCILPgtStations,
+   getSolarmanPgtReport,
+   getNTPLPgtStations
    
 
 } = require("./service");
@@ -380,11 +383,12 @@ router.get(
                 req.params;
 
 
-            const {
-                date,
-                fromTime,
-                toTime
-            } = req.query;
+           const {
+    date,
+    fromTime,
+    toTime,
+    source
+} = req.query;
 
 
             // ================================
@@ -439,13 +443,47 @@ router.get(
             // GET PGT REPORT
             // ================================
 
-            const data =
-                await getPgtReport(
-                    stationId,
-                    date,
-                    fromTime,
-                    toTime
-                );
+           let data;
+
+if (String(source).toUpperCase() === "SOLARMAN") {
+
+    const stations =
+        await getAllNLCILPgtStations();
+
+    const station =
+        stations.find(
+            item =>
+                String(item.stationId) ===
+                    String(stationId) &&
+                item.source === "SOLARMAN"
+        );
+
+    if (!station) {
+        return res.status(404).json({
+            error: "Solarman building not found"
+        });
+    }
+
+    data =
+        await getSolarmanPgtReport(
+            station.stationId,
+            station.buildingName,
+            station.installedDcCapacity,
+            date,
+            fromTime,
+            toTime
+        );
+
+} else {
+
+    data =
+        await getPgtReport(
+            stationId,
+            date,
+            fromTime,
+            toTime
+        );
+}
 
 
             // ================================
@@ -498,13 +536,11 @@ router.get(
             // =============================================
 
             if (campus === "NLCIL") {
+    const data =
+        await getAllNLCILPgtStations();
 
-                const data =
-                    await getNLCILPgtStations();
-
-                return res.json(data);
-
-            }
+    return res.json(data);
+}
 
 
             // =============================================
@@ -530,6 +566,19 @@ if (campus === "BTPS") {
         await getBTPSPgtStations();
 
     return res.json(data);
+}
+
+// =============================================
+// NTPL
+// =============================================
+
+if (campus === "NTPL") {
+
+    const data =
+        await getNTPLPgtStations();
+
+    return res.json(data);
+
 }
 
 

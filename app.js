@@ -6,7 +6,7 @@
  const routes = require("./router");
  const weatherRouter = require("./weatherRouter");
  const giiRouter = require("./giiRouter");
-
+//  const solarmanrouter=require('./solarmanrouter')
  const app = express();
 
  app.use(cors());
@@ -16,6 +16,7 @@
  app.use("/api/weather", weatherRouter);
  app.use("/api/gii", giiRouter);
  app.use("/api", routes);
+//  app.use("/api", solarmanrouter);
  const db=require('./db')
 
  app.get("/test", (req, res) => {

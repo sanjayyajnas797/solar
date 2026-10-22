@@ -27,6 +27,16 @@ export default function BuildingDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const source =
+  location.state?.source ||
+  (String(id).startsWith("solarman-") ? "SOLARMAN" : "DEYE");
+
+const stationId =
+  location.state?.stationId ||
+  (source === "SOLARMAN"
+    ? String(id).replace("solarman-", "")
+    : String(id));
+  
 
   const [graphType, setGraphType] = useState("today");
   const [selectedDate, setSelectedDate] = useState("");
@@ -770,11 +780,12 @@ useEffect(() => {
   {/* 🔥 GRAPH CARD */}
   <div className="bd-graph-box premium-graph-card">
     <PowerGraph
-      stationId={id}
-      type={graphType}
-      selectedDate={selectedDate}
-      buildingName={buildingName}
-    />
+  stationId={stationId}
+  source={source}
+  type={graphType}
+  selectedDate={selectedDate}
+  buildingName={buildingName}
+/>
   </div>
 
 </div>

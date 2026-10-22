@@ -2025,3 +2025,11 @@ body,
         padding: 6px;
     }
 }
+
+.header-new {
+  width: 240px;
+  height: 90px;
+  object-fit: contain;
+  display: block;
+  border-radius: 10px;
+}

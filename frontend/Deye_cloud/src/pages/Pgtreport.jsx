@@ -28,6 +28,8 @@ const [toTime, setToTime] = useState("16:00");
     netExportEnergyInterval: null,
     poaIrradiationInterval: null
 });
+const [selectedStationSource, setSelectedStationSource] =
+    useState("");
 
      const [pgtCalculation, setPgtCalculation] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -174,6 +176,7 @@ useEffect(() => {
 
     setSelectedStationId("");
     setSelectedBuildingName("");
+    setSelectedStationSource("");
 
     // Optional: clear previous report
     setReportData([]);
@@ -246,6 +249,7 @@ if (!selectedStationId) {
 }
 
 const stationId = selectedStationId;
+const stationSource = selectedStationSource;
 
 
 // =========================================================
@@ -255,18 +259,17 @@ const stationId = selectedStationId;
 let res;
 
 if (selectedCampus === "NLCIL") {
-
     res = await axios.get(
         `${API_BASE}/pgt/report/${stationId}`,
         {
             params: {
                 date: fromDate,
                 fromTime: fromTime,
-                toTime: toTime
+                toTime: toTime,
+                source: stationSource
             }
         }
     );
-
 }
 else if (selectedCampus === "NUPPL") {
 
@@ -389,6 +392,12 @@ const previewTotalAC =
     pgtCalculation?.totalAcEnergyGenerated !== undefined
         ? Number(pgtCalculation.totalAcEnergyGenerated)
         : null;
+
+ const previewDifferentialEnergy =
+    pgtCalculation?.differentialEnergy !== null &&
+    pgtCalculation?.differentialEnergy !== undefined
+        ? Number(pgtCalculation.differentialEnergy)
+        : 0;       
 
 const previewReferenceYield =
     pgtCalculation?.referenceYield !== null &&
@@ -1932,6 +1941,12 @@ const finalInverterEnergy =
 const totalAC =
     pgtCalculation?.totalAcEnergyGenerated ?? null;
 
+const differentialEnergy =
+    pgtCalculation?.differentialEnergy !== null &&
+    pgtCalculation?.differentialEnergy !== undefined
+        ? Number(pgtCalculation.differentialEnergy)
+        : 0;    
+
 const referenceYield =
     pgtCalculation?.referenceYield ?? null;
 
@@ -2150,11 +2165,11 @@ const endExcelRow =
     // 8. DIFFERENTIAL ENERGY
     // =====================================================
 
-    [
-        "Differencial Energy reading between Net. Meter and Inverter.",
-        "kWh",
-        0
-    ],
+   [
+    "Differencial Energy reading between Net. Meter and Inverter.",
+    "kWh",
+    differentialEnergy
+],
 
 
     // =====================================================
@@ -2497,7 +2512,7 @@ worksheet.getCell(
 worksheet.getCell(
     differentialEnergyRow,
     10
-).value = 0;
+).value = differentialEnergy;
 
 
 // -----------------------------------------------------
@@ -2950,24 +2965,28 @@ link.download =
 
     <select
         value={selectedStationId}
-        onChange={(e) => {
+       onChange={(e) => {
+    const stationId = e.target.value;
 
-            const stationId = e.target.value;
+    const station =
+        pgtStations.find(
+            item =>
+                String(item.stationId) ===
+                String(stationId)
+        );
 
-            const station =
-                pgtStations.find(
-                    item =>
-                        String(item.stationId) ===
-                        String(stationId)
-                );
+    setSelectedStationId(stationId);
 
-            setSelectedStationId(stationId);
+    setSelectedBuildingName(
+        station?.buildingName || ""
+    );
 
-            setSelectedBuildingName(
-                station?.buildingName || ""
-            );
+    setSelectedStationSource(
+        station?.source || "DEYE"
+    );
 
-        }}
+    console.log("SELECTED PGT BUILDING:", station);
+}}
     >
 
         <option value="">
@@ -3503,9 +3522,9 @@ link.download =
         kWh
     </div>
 
-    <strong>
-        0.00
-    </strong>
+  <strong>
+    {previewDifferentialEnergy.toFixed(2)}
+</strong>
 
 </div>
 

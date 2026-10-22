@@ -171,6 +171,9 @@ const pg=()=>{
 
 const downloadPDF = () => {
 
+    const isSingleDate =
+        fromDate === toDate;
+
     if (reportData.length === 0) {
 
        showAlert(
@@ -297,20 +300,48 @@ doc.setFillColor(39,174,96);
 doc.roundedRect(79,34,62,18,3,3,"F");
 
 doc.setFontSize(8);
-doc.text("DATE",83,40);
 
-doc.setFontSize(11);
-doc.text(summary.date,83,48);
+doc.text(
+    isSingleDate
+        ? "DATE"
+        : "DATE RANGE",
+    83,
+    40
+);
+
+doc.setFontSize(
+    isSingleDate ? 11 : 8
+);
+
+doc.text(
+    isSingleDate
+        ? summary.date
+        : `${fromDate} to ${toDate}`,
+    83,
+    48
+);
 
 // Records
 doc.setFillColor(243,156,18);
 doc.roundedRect(150,34,62,18,3,3,"F");
 
 doc.setFontSize(8);
-doc.text("TOTAL RECORDS",154,40);
+
+doc.text(
+    isSingleDate
+        ? "TOTAL RECORDS"
+        : "TOTAL DAYS",
+    154,
+    40
+);
 
 doc.setFontSize(12);
-doc.text(String(summary.records),154,48);
+
+doc.text(
+    String(summary.records),
+    154,
+    48
+);
 
 //==========================
 // TOTAL ENERGY
@@ -354,58 +385,147 @@ else{
    //==========================
 // TABLE
 //==========================
-
 if (campus === "GII") {
 
-    autoTable(doc, {
+    // =====================================================
+    // SINGLE DATE
+    // FULL DAY DETAILED REPORT
+    // =====================================================
 
-        startY: 58,
+    if (isSingleDate) {
 
-        head: [[
-            "Date & Time",
-            "Horizontal Irradiance (W/m²)",
-            "Horizontal Cumulative (Wh/m²)",
-            "Inclined Irradiance (W/m²)",
-            "Inclined Cumulative (Wh/m²)",
-            "Module Temperature (°C)"
-        ]],
+        autoTable(doc, {
 
-        body: reportData.map(r => [
-            r.time,
-            r.horizontal,
-            r.horizontalCumulative,
-            r.inclined,
-            r.inclinedCumulative,
-            r.temperature
-        ]),
+            startY: 58,
 
-        theme: "grid",
+            head: [[
+                "Date & Time",
+                "Horizontal Irradiance (W/m²)",
+                "Horizontal Cumulative (Wh/m²)",
+                "Inclined Irradiance (W/m²)",
+                "Inclined Cumulative (Wh/m²)",
+                "Module Temperature (°C)"
+            ]],
 
-        headStyles: {
-            fillColor: [22, 90, 145],
-            textColor: [255, 255, 255],
-            fontSize: 9,
-            halign: "center",
-            valign: "middle"
-        },
+            body: reportData.map(r => [
 
-        alternateRowStyles: {
-            fillColor: [245, 245, 245],
-            textColor: [0, 0, 0]
-        },
+                r.time,
 
-        styles: {
-            fontSize: 8.5,
-            cellPadding: 2,
-            textColor: [0, 0, 0],
-            fontStyle: "bold",
-            lineColor: [225, 225, 225],
-            lineWidth: 0.1,
-            halign: "center",
-            valign: "middle"
-        }
+                r.horizontal,
 
-    });
+                r.horizontalCumulative,
+
+                r.inclined,
+
+                r.inclinedCumulative,
+
+                r.temperature
+
+            ]),
+
+            theme: "grid",
+
+            headStyles: {
+                fillColor: [22, 90, 145],
+                textColor: [255, 255, 255],
+                fontSize: 9,
+                halign: "center",
+                valign: "middle"
+            },
+
+            alternateRowStyles: {
+                fillColor: [245, 245, 245],
+                textColor: [0, 0, 0]
+            },
+
+            styles: {
+                fontSize: 8.5,
+                cellPadding: 2,
+                textColor: [0, 0, 0],
+                fontStyle: "bold",
+                lineColor: [225, 225, 225],
+                lineWidth: 0.1,
+                halign: "center",
+                valign: "middle"
+            }
+
+        });
+
+    }
+
+    // =====================================================
+    // MULTIPLE DATES
+    // DATE-WISE OVERALL CUMULATIVE ONLY
+    // =====================================================
+
+    else {
+
+        autoTable(doc, {
+
+            startY: 58,
+
+            head: [[
+                "Date",
+                "Horizontal Overall (Wh/m²)",
+                "Inclined Overall (Wh/m²)"
+            ]],
+
+            body: reportData.map(r => [
+
+                r.time,
+
+                r.horizontalCumulative,
+
+                r.inclinedCumulative
+
+            ]),
+
+            theme: "grid",
+
+            headStyles: {
+                fillColor: [22, 90, 145],
+                textColor: [255, 255, 255],
+                fontSize: 10,
+                halign: "center",
+                valign: "middle",
+                cellPadding: 4
+            },
+
+            alternateRowStyles: {
+                fillColor: [245, 245, 245],
+                textColor: [0, 0, 0]
+            },
+
+            styles: {
+                fontSize: 10,
+                cellPadding: 4,
+                textColor: [0, 0, 0],
+                fontStyle: "bold",
+                lineColor: [225, 225, 225],
+                lineWidth: 0.1,
+                halign: "center",
+                valign: "middle"
+            },
+
+            columnStyles: {
+
+                0: {
+                    cellWidth: 70
+                },
+
+                1: {
+                    cellWidth: 90
+                },
+
+                2: {
+                    cellWidth: 90
+                }
+
+            }
+
+        });
+
+    }
 
 }
 
@@ -733,86 +853,148 @@ campus === "GII"
 </button>
 
                 </div>
+{campus === "GII" ? (
 
-              {campus === "GII" ? (
+    fromDate === toDate ? (
 
-<table className="report-table">
+        // ==========================================
+        // SINGLE DATE -> FULL DAY REPORT
+        // ==========================================
 
-<thead>
-<tr>
-    <th>Date & Time</th>
+        <table className="report-table">
 
-    <th>
-        Horizontal Irradiance
-        <br />
-        (W/m²)
-    </th>
+            <thead>
+                <tr>
 
-    <th>
-        Horizontal Cumulative
-        <br />
-        (Wh/m²)
-    </th>
+                    <th>Date & Time</th>
 
-    <th>
-        Inclined Irradiance
-        <br />
-        (W/m²)
-    </th>
+                    <th>
+                        Horizontal Irradiance
+                        <br />
+                        (W/m²)
+                    </th>
 
-    <th>
-        Inclined Cumulative
-        <br />
-        (Wh/m²)
-    </th>
+                    <th>
+                        Horizontal Cumulative
+                        <br />
+                        (Wh/m²)
+                    </th>
 
-    <th>
-        Module Temperature
-        <br />
-        (°C)
-    </th>
-</tr>
-</thead>
+                    <th>
+                        Inclined Irradiance
+                        <br />
+                        (W/m²)
+                    </th>
 
-<tbody>
+                    <th>
+                        Inclined Cumulative
+                        <br />
+                        (Wh/m²)
+                    </th>
 
-{
-    reportData.map((row, index) => (
+                    <th>
+                        Module Temperature
+                        <br />
+                        (°C)
+                    </th>
 
-        <tr key={index}>
+                </tr>
+            </thead>
 
-            <td>
-                {row.time}
-            </td>
+            <tbody>
 
-            <td>
-                {row.horizontal}
-            </td>
+                {reportData.map((row, index) => (
 
-            <td>
-                {row.horizontalCumulative}
-            </td>
+                    <tr key={index}>
 
-            <td>
-                {row.inclined}
-            </td>
+                        <td>
+                            {row.time}
+                        </td>
 
-            <td>
-                {row.inclinedCumulative}
-            </td>
+                        <td>
+                            {row.horizontal}
+                        </td>
 
-            <td>
-                {row.temperature}
-            </td>
+                        <td>
+                            {row.horizontalCumulative}
+                        </td>
 
-        </tr>
+                        <td>
+                            {row.inclined}
+                        </td>
 
-    ))
-}
+                        <td>
+                            {row.inclinedCumulative}
+                        </td>
 
-</tbody>
+                        <td>
+                            {row.temperature}
+                        </td>
 
-</table>
+                    </tr>
+
+                ))}
+
+            </tbody>
+
+        </table>
+
+    ) : (
+
+        // ==========================================
+        // MULTIPLE DATES
+        // -> DATE WISE OVERALL CUMULATIVE ONLY
+        // ==========================================
+
+        <table className="report-table">
+
+            <thead>
+                <tr>
+
+                    <th>Date</th>
+
+                    <th>
+                        Horizontal Overall
+                        <br />
+                        (Wh/m²)
+                    </th>
+
+                    <th>
+                        Inclined Overall
+                        <br />
+                        (Wh/m²)
+                    </th>
+
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {reportData.map((row, index) => (
+
+                    <tr key={index}>
+
+                        <td>
+                            {row.time}
+                        </td>
+
+                        <td>
+                            {row.horizontalCumulative}
+                        </td>
+
+                        <td>
+                            {row.inclinedCumulative}
+                        </td>
+
+                    </tr>
+
+                ))}
+
+            </tbody>
+
+        </table>
+
+    )
 
 ) : (
 

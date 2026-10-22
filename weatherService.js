@@ -550,42 +550,142 @@ async function getGIIDetailedReport(
     // =================================================
     // FILTER ONLY FOR DISPLAY
     // =================================================
+// =====================================================
+// DISPLAY REPORT
+// =====================================================
 
-    const report =
+// SINGLE DATE
+// -> Full day readings based on selected interval
+//
+// MULTIPLE DATES
+// -> Only final cumulative of each date
+// =====================================================
+
+let report;
+
+if (fromDate === toDate) {
+
+    // Single date -> full day report
+    report =
         filterByInterval(
             fullReport,
             interval
         );
 
+}
+else {
+
+    // Multiple dates -> one row per date
+    // containing only that day's final cumulative
+
+    const dailyReportMap = new Map();
+
+    for (const row of fullReport) {
+
+        const dateKey =
+            String(row.time).slice(0, 10);
+
+        dailyReportMap.set(dateKey, {
+            time: dateKey,
+
+            horizontal: null,
+
+            temperature: null,
+
+            inclined: null,
+
+            horizontalCumulative:
+                Number(
+                    row.horizontalCumulative || 0
+                ),
+
+            inclinedCumulative:
+                Number(
+                    row.inclinedCumulative || 0
+                )
+        });
+    }
+
+    report =
+        Array.from(
+            dailyReportMap.values()
+        );
+}
 
     // =================================================
     // SUMMARY
     // =================================================
 
-    const summary = {
+  // =====================================================
+// SUMMARY
+// =====================================================
 
-        campus: "GII",
+// DAILY CUMULATIVE VALUES ARE STORED IN DB.
+// For month-wise report, take the LAST cumulative
+// value of EACH DAY and add them together.
+// =====================================================
 
-        date: fromDate,
+const dailyTotals = new Map();
 
-        records:
-            report.length,
+for (const row of fullReport) {
 
-        horizontalTotal:
-            report.length > 0
-                ? report[
-                    report.length - 1
-                  ].horizontalCumulative
-                : 0,
+    const dateKey =
+        String(row.time).slice(0, 10);
 
-        inclinedTotal:
-            report.length > 0
-                ? report[
-                    report.length - 1
-                  ].inclinedCumulative
-                : 0
+    dailyTotals.set(dateKey, {
+        horizontal:
+            Number(row.horizontalCumulative || 0),
 
-    };
+        inclined:
+            Number(row.inclinedCumulative || 0)
+    });
+}
+
+
+// =====================================================
+// MONTHLY CUMULATIVE
+// =====================================================
+
+let horizontalTotal = 0;
+let inclinedTotal = 0;
+
+for (const daily of dailyTotals.values()) {
+
+    horizontalTotal +=
+        daily.horizontal;
+
+    inclinedTotal +=
+        daily.inclined;
+}
+
+
+// =====================================================
+// SUMMARY
+// =====================================================
+
+const summary = {
+
+    campus: "GII",
+
+    date: fromDate,
+
+    from: fromDate,
+
+    to: toDate,
+
+    records:
+        report.length,
+
+    days:
+        dailyTotals.size,
+
+    horizontalTotal:
+        Number(horizontalTotal.toFixed(2)),
+
+    inclinedTotal:
+        Number(inclinedTotal.toFixed(2))
+
+};
 
 
     return {

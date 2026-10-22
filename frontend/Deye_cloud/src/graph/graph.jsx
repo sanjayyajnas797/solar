@@ -77,7 +77,13 @@ const capacityMap = {
 const normalizeName = (name) =>
   name?.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-export default function PowerGraph({ stationId, type, selectedDate, buildingName }) {
+export default function PowerGraph({
+  stationId,
+  source = "DEYE",
+  type,
+  selectedDate,
+  buildingName
+}) {
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -99,17 +105,34 @@ const [showMenu, setShowMenu] = useState(false);
   }
 
   const formatTime = (utcTime) => {
-    if (!utcTime) return "";
-    const date = new Date(utcTime);
-    if (isNaN(date)) return "";
+  if (utcTime === null || utcTime === undefined || utcTime === "") {
+    return "";
+  }
 
-    return date.toLocaleTimeString("en-IN", {
-      timeZone: "Asia/Kolkata",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    });
-  };
+  let date;
+
+  const timestamp = Number(utcTime);
+
+  // Unix timestamp in seconds → convert to milliseconds
+  if (!isNaN(timestamp)) {
+    date = new Date(
+      timestamp < 1000000000000
+        ? timestamp * 1000
+        : timestamp
+    );
+  } else {
+    date = new Date(utcTime);
+  }
+
+  if (isNaN(date.getTime())) return "";
+
+  return date.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+};
 
   /* ========================= */
   /* LOADING PROGRESS */
@@ -145,13 +168,57 @@ const [showMenu, setShowMenu] = useState(false);
   setLoading(true);
   setProgress(0);
 
-  let url = "";
+ let url = "";
 
+if (source === "SOLARMAN") {
+
+  // -----------------------------
+  // SOLARMAN GRAPH
+  // -----------------------------
+  let graphDate = selectedDate;
+
+  if (type === "today") {
+    const today = new Date();
+
+    graphDate = today.toLocaleDateString("en-CA", {
+      timeZone: "Asia/Kolkata"
+    });
+  }
+
+  if (type === "yesterday") {
+    const today = new Date();
+
+    const istDate = new Date(
+      today.toLocaleString("en-US", {
+        timeZone: "Asia/Kolkata"
+      })
+    );
+
+    istDate.setDate(istDate.getDate() - 1);
+
+    const year = istDate.getFullYear();
+    const month = String(istDate.getMonth() + 1).padStart(2, "0");
+    const day = String(istDate.getDate()).padStart(2, "0");
+
+    graphDate = `${year}-${month}-${day}`;
+  }
+
+  if (graphDate) {
+    url = `${API_BASE}/solarman/${stationId}/graph?date=${graphDate}`;
+  }
+
+} else {
+
+  // -----------------------------
+  // EXISTING DEYE GRAPH
+  // -----------------------------
   if (type === "custom") {
     url = `${API_BASE}/graph/${stationId}?date=${selectedDate}`;
   } else {
     url = `${API_BASE}/graph/${type}/${stationId}`;
   }
+
+}
 
   fetch(url)
     .then(res => res.json())

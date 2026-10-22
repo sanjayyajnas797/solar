@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import "./Report.css";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
 import mainlogo from "../assets/main logo.png";
 import sunlogo from "../assets/sunlogo.png";
+
 import { useNavigate } from "react-router-dom";
 import API_BASE from "./config";
 
@@ -13,117 +15,412 @@ function Report() {
     const navigate = useNavigate();
 
     // =====================================================
-    // NLCIL PGT SUMMARY ONLY
+    // FILTER STATES
     // =====================================================
 
     const [campus, setCampus] = useState("NLCIL");
+
+    const [buildings, setBuildings] = useState([]);
+    const [selectedBuilding, setSelectedBuilding] = useState("");
+
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
 
-    const [pgtSummary, setPgtSummary] = useState([]);
+    // =====================================================
+    // REPORT STATES
+    // =====================================================
 
-    const [loading, setLoading] = useState(false);
+    const [reportData, setReportData] = useState([]);
+
+    const [totalGeneration, setTotalGeneration] = useState(0);
+
+    const [loadingBuildings, setLoadingBuildings] = useState(false);
+    const [loadingReport, setLoadingReport] = useState(false);
+
     const [progress, setProgress] = useState(0);
 
     // =====================================================
-    // GENERATE NLCIL PGT SUMMARY
+    // LOAD BUILDINGS WHEN CAMPUS CHANGES
     // =====================================================
 
-    const generateReport = async () => {
+    useEffect(() => {
 
-        if (!fromDate || !toDate) {
-            alert("Please Select From Date and To Date");
-            return;
-        }
+        loadBuildings();
 
-      
-        // Backend PGT Summary currently works for one test day.
-        if (fromDate !== toDate) {
-            alert(
-                "For NLCIL PGT Summary, please select the same From Date and To Date."
-            );
-            return;
-        }
+    }, [campus]);
 
-        setLoading(true);
-        setProgress(10);
-        setPgtSummary([]);
+
+    // =====================================================
+    // GET BUILDINGS
+    // =====================================================
+
+    const loadBuildings = async () => {
 
         try {
 
-            const progressTimer = setInterval(() => {
-                setProgress(prev => {
-                    if (prev >= 90) return prev;
-                    return prev + 10;
-                });
-            }, 200);
+            setLoadingBuildings(true);
 
-            // =================================================
-            // ONLY API USED IN THIS PAGE
-            // =================================================
-const res = await axios.get(
-    `${API_BASE}/pgt/summary`,
-    {
-        params: {
-            campus: campus,
-            date: fromDate,
-            fromTime: "08:00",
-            toTime: "18:00"
-        }
-    }
-);
+            setBuildings([]);
+            setSelectedBuilding("");
 
-            clearInterval(progressTimer);
-
-            setPgtSummary(
-                res.data?.buildings || []
+            console.log(
+                "Loading buildings for campus:",
+                campus
             );
 
-            setProgress(100);
+            const res = await axios.get(
+                `${API_BASE}/pgt/stations`,
+                {
+                    params: {
+                        campus: campus
+                    }
+                }
+            );
 
-            setTimeout(() => {
-                setLoading(false);
-            }, 300);
+            console.log(
+                "Buildings Response:",
+                res.data
+            );
+
+            const data = Array.isArray(res.data)
+                ? res.data
+                : res.data?.buildings || [];
+
+            setBuildings(data);
 
         }
         catch (err) {
 
-            setLoading(false);
-            setProgress(0);
-
             console.error(
-                "NLCIL PGT Summary Error:",
+                "Building Load Error:",
                 err
             );
 
             alert(
                 err?.response?.data?.error ||
-                "PGT Summary Report Load Failed"
+                "Buildings Load Failed"
             );
+
         }
+        finally {
+
+            setLoadingBuildings(false);
+
+        }
+
     };
 
+
     // =====================================================
-    // DOWNLOAD PGT SUMMARY PDF
+    // GENERATE BUILDING REPORT
+    // =====================================================
+
+    const generateReport = async () => {
+
+        // -------------------------------------------------
+        // VALIDATION
+        // -------------------------------------------------
+
+        if (!selectedBuilding) {
+
+            alert(
+                "Please Select Building"
+            );
+
+            return;
+
+        }
+
+
+        if (!fromDate || !toDate) {
+
+            alert(
+                "Please Select From Date and To Date"
+            );
+
+            return;
+
+        }
+
+
+        if (fromDate > toDate) {
+
+            alert(
+                "To Date must be greater than or equal to From Date"
+            );
+
+            return;
+
+        }
+
+
+        // -------------------------------------------------
+        // GET SELECTED BUILDING
+        // -------------------------------------------------
+
+        const building = buildings.find(
+            item =>
+                String(
+                    item.stationId
+                ) ===
+                String(
+                    selectedBuilding
+                )
+        );
+
+
+        if (!building) {
+
+            alert(
+                "Selected Building Not Found"
+            );
+
+            return;
+
+        }
+
+
+        console.log(
+            "Selected Building:",
+            building
+        );
+
+
+        // -------------------------------------------------
+        // START LOADING
+        // -------------------------------------------------
+
+        setLoadingReport(true);
+
+        setProgress(10);
+
+        setReportData([]);
+
+        setTotalGeneration(0);
+
+
+        try {
+
+            // -------------------------------------------------
+            // PROGRESS
+            // -------------------------------------------------
+
+            const progressTimer =
+                setInterval(() => {
+
+                    setProgress(prev => {
+
+                        if (prev >= 90) {
+
+                            return prev;
+
+                        }
+
+                        return prev + 10;
+
+                    });
+
+                }, 200);
+
+
+            // -------------------------------------------------
+            // GET SELECTED BUILDING REPORT
+            // -------------------------------------------------
+
+            console.log(
+                "Calling Building Report API"
+            );
+
+            console.log(
+                "Station ID:",
+                building.stationId
+            );
+
+            console.log(
+                "From:",
+                fromDate
+            );
+
+            console.log(
+                "To:",
+                toDate
+            );
+
+
+            const res = await axios.get(
+
+                `${API_BASE}/report/${building.stationId}`,
+
+                {
+                    params: {
+
+                        from: fromDate,
+
+                        to: toDate
+
+                    }
+
+                }
+
+            );
+
+
+            console.log(
+                "Building Report Response:",
+                res.data
+            );
+
+
+            clearInterval(
+                progressTimer
+            );
+
+
+            // -------------------------------------------------
+            // RESPONSE DATA
+            // -------------------------------------------------
+
+            const data =
+                Array.isArray(res.data)
+                    ? res.data
+                    : res.data?.data || [];
+
+
+            setReportData(
+                data
+            );
+
+
+            // -------------------------------------------------
+            // CALCULATE TOTAL GENERATION
+            // -------------------------------------------------
+
+            const total =
+                data.reduce(
+                    (
+                        sum,
+                        item
+                    ) => {
+
+                        const generation =
+                            Number(
+                                item?.generation
+                            ) || 0;
+
+                        return (
+                            sum +
+                            generation
+                        );
+
+                    },
+                    0
+                );
+
+
+            console.log(
+                "Total Generation:",
+                total
+            );
+
+
+            setTotalGeneration(
+                total
+            );
+
+
+            setProgress(100);
+
+
+            setTimeout(() => {
+
+                setLoadingReport(false);
+
+            }, 300);
+
+        }
+        catch (err) {
+
+            console.error(
+                "Building Report Error:",
+                err
+            );
+
+            setLoadingReport(false);
+
+            setProgress(0);
+
+            alert(
+                err?.response?.data?.error ||
+                "Building Report Load Failed"
+            );
+
+        }
+
+    };
+
+
+    // =====================================================
+    // DOWNLOAD PDF
     // =====================================================
 
     const downloadPDF = () => {
 
-        if (pgtSummary.length === 0) {
-            alert("Generate Report First");
+        if (
+            !selectedBuilding ||
+            reportData.length === 0
+        ) {
+
+            alert(
+                "Generate Report First"
+            );
+
             return;
+
         }
 
-        const doc = new jsPDF("landscape");
+
+        const building =
+            buildings.find(
+                item =>
+                    String(
+                        item.stationId
+                    ) ===
+                    String(
+                        selectedBuilding
+                    )
+            );
+
+
+        const buildingName =
+            building?.buildingName ||
+            building?.name ||
+            "Selected Building";
+
+
+        // -------------------------------------------------
+        // CREATE PDF
+        // -------------------------------------------------
+
+        const doc =
+            new jsPDF(
+                "landscape"
+            );
+
 
         const pageWidth =
             doc.internal.pageSize.getWidth();
 
-        // =================================================
-        // HEADER
-        // =================================================
 
-        doc.setFillColor(15, 42, 63);
+        // -------------------------------------------------
+        // HEADER
+        // -------------------------------------------------
+
+        doc.setFillColor(
+            15,
+            42,
+            63
+        );
+
 
         doc.rect(
             0,
@@ -133,7 +430,17 @@ const res = await axios.get(
             "F"
         );
 
-        doc.setFillColor(255, 255, 255);
+
+        // -------------------------------------------------
+        // MAIN LOGO
+        // -------------------------------------------------
+
+        doc.setFillColor(
+            255,
+            255,
+            255
+        );
+
 
         doc.roundedRect(
             4,
@@ -145,6 +452,7 @@ const res = await axios.get(
             "F"
         );
 
+
         doc.addImage(
             mainlogo,
             "PNG",
@@ -154,21 +462,21 @@ const res = await axios.get(
             18
         );
 
-        doc.setDrawColor(90, 120, 150);
 
-        doc.line(
-            24,
-            2,
-            24,
-            26
-        );
+        // -------------------------------------------------
+        // HEADER TEXT
+        // -------------------------------------------------
 
         doc.setFont(
             "helvetica",
             "bold"
         );
 
-        doc.setFontSize(15);
+
+        doc.setFontSize(
+            15
+        );
+
 
         doc.setTextColor(
             255,
@@ -176,30 +484,42 @@ const res = await axios.get(
             255
         );
 
+
         doc.text(
             "NLC India Limited",
             30,
             10
         );
 
+
         doc.setFont(
             "helvetica",
             "normal"
         );
 
-        doc.setFontSize(8);
+
+        doc.setFontSize(
+            8
+        );
+
 
         doc.text(
-            "Weather Monitoring System",
+            "Solar Dashboard",
             30,
             16
         );
 
-       doc.text(
-    `${campus} PGT Summary Report`,
-    30,
-    21
-);
+
+        doc.text(
+            `${campus} Building Generation Report`,
+            30,
+            21
+        );
+
+
+        // -------------------------------------------------
+        // SUN LOGO
+        // -------------------------------------------------
 
         doc.addImage(
             sunlogo,
@@ -210,12 +530,17 @@ const res = await axios.get(
             12
         );
 
+
         doc.setFont(
             "helvetica",
             "bold"
         );
 
-        doc.setFontSize(7);
+
+        doc.setFontSize(
+            7
+        );
+
 
         doc.setTextColor(
             210,
@@ -223,13 +548,18 @@ const res = await axios.get(
             210
         );
 
+
         doc.text(
             "EPC BY",
             172,
             8
         );
 
-        doc.setFontSize(10);
+
+        doc.setFontSize(
+            10
+        );
+
 
         doc.setTextColor(
             0,
@@ -237,19 +567,29 @@ const res = await axios.get(
             220
         );
 
+
         doc.text(
             "SUN Industrial Automation & Solutions Pvt Ltd",
             172,
             16
         );
 
-        // =================================================
-        // REPORT INFO
-        // =================================================
 
-        doc.setTextColor(0, 0, 0);
+        // -------------------------------------------------
+        // REPORT INFORMATION
+        // -------------------------------------------------
 
-        doc.setFontSize(10);
+        doc.setTextColor(
+            0,
+            0,
+            0
+        );
+
+
+        doc.setFontSize(
+            10
+        );
+
 
         doc.text(
             `Campus: ${campus}`,
@@ -257,109 +597,242 @@ const res = await axios.get(
             38
         );
 
+
         doc.text(
-            `Test Date: ${fromDate}`,
-            100,
+            `Building: ${buildingName}`,
+            80,
             38
         );
 
+
         doc.text(
-            "Test Time: 08:00 - 18:00",
-            190,
+            `From: ${fromDate}`,
+            200,
             38
         );
 
-        // =================================================
+
+        doc.text(
+            `To: ${toDate}`,
+            255,
+            38
+        );
+
+
+        // -------------------------------------------------
+        // TOTAL GENERATION BOX
+        // -------------------------------------------------
+
+        doc.setFillColor(
+            235,
+            248,
+            240
+        );
+
+
+        doc.roundedRect(
+            10,
+            44,
+            80,
+            25,
+            3,
+            3,
+            "F"
+        );
+
+
+        doc.setFont(
+            "helvetica",
+            "bold"
+        );
+
+
+        doc.setFontSize(
+            9
+        );
+
+
+        doc.setTextColor(
+            50,
+            50,
+            50
+        );
+
+
+        doc.text(
+            "TOTAL GENERATION",
+            15,
+            52
+        );
+
+
+        doc.setFontSize(
+            16
+        );
+
+
+        doc.setTextColor(
+            20,
+            130,
+            70
+        );
+
+
+        doc.text(
+            `${totalGeneration.toFixed(2)} kWh`,
+            15,
+            63
+        );
+
+
+        // -------------------------------------------------
         // TABLE
-        // =================================================
+        // -------------------------------------------------
 
         const tableBody =
-            pgtSummary.map(
+            reportData.map(
                 (item, index) => [
+
                     index + 1,
-                    item.buildingName || "-",
-                    item.performanceRatio !== null &&
-                    item.performanceRatio !== undefined
-                        ? `${Number(item.performanceRatio).toFixed(2)} %`
+
+                    item?.date ||
+                    "-",
+
+                    item?.generation !== undefined &&
+                    item?.generation !== null
+                        ? `${Number(
+                            item.generation
+                        ).toFixed(2)} kWh`
                         : "-"
+
                 ]
             );
+
 
         autoTable(
             doc,
             {
-                startY: 45,
+
+                startY: 75,
 
                 head: [
                     [
                         "S.No",
-                        "Building Name",
-                        "Performance Ratio (%)"
+                        "Date",
+                        "Generation"
                     ]
                 ],
 
-                body: tableBody,
+                body:
+                    tableBody,
 
-                theme: "grid",
+                theme:
+                    "grid",
 
                 headStyles: {
+
                     fillColor: [
                         22,
                         90,
                         145
                     ],
+
                     textColor: [
                         255,
                         255,
                         255
                     ],
+
                     fontSize: 10,
-                    fontStyle: "bold",
-                    halign: "center",
-                    valign: "middle",
+
+                    fontStyle:
+                        "bold",
+
+                    halign:
+                        "center",
+
+                    valign:
+                        "middle",
+
                     cellPadding: 3
+
                 },
 
                 alternateRowStyles: {
+
                     fillColor: [
                         245,
                         245,
                         245
                     ]
+
                 },
 
-               bodyStyles: {
-    fontSize: 9,
-    fontStyle: "bold",
-    textColor: [0, 0, 0],
-    halign: "center",
-    valign: "middle",
-    cellPadding: 2.5
-},
+                bodyStyles: {
+
+                    fontSize: 9,
+
+                    fontStyle:
+                        "bold",
+
+                    textColor: [
+                        0,
+                        0,
+                        0
+                    ],
+
+                    halign:
+                        "center",
+
+                    valign:
+                        "middle",
+
+                    cellPadding: 2.5
+
+                },
 
                 columnStyles: {
+
                     0: {
-                        cellWidth: 35,
-                        halign: "center"
+
+                        cellWidth: 30,
+
+                        halign:
+                            "center"
+
                     },
+
                     1: {
-                        cellWidth: 150,
-                        halign: "left"
-                    },
-                    2: {
+
                         cellWidth: 80,
-                        halign: "center"
+
+                        halign:
+                            "center"
+
+                    },
+
+                    2: {
+
+                        cellWidth: 80,
+
+                        halign:
+                            "center"
+
                     }
+
                 }
+
             }
         );
 
-        // =================================================
+
+        // -------------------------------------------------
         // FOOTER
-        // =================================================
+        // -------------------------------------------------
 
         const pageCount =
             doc.getNumberOfPages();
+
 
         for (
             let i = 1;
@@ -367,14 +840,21 @@ const res = await axios.get(
             i++
         ) {
 
-            doc.setPage(i);
+            doc.setPage(
+                i
+            );
+
 
             doc.setFont(
                 "helvetica",
                 "normal"
             );
 
-            doc.setFontSize(8);
+
+            doc.setFontSize(
+                8
+            );
+
 
             doc.setTextColor(
                 120,
@@ -382,26 +862,53 @@ const res = await axios.get(
                 120
             );
 
-          doc.text(
-    `Generated by Solar Monitoring Dashboard | ${campus} | Confidential`,
-    10,
-    205
-);
+
+            doc.text(
+                `Generated by Solar Monitoring Dashboard | ${campus} | Confidential`,
+                10,
+                205
+            );
+
 
             doc.text(
                 `Page ${i} of ${pageCount}`,
                 287,
                 205,
                 {
-                    align: "right"
+                    align:
+                        "right"
                 }
             );
+
         }
 
-       doc.save(
-    `${campus}_PGT_Summary_${fromDate}.pdf`
-);
+
+        // -------------------------------------------------
+        // SAVE
+        // -------------------------------------------------
+
+        doc.save(
+            `${campus}_${buildingName}_Generation_${fromDate}_${toDate}.pdf`
+        );
+
     };
+
+
+    // =====================================================
+    // SELECTED BUILDING OBJECT
+    // =====================================================
+
+    const selectedBuildingData =
+        buildings.find(
+            item =>
+                String(
+                    item.stationId
+                ) ===
+                String(
+                    selectedBuilding
+                )
+        );
+
 
     // =====================================================
     // UI
@@ -411,12 +918,14 @@ const res = await axios.get(
 
         <div className="solarReportPage">
 
+
             {/* =================================================
                 LOADING
             ================================================= */}
 
             {
-                loading && (
+                (loadingReport ||
+                    loadingBuildings) && (
 
                     <div className="loadingOverlay">
 
@@ -425,23 +934,40 @@ const res = await axios.get(
                             <div className="loaderCircle"></div>
 
                             <h2>
-                                Generating PGT Summary Report...
+                                {
+                                    loadingBuildings
+                                        ? "Loading Buildings..."
+                                        : "Generating Building Report..."
+                                }
                             </h2>
 
-                            <div className="progressBar">
 
-                                <div
-                                    className="progressFill"
-                                    style={{
-                                        width: `${progress}%`
-                                    }}
-                                />
+                            {
+                                loadingReport && (
 
-                            </div>
+                                    <>
+                                        <div className="progressBar">
 
-                            <h3>
-                                {progress}%
-                            </h3>
+                                            <div
+                                                className="progressFill"
+                                                style={{
+                                                    width:
+                                                        `${progress}%`
+                                                }}
+                                            />
+
+                                        </div>
+
+
+                                        <h3>
+                                            {progress}%
+                                        </h3>
+
+                                    </>
+
+                                )
+                            }
+
 
                             <p>
                                 Please wait...
@@ -450,14 +976,17 @@ const res = await axios.get(
                         </div>
 
                     </div>
+
                 )
             }
+
 
             {/* =================================================
                 HEADER
             ================================================= */}
 
             <div className="dashboardTopHeader">
+
 
                 <div className="dashboardLeft">
 
@@ -466,6 +995,7 @@ const res = await axios.get(
                         alt="NLC"
                         className="dashboardLogo"
                     />
+
 
                     <div>
 
@@ -481,6 +1011,7 @@ const res = await axios.get(
 
                 </div>
 
+
                 <div className="dashboardCenter">
 
                     <img
@@ -488,6 +1019,7 @@ const res = await axios.get(
                         className="sunLogo"
                         alt=""
                     />
+
 
                     <div className="epcText">
 
@@ -503,12 +1035,18 @@ const res = await axios.get(
 
                 </div>
 
+
                 <button
                     className="wmsReportBtn"
-                    onClick={() => navigate("/wms-report")}
+                    onClick={() =>
+                        navigate(
+                            "/wms-report"
+                        )
+                    }
                 >
                     🌤️ WMS REPORT
                 </button>
+
 
                 <div className="dashboardRight">
 
@@ -516,13 +1054,18 @@ const res = await axios.get(
                         ● LIVE SYSTEM
                     </div>
 
+
                     <div className="timeBadge">
-                        Updated : {new Date().toLocaleTimeString()}
+                        Updated :{" "}
+                        {new Date().toLocaleTimeString()}
                     </div>
+
 
                     <button
                         className="backBtn"
-                        onClick={() => window.history.back()}
+                        onClick={() =>
+                            window.history.back()
+                        }
                     >
                         ← Back
                     </button>
@@ -531,15 +1074,17 @@ const res = await axios.get(
 
             </div>
 
+
             {/* =================================================
                 FILTER CARD
-                ONLY CAMPUS + FROM DATE + TO DATE
-                NO BUILDING FIELD
             ================================================= */}
 
             <div className="solarReportFilterCard">
 
-                {/* Campus */}
+
+                {/* =================================================
+                    CAMPUS
+                ================================================= */}
 
                 <div className="solarReportField">
 
@@ -547,29 +1092,120 @@ const res = await axios.get(
                         Campus
                     </label>
 
-                   <select
-    value={campus}
-    onChange={(e) => {
-        setCampus(e.target.value);
-        setPgtSummary([]);
-    }}
->
-    <option value="NLCIL">
-        NLCIL
-    </option>
 
-    <option value="NUPPL">
-        NUPPL
-    </option>
+                    <select
+                        value={campus}
+                        onChange={(e) => {
 
-    <option value="BTPS">
+                            setCampus(
+                                e.target.value
+                            );
+
+                            setReportData([]);
+
+                            setTotalGeneration(
+                                0
+                            );
+
+                        }}
+                    >
+
+                       <option value="NLCIL">
+    NLCIL
+</option>
+
+<option value="NTPL">
+    NTPL
+</option>
+
+<option value="NUPPL">
+    NUPPL
+</option>
+
+<option value="BTPS">
     BTPS
 </option>
-</select>
+
+                    </select>
 
                 </div>
 
-                {/* From Date */}
+
+                {/* =================================================
+                    BUILDING
+                ================================================= */}
+
+                <div className="solarReportField">
+
+                    <label>
+                        Building
+                    </label>
+
+
+                    <select
+                        value={
+                            selectedBuilding
+                        }
+                        onChange={(e) => {
+
+                            setSelectedBuilding(
+                                e.target.value
+                            );
+
+                            setReportData([]);
+
+                            setTotalGeneration(
+                                0
+                            );
+
+                        }}
+                        disabled={
+                            loadingBuildings
+                        }
+                    >
+
+                        <option value="">
+                            Select Building
+                        </option>
+
+
+                        {
+                            buildings.map(
+                                (
+                                    building,
+                                    index
+                                ) => (
+
+                                    <option
+                                        key={
+                                            building.stationId ||
+                                            index
+                                        }
+                                        value={
+                                            building.stationId
+                                        }
+                                    >
+
+                                        {
+                                            building.buildingName ||
+                                            building.name ||
+                                            `Building ${index + 1}`
+                                        }
+
+                                    </option>
+
+                                )
+                            )
+                        }
+
+                    </select>
+
+                </div>
+
+
+                {/* =================================================
+                    FROM DATE
+                ================================================= */}
 
                 <div className="solarReportField">
 
@@ -577,18 +1213,33 @@ const res = await axios.get(
                         From Date
                     </label>
 
+
                     <input
                         type="date"
-                        value={fromDate}
+                        value={
+                            fromDate
+                        }
                         onChange={(e) => {
-                            setFromDate(e.target.value);
-                            setPgtSummary([]);
+
+                            setFromDate(
+                                e.target.value
+                            );
+
+                            setReportData([]);
+
+                            setTotalGeneration(
+                                0
+                            );
+
                         }}
                     />
 
                 </div>
 
-                {/* To Date */}
+
+                {/* =================================================
+                    TO DATE
+                ================================================= */}
 
                 <div className="solarReportField">
 
@@ -596,41 +1247,66 @@ const res = await axios.get(
                         To Date
                     </label>
 
+
                     <input
                         type="date"
-                        value={toDate}
+                        value={
+                            toDate
+                        }
                         onChange={(e) => {
-                            setToDate(e.target.value);
-                            setPgtSummary([]);
+
+                            setToDate(
+                                e.target.value
+                            );
+
+                            setReportData([]);
+
+                            setTotalGeneration(
+                                0
+                            );
+
                         }}
                     />
 
                 </div>
 
-                {/* Generate */}
+
+                {/* =================================================
+                    GENERATE
+                ================================================= */}
 
                 <div className="solarReportButtonArea">
 
                     <button
                         className="solarGenerateBtn"
-                        onClick={generateReport}
+                        onClick={
+                            generateReport
+                        }
                     >
                         📄 Generate Report
                     </button>
 
                 </div>
 
-                {/* Download PDF */}
+
+                {/* =================================================
+                    DOWNLOAD PDF
+                ================================================= */}
 
                 <button
                     className="solarPdfDownloadBtn"
-                    onClick={downloadPDF}
-                    disabled={pgtSummary.length === 0}
+                    onClick={
+                        downloadPDF
+                    }
+                    disabled={
+                        reportData.length === 0
+                    }
                 >
                     📄 Download PDF
                 </button>
 
             </div>
+
 
             {/* =================================================
                 REPORT PREVIEW
@@ -638,31 +1314,51 @@ const res = await axios.get(
 
             <div className="solarReportPreviewCard">
 
+
                 <h2>
                     Report Preview
                 </h2>
 
-                {/* Empty */}
+
+                {/* =================================================
+                    EMPTY
+                ================================================= */}
 
                 {
-                    pgtSummary.length === 0 && (
+                    reportData.length === 0 && (
 
                         <p>
-                            Select Campus, From Date and To Date,
-                            then click <b>Generate Report</b>.
+
+                            Select Campus,
+                            Building,
+                            From Date and
+                            To Date,
+                            then click{" "}
+                            <b>
+                                Generate Report
+                            </b>.
+
                         </p>
 
                     )
                 }
 
-                {/* PGT SUMMARY */}
+
+                {/* =================================================
+                    REPORT
+                ================================================= */}
 
                 {
-                    pgtSummary.length > 0 && (
+                    reportData.length > 0 && (
 
                         <>
 
+                            {/* =================================================
+                                INFO CARD
+                            ================================================= */}
+
                             <div className="reportInfoCard">
+
 
                                 <div>
 
@@ -676,22 +1372,28 @@ const res = await axios.get(
 
                                 </div>
 
+
                                 <div>
 
                                     <span>
-                                        Total Buildings
+                                        Building
                                     </span>
 
                                     <strong>
-                                        {pgtSummary.length}
+                                        {
+                                            selectedBuildingData?.buildingName ||
+                                            selectedBuildingData?.name ||
+                                            "-"
+                                        }
                                     </strong>
 
                                 </div>
 
+
                                 <div>
 
                                     <span>
-                                        Test Date
+                                        From Date
                                     </span>
 
                                     <strong>
@@ -700,29 +1402,142 @@ const res = await axios.get(
 
                                 </div>
 
+
                                 <div>
 
                                     <span>
-                                        Test Time
+                                        To Date
                                     </span>
 
                                     <strong>
-                                        08:00 - 18:00
+                                        {toDate}
                                     </strong>
 
                                 </div>
 
                             </div>
 
-                          <h3
-    style={{
-        marginBottom: "15px"
-    }}
->
-    {campus} PGT Summary Report
-</h3>
 
-                            <table className="reportTable">
+                            {/* =================================================
+                                TOTAL GENERATION CARD
+                            ================================================= */}
+
+                            <div
+                                style={{
+                                    marginTop:
+                                        "20px",
+
+                                    padding:
+                                        "25px",
+
+                                    borderRadius:
+                                        "15px",
+
+                                    background:
+                                        "linear-gradient(135deg, #e8fff1, #f5fff9)",
+
+                                    border:
+                                        "1px solid #b8e8ca",
+
+                                    display:
+                                        "flex",
+
+                                    alignItems:
+                                        "center",
+
+                                    justifyContent:
+                                        "space-between",
+
+                                    boxShadow:
+                                        "0 8px 20px rgba(0,0,0,0.08)"
+                                }}
+                            >
+
+                                <div>
+
+                                    <span
+                                        style={{
+                                            display:
+                                                "block",
+
+                                            fontSize:
+                                                "14px",
+
+                                            color:
+                                                "#555",
+
+                                            marginBottom:
+                                                "8px",
+
+                                            fontWeight:
+                                                "600"
+                                        }}
+                                    >
+                                        Total Generation
+                                    </span>
+
+
+                                    <strong
+                                        style={{
+                                            fontSize:
+                                                "32px",
+
+                                            color:
+                                                "#159447"
+                                        }}
+                                    >
+                                        {
+                                            totalGeneration.toFixed(
+                                                2
+                                            )
+                                        } kWh
+                                    </strong>
+
+                                </div>
+
+
+                                <div
+                                    style={{
+                                        fontSize:
+                                            "45px"
+                                    }}
+                                >
+                                    ⚡
+                                </div>
+
+                            </div>
+
+
+                            {/* =================================================
+                                REPORT TITLE
+                            ================================================= */}
+
+                            <h3
+                                style={{
+                                    marginTop:
+                                        "25px",
+
+                                    marginBottom:
+                                        "15px"
+                                }}
+                            >
+                                {
+                                    selectedBuildingData?.buildingName ||
+                                    selectedBuildingData?.name ||
+                                    "Building"
+                                }
+                                {" "}
+                                Generation Report
+                            </h3>
+
+
+                            {/* =================================================
+                                TABLE
+                            ================================================= */}
+
+                            <table
+                                className="reportTable"
+                            >
 
                                 <thead>
 
@@ -733,56 +1548,61 @@ const res = await axios.get(
                                         </th>
 
                                         <th>
-                                            Building Name
+                                            Date
                                         </th>
 
                                         <th>
-                                            Performance Ratio (%)
+                                            Generation
                                         </th>
 
                                     </tr>
 
                                 </thead>
 
+
                                 <tbody>
 
                                     {
-                                        pgtSummary.map(
-                                            (item, index) => (
+                                        reportData.map(
+                                            (
+                                                item,
+                                                index
+                                            ) => (
 
                                                 <tr
                                                     key={
-                                                        item.buildingName ||
                                                         index
                                                     }
                                                 >
 
                                                     <td>
-                                                        {index + 1}
+                                                        {
+                                                            index + 1
+                                                        }
                                                     </td>
 
-                                                    <td
-                                                        style={{
-                                                            textAlign: "left"
-                                                        }}
-                                                    >
+
+                                                    <td>
                                                         {
-                                                            item.buildingName ||
+                                                            item?.date ||
                                                             "-"
                                                         }
                                                     </td>
 
+
                                                     <td>
 
                                                         <b>
-
                                                             {
-                                                                item.performanceRatio !== null &&
-                                                                item.performanceRatio !== undefined
-                                                                    ? `${Number(item.performanceRatio).toFixed(2)} %`
+                                                                item?.generation !== undefined &&
+                                                                item?.generation !== null
+                                                                    ? `${Number(
+                                                                        item.generation
+                                                                    ).toFixed(
+                                                                        2
+                                                                    )} kWh`
                                                                     : "-"
                                                             }
-
                                                         </b>
 
                                                     </td>
@@ -793,6 +1613,54 @@ const res = await axios.get(
                                         )
                                     }
 
+
+                                    {/* =================================================
+                                        TOTAL ROW
+                                    ================================================= */}
+
+                                    <tr
+                                        style={{
+                                            fontWeight:
+                                                "bold",
+
+                                            background:
+                                                "#eaf8ef"
+                                        }}
+                                    >
+
+                                        <td
+                                            colSpan="2"
+                                            style={{
+                                                textAlign:
+                                                    "right"
+                                            }}
+                                        >
+                                            TOTAL GENERATION
+                                        </td>
+
+
+                                        <td>
+
+                                            <b
+                                                style={{
+                                                    color:
+                                                        "#159447",
+
+                                                    fontSize:
+                                                        "17px"
+                                                }}
+                                            >
+                                                {
+                                                    totalGeneration.toFixed(
+                                                        2
+                                                    )
+                                                } kWh
+                                            </b>
+
+                                        </td>
+
+                                    </tr>
+
                                 </tbody>
 
                             </table>
@@ -802,10 +1670,13 @@ const res = await axios.get(
                     )
                 }
 
+
             </div>
 
         </div>
+
     );
+
 }
 
 export default Report;
