@@ -787,8 +787,7 @@ Logout
 
 const w = weatherData[c.name] || {};
 
-const showWeather =
-    !(c.name === "NLCIC" || c.name === "NTPL");
+const showWeather = true;
 
 // MQTT ONLINE CHECK
 const isOnline =
@@ -1045,7 +1044,9 @@ d="M0 20 Q 25 10 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 4
 </div>
 </div>
 </div>
-{(c.name === "NUPPL" || c.name === "BTPS") && (
+{(c.name === "NUPPL" ||
+  c.name === "BTPS" ||
+  c.name === "NTPL") && (
     <div className="weather-row">
         <WiDaySunny className="icon sun"/>
         <div>

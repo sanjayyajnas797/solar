@@ -216,13 +216,14 @@ client.on("connect", async () => {
     await loadCumulativeFromDatabase();
 
     client.subscribe([
-        "test/rx",
-        "rajashthan/rx",
-        "nuppl/rx",
-        "library/rx"
-    ], {
-        qos: 0
-    });
+    "test/rx",
+    "rajashthan/rx",
+    "nuppl/rx",
+    "ntpl/rx",
+    "library/rx"
+], {
+    qos: 0
+});
 
     console.log("Subscribed All Topics ✅");
 });
@@ -458,7 +459,11 @@ async function loadCumulativeFromDatabase() {
                 // NUPPL INCLINED CUMULATIVE
                 // ---------------------------------------------
 
-             if (campus === "NUPPL" || campus === "BTPS") {
+            if (
+    campus === "NUPPL" ||
+    campus === "BTPS" ||
+    campus === "NTPL"
+) {
 
     weatherCalculation[campus].inclinedCumulative =
         Number(row.inclined_cumulative) || 0;
@@ -1284,13 +1289,17 @@ async function saveWeather15Minute(campus, saveTime) {
     const irradiance = memory.latestIrradiance;
     const temperature = memory.latestTemperature;
 
- const inclinedIrradiance =
-    campus === "NUPPL" || campus === "BTPS"
+const inclinedIrradiance =
+    campus === "NUPPL" ||
+    campus === "BTPS" ||
+    campus === "NTPL"
         ? memory.latestInclinedIrradiance
         : 0;
 
 const inclinedCumulative =
-    campus === "NUPPL" || campus === "BTPS"
+    campus === "NUPPL" ||
+    campus === "BTPS" ||
+    campus === "NTPL"
         ? memory.inclinedCumulative
         : 0;
 
@@ -1486,6 +1495,74 @@ if (topic === "nuppl/rx") {
 
   
 }
+
+
+// =====================================================
+// NTPL WEATHER
+// MQTT TOPIC: ntpl/rx
+//
+// Param_1 -> Horizontal Irradiance
+// Param_2 -> Module Temperature
+// Param_3 -> Inclined Irradiance
+// =====================================================
+
+if (topic === "ntpl/rx") {
+
+    const oldNtpl =
+        latestWeather.NTPL || {};
+
+    latestWeather.NTPL = {
+
+        ...oldNtpl,
+
+        // Param 1 -> Horizontal Irradiance
+        irradiance:
+            status.Param_1 !== undefined
+                ? Number(status.Param_1)
+                : oldNtpl.irradiance || 0,
+
+        // Param 2 -> Module Temperature
+        temperature:
+            status.Param_2 !== undefined
+                ? Number(status.Param_2) / 10
+                : oldNtpl.temperature || 0,
+
+        // Param 3 -> Inclined Irradiance
+        inclinedIrradiance:
+            status.Param_3 !== undefined
+                ? Number(status.Param_3)
+                : oldNtpl.inclinedIrradiance || 0,
+
+        mqttTimestamp:
+            mqttTimestamp,
+
+        lastUpdate:
+            Date.now()
+    };
+
+
+    // =================================================
+    // PROCESS NTPL WEATHER
+    // =================================================
+
+    if (status.Param_3 !== undefined) {
+
+        processWeather(
+            "NTPL",
+
+            latestWeather.NTPL.irradiance,
+
+            latestWeather.NTPL.temperature,
+
+            latestWeather.NTPL.mqttTimestamp,
+
+            latestWeather.NTPL.inclinedIrradiance
+        );
+
+    }
+
+}
+
 
      // =================================================
 // GII
