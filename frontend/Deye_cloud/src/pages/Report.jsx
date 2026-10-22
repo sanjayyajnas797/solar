@@ -154,37 +154,27 @@ function Report() {
         }
 
 
-        // -------------------------------------------------
-        // GET SELECTED BUILDING
-        // -------------------------------------------------
-
-        const building = buildings.find(
+       const building =
+    selectedBuilding === "ALL"
+        ? null
+        : buildings.find(
             item =>
-                String(
-                    item.stationId
-                ) ===
-                String(
-                    selectedBuilding
-                )
+                String(item.stationId) ===
+                String(selectedBuilding)
         );
 
+if (
+    selectedBuilding !== "ALL" &&
+    !building
+) {
+    alert("Selected Building Not Found");
+    return;
+}
 
-        if (!building) {
-
-            alert(
-                "Selected Building Not Found"
-            );
-
-            return;
-
-        }
-
-
-        console.log(
-            "Selected Building:",
-            building
-        );
-
+console.log(
+    "Selected Building:",
+    building
+);
 
         // -------------------------------------------------
         // START LOADING
@@ -223,52 +213,84 @@ function Report() {
                 }, 200);
 
 
-            // -------------------------------------------------
-            // GET SELECTED BUILDING REPORT
-            // -------------------------------------------------
+           console.log(
+    "Calling Report API"
+);
 
-            console.log(
-                "Calling Building Report API"
-            );
+console.log(
+    "Selected Building:",
+    selectedBuilding
+);
 
-            console.log(
-                "Station ID:",
-                building.stationId
-            );
+console.log(
+    "Station ID:",
+    building?.stationId || "ALL BUILDINGS"
+);
 
-            console.log(
-                "From:",
-                fromDate
-            );
+console.log(
+    "Campus:",
+    campus
+);
 
-            console.log(
-                "To:",
-                toDate
-            );
+console.log(
+    "From:",
+    fromDate
+);
+
+console.log(
+    "To:",
+    toDate
+);
+           let res;
+
+if (selectedBuilding === "ALL") {
+
+    console.log(
+        "Calling Campus Report API"
+    );
+
+    console.log(
+        "Campus:",
+        campus
+    );
+
+    console.log(
+        "From:",
+        fromDate
+    );
+
+    console.log(
+        "To:",
+        toDate
+    );
+
+    res = await axios.get(
+        `${API_BASE}/report/campus/${campus}`,
+        {
+            params: {
+                from: fromDate,
+                to: toDate
+            }
+        }
+    );
+
+} else {
+
+  
+
+    res = await axios.get(
+        `${API_BASE}/report/${building.stationId}`,
+        {
+            params: {
+                from: fromDate,
+                to: toDate
+            }
+        }
+    );
+}
 
 
-            const res = await axios.get(
-
-                `${API_BASE}/report/${building.stationId}`,
-
-                {
-                    params: {
-
-                        from: fromDate,
-
-                        to: toDate
-
-                    }
-
-                }
-
-            );
-
-
-            console.log(
-                "Building Report Response:",
-                res.data
-            );
+           
 
 
             clearInterval(
@@ -276,56 +298,76 @@ function Report() {
             );
 
 
-            // -------------------------------------------------
-            // RESPONSE DATA
-            // -------------------------------------------------
+           let data;
 
-            const data =
-                Array.isArray(res.data)
-                    ? res.data
-                    : res.data?.data || [];
+if (selectedBuilding === "ALL") {
 
+    console.log("Campus Report Response:", res.data);
 
-            setReportData(
-                data
-            );
+    data = res.data?.buildings || [];
+
+    // backend campus total directly
+    setTotalGeneration(
+        Number(res.data?.totalGeneration || 0)
+    );
+
+} else {
+
+    data = Array.isArray(res.data)
+        ? res.data
+        : res.data?.data || [];
+
+}
+
+setReportData(data);
 
 
             // -------------------------------------------------
             // CALCULATE TOTAL GENERATION
             // -------------------------------------------------
 
-            const total =
-                data.reduce(
-                    (
-                        sum,
-                        item
-                    ) => {
+           let total = 0;
 
-                        const generation =
-                            Number(
-                                item?.generation
-                            ) || 0;
+if (selectedBuilding === "ALL") {
 
-                        return (
-                            sum +
-                            generation
-                        );
+    total = data.reduce(
+        (sum, item) => {
 
-                    },
-                    0
-                );
-
-
-            console.log(
-                "Total Generation:",
-                total
+            return (
+                sum +
+                Number(item?.generation || 0)
             );
 
+        },
+        0
+    );
 
-            setTotalGeneration(
-                total
+} else {
+
+    total = data.reduce(
+        (sum, item) => {
+
+            return (
+                sum +
+                Number(item?.generation || 0)
             );
+
+        },
+        0
+    );
+
+}
+
+console.log(
+    "Total Generation:",
+    total
+);
+
+setTotalGeneration(
+    total
+);
+
+           
 
 
             setProgress(100);
@@ -360,338 +402,476 @@ function Report() {
 
 
     // =====================================================
-    // DOWNLOAD PDF
-    // =====================================================
+// DOWNLOAD PDF
+// =====================================================
 
-    const downloadPDF = () => {
+const downloadPDF = () => {
 
-        if (
-            !selectedBuilding ||
-            reportData.length === 0
-        ) {
+    // -------------------------------------------------
+    // VALIDATION
+    // -------------------------------------------------
 
-            alert(
-                "Generate Report First"
+    if (!selectedBuilding) {
+
+        alert("Please Select Building");
+
+        return;
+    }
+
+    if (!reportData || reportData.length === 0) {
+
+        alert("Generate Report First");
+
+        return;
+    }
+
+
+    // -------------------------------------------------
+    // FIND SELECTED BUILDING
+    // -------------------------------------------------
+
+    const building =
+        selectedBuilding === "ALL"
+            ? null
+            : buildings.find(
+                item =>
+                    String(item.stationId) ===
+                    String(selectedBuilding)
             );
 
-            return;
+
+    const buildingName =
+        selectedBuilding === "ALL"
+            ? "All Buildings"
+            : (
+                building?.buildingName ||
+                building?.name ||
+                "Selected Building"
+            );
+
+
+    // -------------------------------------------------
+    // CREATE PDF
+    // -------------------------------------------------
+
+    const doc =
+        new jsPDF(
+            "landscape"
+        );
+
+
+    const pageWidth =
+        doc.internal.pageSize.getWidth();
+
+
+    // =================================================
+    // HEADER
+    // =================================================
+
+    doc.setFillColor(
+        15,
+        42,
+        63
+    );
+
+
+    doc.rect(
+        0,
+        0,
+        pageWidth,
+        28,
+        "F"
+    );
+
+
+    // -------------------------------------------------
+    // MAIN LOGO
+    // -------------------------------------------------
+
+    doc.setFillColor(
+        255,
+        255,
+        255
+    );
+
+
+    doc.roundedRect(
+        4,
+        3,
+        18,
+        20,
+        2,
+        2,
+        "F"
+    );
+
+
+    doc.addImage(
+        mainlogo,
+        "PNG",
+        6,
+        4,
+        14,
+        18
+    );
+
+
+    // -------------------------------------------------
+    // HEADER TEXT
+    // -------------------------------------------------
+
+    doc.setFont(
+        "helvetica",
+        "bold"
+    );
+
+
+    doc.setFontSize(
+        15
+    );
+
+
+    doc.setTextColor(
+        255,
+        255,
+        255
+    );
+
+
+    doc.text(
+        "NLC India Limited",
+        30,
+        10
+    );
+
+
+    doc.setFont(
+        "helvetica",
+        "normal"
+    );
+
+
+    doc.setFontSize(
+        8
+    );
+
+
+    doc.text(
+        "Solar Dashboard",
+        30,
+        16
+    );
+
+
+    doc.text(
+        `${campus} Building Generation Report`,
+        30,
+        21
+    );
+
+
+    // -------------------------------------------------
+    // SUN LOGO
+    // -------------------------------------------------
+
+    doc.addImage(
+        sunlogo,
+        "PNG",
+        156,
+        5,
+        12,
+        12
+    );
+
+
+    doc.setFont(
+        "helvetica",
+        "bold"
+    );
+
+
+    doc.setFontSize(
+        7
+    );
+
+
+    doc.setTextColor(
+        210,
+        210,
+        210
+    );
+
+
+    doc.text(
+        "EPC BY",
+        172,
+        8
+    );
+
+
+    doc.setFontSize(
+        10
+    );
+
+
+    doc.setTextColor(
+        0,
+        255,
+        220
+    );
+
+
+    doc.text(
+        "SUN Industrial Automation & Solutions Pvt Ltd",
+        172,
+        16
+    );
+
+
+    // =================================================
+    // REPORT INFORMATION
+    // =================================================
+
+    doc.setTextColor(
+        0,
+        0,
+        0
+    );
+
+
+    doc.setFont(
+        "helvetica",
+        "bold"
+    );
+
+
+    doc.setFontSize(
+        10
+    );
+
+
+    doc.text(
+        `Campus: ${campus}`,
+        10,
+        38
+    );
+
+
+    doc.text(
+        `Building: ${buildingName}`,
+        80,
+        38
+    );
+
+
+    doc.text(
+        `From: ${fromDate}`,
+        200,
+        38
+    );
+
+
+    doc.text(
+        `To: ${toDate}`,
+        255,
+        38
+    );
+
+
+    // =================================================
+    // TOTAL GENERATION BOX
+    // =================================================
+
+    doc.setFillColor(
+        235,
+        248,
+        240
+    );
+
+
+    doc.roundedRect(
+        10,
+        44,
+        80,
+        25,
+        3,
+        3,
+        "F"
+    );
+
+
+    doc.setFont(
+        "helvetica",
+        "bold"
+    );
+
+
+    doc.setFontSize(
+        9
+    );
+
+
+    doc.setTextColor(
+        50,
+        50,
+        50
+    );
+
+
+    doc.text(
+        "TOTAL GENERATION",
+        15,
+        52
+    );
+
+
+    doc.setFontSize(
+        16
+    );
+
+
+    doc.setTextColor(
+        20,
+        130,
+        70
+    );
+
+
+    doc.text(
+        `${Number(totalGeneration || 0).toFixed(2)} kWh`,
+        15,
+        63
+    );
+
+
+    // =================================================
+    // TABLE DATA
+    // =================================================
+
+    let tableHead;
+
+    let tableBody;
+
+
+    // =================================================
+    // ALL BUILDINGS
+    // =================================================
+
+    if (selectedBuilding === "ALL") {
+
+        tableHead = [
+            [
+                "S.No",
+                "Building Name",
+                "Generation"
+            ]
+        ];
+
+
+        /*
+         * Campus API response:
+         *
+         * {
+         *   totalGeneration: 50002.9,
+         *   buildings: [
+         *      {
+         *        buildingName: "...",
+         *        stationId: "...",
+         *        generation: 3826.7
+         *      }
+         *   ]
+         * }
+         *
+         * reportData contains this response
+         */
+
+        let buildingsData = [];
+
+
+        // -------------------------------------------------
+        // GET BUILDINGS FROM CAMPUS RESPONSE
+        // -------------------------------------------------
+
+        if (
+            reportData.length === 1 &&
+            Array.isArray(
+                reportData[0]?.buildings
+            )
+        ) {
+
+            buildingsData =
+                reportData[0].buildings;
+
+        } else {
+
+            // fallback
+            buildingsData =
+                reportData;
 
         }
 
 
-        const building =
-            buildings.find(
-                item =>
-                    String(
-                        item.stationId
-                    ) ===
-                    String(
-                        selectedBuilding
-                    )
+        tableBody =
+            buildingsData.map(
+                (
+                    item,
+                    index
+                ) => [
+
+                    index + 1,
+
+                    item?.buildingName ||
+                    item?.name ||
+                    "-",
+
+                    `${Number(
+                        item?.generation ||
+                        item?.totalGeneration ||
+                        0
+                    ).toFixed(2)} kWh`
+
+                ]
             );
 
 
-        const buildingName =
-            building?.buildingName ||
-            building?.name ||
-            "Selected Building";
-
-
         // -------------------------------------------------
-        // CREATE PDF
+        // TOTAL ROW
         // -------------------------------------------------
 
-        const doc =
-            new jsPDF(
-                "landscape"
-            );
-
-
-        const pageWidth =
-            doc.internal.pageSize.getWidth();
-
-
-        // -------------------------------------------------
-        // HEADER
-        // -------------------------------------------------
-
-        doc.setFillColor(
-            15,
-            42,
-            63
+        tableBody.push(
+            [
+                "",
+                "TOTAL GENERATION",
+                `${Number(
+                    totalGeneration || 0
+                ).toFixed(2)} kWh`
+            ]
         );
 
 
-        doc.rect(
-            0,
-            0,
-            pageWidth,
-            28,
-            "F"
-        );
+    }
 
+    // =================================================
+    // INDIVIDUAL BUILDING
+    // =================================================
 
-        // -------------------------------------------------
-        // MAIN LOGO
-        // -------------------------------------------------
+    else {
 
-        doc.setFillColor(
-            255,
-            255,
-            255
-        );
+        tableHead = [
+            [
+                "S.No",
+                "Date",
+                "Generation"
+            ]
+        ];
 
 
-        doc.roundedRect(
-            4,
-            3,
-            18,
-            20,
-            2,
-            2,
-            "F"
-        );
-
-
-        doc.addImage(
-            mainlogo,
-            "PNG",
-            6,
-            4,
-            14,
-            18
-        );
-
-
-        // -------------------------------------------------
-        // HEADER TEXT
-        // -------------------------------------------------
-
-        doc.setFont(
-            "helvetica",
-            "bold"
-        );
-
-
-        doc.setFontSize(
-            15
-        );
-
-
-        doc.setTextColor(
-            255,
-            255,
-            255
-        );
-
-
-        doc.text(
-            "NLC India Limited",
-            30,
-            10
-        );
-
-
-        doc.setFont(
-            "helvetica",
-            "normal"
-        );
-
-
-        doc.setFontSize(
-            8
-        );
-
-
-        doc.text(
-            "Solar Dashboard",
-            30,
-            16
-        );
-
-
-        doc.text(
-            `${campus} Building Generation Report`,
-            30,
-            21
-        );
-
-
-        // -------------------------------------------------
-        // SUN LOGO
-        // -------------------------------------------------
-
-        doc.addImage(
-            sunlogo,
-            "PNG",
-            156,
-            5,
-            12,
-            12
-        );
-
-
-        doc.setFont(
-            "helvetica",
-            "bold"
-        );
-
-
-        doc.setFontSize(
-            7
-        );
-
-
-        doc.setTextColor(
-            210,
-            210,
-            210
-        );
-
-
-        doc.text(
-            "EPC BY",
-            172,
-            8
-        );
-
-
-        doc.setFontSize(
-            10
-        );
-
-
-        doc.setTextColor(
-            0,
-            255,
-            220
-        );
-
-
-        doc.text(
-            "SUN Industrial Automation & Solutions Pvt Ltd",
-            172,
-            16
-        );
-
-
-        // -------------------------------------------------
-        // REPORT INFORMATION
-        // -------------------------------------------------
-
-        doc.setTextColor(
-            0,
-            0,
-            0
-        );
-
-
-        doc.setFontSize(
-            10
-        );
-
-
-        doc.text(
-            `Campus: ${campus}`,
-            10,
-            38
-        );
-
-
-        doc.text(
-            `Building: ${buildingName}`,
-            80,
-            38
-        );
-
-
-        doc.text(
-            `From: ${fromDate}`,
-            200,
-            38
-        );
-
-
-        doc.text(
-            `To: ${toDate}`,
-            255,
-            38
-        );
-
-
-        // -------------------------------------------------
-        // TOTAL GENERATION BOX
-        // -------------------------------------------------
-
-        doc.setFillColor(
-            235,
-            248,
-            240
-        );
-
-
-        doc.roundedRect(
-            10,
-            44,
-            80,
-            25,
-            3,
-            3,
-            "F"
-        );
-
-
-        doc.setFont(
-            "helvetica",
-            "bold"
-        );
-
-
-        doc.setFontSize(
-            9
-        );
-
-
-        doc.setTextColor(
-            50,
-            50,
-            50
-        );
-
-
-        doc.text(
-            "TOTAL GENERATION",
-            15,
-            52
-        );
-
-
-        doc.setFontSize(
-            16
-        );
-
-
-        doc.setTextColor(
-            20,
-            130,
-            70
-        );
-
-
-        doc.text(
-            `${totalGeneration.toFixed(2)} kWh`,
-            15,
-            63
-        );
-
-
-        // -------------------------------------------------
-        // TABLE
-        // -------------------------------------------------
-
-        const tableBody =
+        tableBody =
             reportData.map(
-                (item, index) => [
+                (
+                    item,
+                    index
+                ) => [
 
                     index + 1,
 
@@ -709,205 +889,281 @@ function Report() {
             );
 
 
-        autoTable(
-            doc,
-            {
+        // -------------------------------------------------
+        // TOTAL ROW
+        // -------------------------------------------------
 
-                startY: 75,
+        tableBody.push(
+            [
+                "",
+                "TOTAL GENERATION",
+                `${Number(
+                    totalGeneration || 0
+                ).toFixed(2)} kWh`
+            ]
+        );
 
-                head: [
-                    [
-                        "S.No",
-                        "Date",
-                        "Generation"
-                    ]
+    }
+
+
+    // =================================================
+    // CREATE TABLE
+    // =================================================
+
+    autoTable(
+        doc,
+        {
+
+            startY: 75,
+
+            head: tableHead,
+
+            body: tableBody,
+
+            theme: "grid",
+
+
+            // -------------------------------------------------
+            // HEADER STYLE
+            // -------------------------------------------------
+
+            headStyles: {
+
+                fillColor: [
+                    22,
+                    90,
+                    145
                 ],
 
-                body:
-                    tableBody,
+                textColor: [
+                    255,
+                    255,
+                    255
+                ],
 
-                theme:
-                    "grid",
+                fontSize: 10,
 
-                headStyles: {
+                fontStyle: "bold",
 
-                    fillColor: [
-                        22,
-                        90,
-                        145
-                    ],
+                halign: "center",
 
-                    textColor: [
-                        255,
-                        255,
-                        255
-                    ],
+                valign: "middle",
 
-                    fontSize: 10,
+                cellPadding: 3
 
-                    fontStyle:
-                        "bold",
+            },
 
-                    halign:
-                        "center",
 
-                    valign:
-                        "middle",
+            // -------------------------------------------------
+            // BODY STYLE
+            // -------------------------------------------------
 
-                    cellPadding: 3
+            bodyStyles: {
+
+                fontSize: 9,
+
+                textColor: [
+                    0,
+                    0,
+                    0
+                ],
+
+                halign: "center",
+
+                valign: "middle",
+
+                cellPadding: 2.5
+
+            },
+
+
+            // -------------------------------------------------
+            // ALTERNATE ROW
+            // -------------------------------------------------
+
+            alternateRowStyles: {
+
+                fillColor: [
+                    245,
+                    245,
+                    245
+                ]
+
+            },
+
+
+            // -------------------------------------------------
+            // COLUMN WIDTH
+            // -------------------------------------------------
+
+            columnStyles: {
+
+                0: {
+
+                    cellWidth: 30,
+
+                    halign: "center"
 
                 },
 
-                alternateRowStyles: {
+                1: {
 
-                    fillColor: [
-                        245,
-                        245,
-                        245
-                    ]
+                    cellWidth: 140,
+
+                    halign: "center"
 
                 },
 
-                bodyStyles: {
+                2: {
 
-                    fontSize: 9,
+                    cellWidth: 80,
 
-                    fontStyle:
-                        "bold",
+                    halign: "center"
 
-                    textColor: [
-                        0,
-                        0,
-                        0
-                    ],
+                }
 
-                    halign:
-                        "center",
+            },
 
-                    valign:
-                        "middle",
 
-                    cellPadding: 2.5
+            // -------------------------------------------------
+            // TOTAL ROW STYLE
+            // -------------------------------------------------
 
-                },
+            didParseCell: function (data) {
 
-                columnStyles: {
+                if (
+                    data.row.index ===
+                    tableBody.length - 1
+                ) {
 
-                    0: {
+                    data.cell.styles.fontStyle =
+                        "bold";
 
-                        cellWidth: 30,
 
-                        halign:
-                            "center"
+                    data.cell.styles.fillColor =
+                        [
+                            235,
+                            248,
+                            240
+                        ];
 
-                    },
 
-                    1: {
+                    if (
+                        data.column.index === 2
+                    ) {
 
-                        cellWidth: 80,
-
-                        halign:
-                            "center"
-
-                    },
-
-                    2: {
-
-                        cellWidth: 80,
-
-                        halign:
-                            "center"
+                        data.cell.styles.textColor =
+                            [
+                                20,
+                                130,
+                                70
+                            ];
 
                     }
 
                 }
 
             }
-        );
-
-
-        // -------------------------------------------------
-        // FOOTER
-        // -------------------------------------------------
-
-        const pageCount =
-            doc.getNumberOfPages();
-
-
-        for (
-            let i = 1;
-            i <= pageCount;
-            i++
-        ) {
-
-            doc.setPage(
-                i
-            );
-
-
-            doc.setFont(
-                "helvetica",
-                "normal"
-            );
-
-
-            doc.setFontSize(
-                8
-            );
-
-
-            doc.setTextColor(
-                120,
-                120,
-                120
-            );
-
-
-            doc.text(
-                `Generated by Solar Monitoring Dashboard | ${campus} | Confidential`,
-                10,
-                205
-            );
-
-
-            doc.text(
-                `Page ${i} of ${pageCount}`,
-                287,
-                205,
-                {
-                    align:
-                        "right"
-                }
-            );
 
         }
+    );
 
 
-        // -------------------------------------------------
-        // SAVE
-        // -------------------------------------------------
+    // =================================================
+    // FOOTER
+    // =================================================
 
-        doc.save(
-            `${campus}_${buildingName}_Generation_${fromDate}_${toDate}.pdf`
+    const pageCount =
+        doc.getNumberOfPages();
+
+
+    for (
+        let i = 1;
+        i <= pageCount;
+        i++
+    ) {
+
+        doc.setPage(i);
+
+
+        doc.setFont(
+            "helvetica",
+            "normal"
         );
 
-    };
+
+        doc.setFontSize(
+            8
+        );
+
+
+        doc.setTextColor(
+            120,
+            120,
+            120
+        );
+
+
+        doc.text(
+            `Generated by Solar Monitoring Dashboard | ${campus} | Confidential`,
+            10,
+            205
+        );
+
+
+        doc.text(
+            `Page ${i} of ${pageCount}`,
+            287,
+            205,
+            {
+                align: "right"
+            }
+        );
+
+    }
+
+
+    // =================================================
+    // SAVE PDF
+    // =================================================
+
+    const safeBuildingName =
+        buildingName
+            .replace(
+                /[<>:"/\\|?*]/g,
+                "_"
+            );
+
+
+    const fileName =
+        `${campus}_${safeBuildingName}_Generation_${fromDate}_${toDate}.pdf`;
+
+
+    console.log(
+        "Downloading PDF:",
+        fileName
+    );
+
+
+    doc.save(
+        fileName
+    );
+
+};
 
 
     // =====================================================
     // SELECTED BUILDING OBJECT
     // =====================================================
+const selectedBuildingData =
+    buildings.find(
+        item =>
+            String(item.stationId) ===
+            String(selectedBuilding)
+    );
 
-    const selectedBuildingData =
-        buildings.find(
-            item =>
-                String(
-                    item.stationId
-                ) ===
-                String(
-                    selectedBuilding
-                )
-        );
+const isAllBuildings =
+    selectedBuilding === "ALL";
 
 
     // =====================================================
@@ -1164,39 +1420,38 @@ function Report() {
                         }
                     >
 
-                        <option value="">
-                            Select Building
-                        </option>
+                       <option value="">
+    Select Building
+</option>
 
+<option value="ALL">
+    All Buildings
+</option>
 
-                        {
-                            buildings.map(
-                                (
-                                    building,
-                                    index
-                                ) => (
-
-                                    <option
-                                        key={
-                                            building.stationId ||
-                                            index
-                                        }
-                                        value={
-                                            building.stationId
-                                        }
-                                    >
-
-                                        {
-                                            building.buildingName ||
-                                            building.name ||
-                                            `Building ${index + 1}`
-                                        }
-
-                                    </option>
-
-                                )
-                            )
-                        }
+{
+    buildings.map(
+        (
+            building,
+            index
+        ) => (
+            <option
+                key={
+                    building.stationId ||
+                    index
+                }
+                value={
+                    building.stationId
+                }
+            >
+                {
+                    building.buildingName ||
+                    building.name ||
+                    `Building ${index + 1}`
+                }
+            </option>
+        )
+    )
+}
 
                     </select>
 
@@ -1508,168 +1763,164 @@ function Report() {
                             </div>
 
 
-                            {/* =================================================
-                                REPORT TITLE
-                            ================================================= */}
+                          {/* =================================================
+    REPORT TITLE
+================================================= */}
 
-                            <h3
-                                style={{
-                                    marginTop:
-                                        "25px",
-
-                                    marginBottom:
-                                        "15px"
-                                }}
-                            >
-                                {
-                                    selectedBuildingData?.buildingName ||
-                                    selectedBuildingData?.name ||
-                                    "Building"
-                                }
-                                {" "}
-                                Generation Report
-                            </h3>
+<h3
+    style={{
+        marginTop: "25px",
+        marginBottom: "15px"
+    }}
+>
+    {selectedBuilding === "ALL"
+        ? `${campus} - All Buildings Generation Report`
+        : `${selectedBuildingData?.buildingName ||
+            selectedBuildingData?.name ||
+            "Building"} Generation Report`}
+</h3>
 
 
-                            {/* =================================================
-                                TABLE
-                            ================================================= */}
+{/* =================================================
+    REPORT TABLE
+================================================= */}
 
-                            <table
-                                className="reportTable"
-                            >
+<table className="reportTable">
 
-                                <thead>
+    <thead>
 
-                                    <tr>
+        <tr>
 
-                                        <th>
-                                            S.No
-                                        </th>
+            <th>
+                S.No
+            </th>
 
-                                        <th>
-                                            Date
-                                        </th>
+            {selectedBuilding === "ALL" ? (
+                <th>
+                    Building Name
+                </th>
+            ) : (
+                <th>
+                    Date
+                </th>
+            )}
 
-                                        <th>
-                                            Generation
-                                        </th>
+            <th>
+                Generation
+            </th>
 
-                                    </tr>
+        </tr>
 
-                                </thead>
-
-
-                                <tbody>
-
-                                    {
-                                        reportData.map(
-                                            (
-                                                item,
-                                                index
-                                            ) => (
-
-                                                <tr
-                                                    key={
-                                                        index
-                                                    }
-                                                >
-
-                                                    <td>
-                                                        {
-                                                            index + 1
-                                                        }
-                                                    </td>
+    </thead>
 
 
-                                                    <td>
-                                                        {
-                                                            item?.date ||
-                                                            "-"
-                                                        }
-                                                    </td>
+    <tbody>
+
+        {reportData.map((item, index) => (
+
+            <tr key={index}>
+
+                {/* S.NO */}
+                <td>
+                    {index + 1}
+                </td>
 
 
-                                                    <td>
+                {/* =================================================
+                    ALL BUILDINGS
+                ================================================= */}
 
-                                                        <b>
-                                                            {
-                                                                item?.generation !== undefined &&
-                                                                item?.generation !== null
-                                                                    ? `${Number(
-                                                                        item.generation
-                                                                    ).toFixed(
-                                                                        2
-                                                                    )} kWh`
-                                                                    : "-"
-                                                            }
-                                                        </b>
+                {selectedBuilding === "ALL" ? (
 
-                                                    </td>
+                    <td>
+                        {item?.buildingName ||
+                            item?.name ||
+                            "-"}
+                    </td>
 
-                                                </tr>
+                ) : (
 
-                                            )
-                                        )
-                                    }
+                    /* =================================================
+                       SINGLE BUILDING
+                    ================================================= */
 
+                    <td>
+                        {item?.date || "-"}
+                    </td>
 
-                                    {/* =================================================
-                                        TOTAL ROW
-                                    ================================================= */}
-
-                                    <tr
-                                        style={{
-                                            fontWeight:
-                                                "bold",
-
-                                            background:
-                                                "#eaf8ef"
-                                        }}
-                                    >
-
-                                        <td
-                                            colSpan="2"
-                                            style={{
-                                                textAlign:
-                                                    "right"
-                                            }}
-                                        >
-                                            TOTAL GENERATION
-                                        </td>
+                )}
 
 
-                                        <td>
+                {/* =================================================
+                    GENERATION
+                ================================================= */}
 
-                                            <b
-                                                style={{
-                                                    color:
-                                                        "#159447",
+                <td>
 
-                                                    fontSize:
-                                                        "17px"
-                                                }}
-                                            >
-                                                {
-                                                    totalGeneration.toFixed(
-                                                        2
-                                                    )
-                                                } kWh
-                                            </b>
+                    <b>
 
-                                        </td>
+                        {item?.generation !== undefined &&
+                        item?.generation !== null
+                            ? `${Number(
+                                item.generation
+                            ).toFixed(2)} kWh`
+                            : "0.00 kWh"}
 
-                                    </tr>
+                    </b>
 
-                                </tbody>
+                </td>
 
-                            </table>
+            </tr>
+
+        ))}
+
+
+        {/* =================================================
+            TOTAL ROW
+        ================================================= */}
+
+        <tr
+            style={{
+                fontWeight: "bold",
+                background: "#eaf8ef"
+            }}
+        >
+
+            <td
+                colSpan="2"
+                style={{
+                    textAlign: "right"
+                }}
+            >
+                TOTAL GENERATION
+            </td>
+
+
+            <td>
+
+                <b
+                    style={{
+                        color: "#159447",
+                        fontSize: "17px"
+                    }}
+                >
+                    {Number(
+                        totalGeneration || 0
+                    ).toFixed(2)} kWh
+                </b>
+
+            </td>
+
+        </tr>
+
+    </tbody>
+
+</table>
 
                         </>
 
                     )
                 }
-
 
             </div>
 

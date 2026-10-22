@@ -258,6 +258,56 @@ router.get(
   }
 );
 
+// ================= CAMPUS CONSOLIDATED REPORT =================
+
+router.get(
+  "/report/campus/:campus",
+  async (req, res) => {
+
+    try {
+
+      const { campus } = req.params;
+      const { from, to } = req.query;
+
+      console.log("=================================");
+      console.log("CAMPUS REPORT");
+      console.log("Campus :", campus);
+      console.log("From   :", from);
+      console.log("To     :", to);
+      console.log("=================================");
+
+      const data =
+        await getCampusReport(
+          campus,
+          from,
+          to
+        );
+
+      console.log(
+        "Campus Report Result:",
+        data
+      );
+
+      res.json(data);
+
+    }
+    catch (err) {
+
+      console.error(
+        "Campus Report Route Error:",
+        err
+      );
+
+      res.status(500).json({
+        error: err.message
+      });
+
+    }
+
+  }
+);
+
+
 // ================= REPORT DATE RANGE =================
 
 router.get(
@@ -282,40 +332,10 @@ router.get(
     }
     catch (err) {
 
-      res.status(500).json({
-        error: err.message
-      });
-
-    }
-
-  }
-);
-
-// ================= CAMPUS CONSOLIDATED REPORT =================
-
-router.get(
-  "/report/campus/:campus",
-  async (req, res) => {
-
-    try {
-
-      const { campus } = req.params;
-
-      const { from, to } = req.query;
-
-      const data =
-        await getCampusReport(
-          campus,
-          from,
-          to
-        );
-
-      res.json(data);
-
-    }
-    catch (err) {
-
-      console.error("Campus Report Route Error:", err.message);
+      console.error(
+        "Building Report Route Error:",
+        err
+      );
 
       res.status(500).json({
         error: err.message
@@ -325,7 +345,6 @@ router.get(
 
   }
 );
-
 
 // ================= PGT INVERTER ENERGY =================
 

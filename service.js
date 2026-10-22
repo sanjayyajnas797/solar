@@ -981,98 +981,161 @@ async function getReportData(stationId, fromDate, toDate) {
 }
 
 // ================= CAMPUS CONSOLIDATED REPORT =================
-
+// ================= CAMPUS CONSOLIDATED REPORT =================
 async function getCampusReport(campus, fromDate, toDate) {
 
     try {
 
+        // 1. Get all buildings
         const buildings = await getSubBuildings();
 
+        // 2. Filter selected campus
         const campusBuildings = buildings.filter(
-            b => b.campus === campus
+            b =>
+                String(b.campus).trim().toUpperCase() ===
+                String(campus).trim().toUpperCase()
         );
 
-        // ================= LOAD ALL BUILDINGS PARALLEL =================
+        console.log(
+            `Campus: ${campus} | Buildings: ${campusBuildings.length}`
+        );
 
-        const reports = await Promise.all(
+        console.log(
+            "Campus Buildings:",
+            campusBuildings.map(b => ({
+                name: b.name,
+                stationId: b.stationId,
+                campus: b.campus
+            }))
+        );
+
+        // 3. Load all buildings
+        const buildingReports = await Promise.all(
 
             campusBuildings.map(async (building) => {
 
-                console.log("Loading :", building.name);
+                try {
 
-                const report = await getReportData(
-                    building.stationId,
-                    fromDate,
-                    toDate
-                );
+                    console.log(
+                        `Loading Building: ${building.name} | Station: ${building.stationId}`
+                    );
 
-                return {
+                    const report = await getReportData(
+                        building.stationId,
+                        fromDate,
+                        toDate
+                    );
 
-                    building,
-                    report
+                    // 4. Calculate cumulative generation
+                    const totalGeneration = report.reduce(
+                        (total, item) => {
 
-                };
+                            return (
+                                total +
+                                Number(item?.generation || 0)
+                            );
 
-            })
+                        },
+                        0
+                    );
 
-        );
+                    return {
 
-        // ================= CONSOLIDATE REPORT =================
+                        buildingName:
+                            building.name ||
+                            building.buildingName ||
+                            `Building ${building.stationId}`,
 
-        const reportMap = {};
+                        stationId:
+                            building.stationId,
 
-        reports.forEach(({ building, report }) => {
+                        generation:
+                            Number(totalGeneration.toFixed(2))
 
-            report.forEach(item => {
+                    };
 
-                if (!reportMap[item.date]) {
+                }
+                catch (err) {
 
-                    reportMap[item.date] = {
+                    console.log(
+                        `Building failed: ${building.name}`,
+                        err.message
+                    );
 
-                        date: item.date,
+                    // Don't stop other buildings
+                    return {
 
-                        totalGeneration: 0,
+                        buildingName:
+                            building.name ||
+                            building.buildingName ||
+                            `Building ${building.stationId}`,
 
-                        buildings: {}
+                        stationId:
+                            building.stationId,
+
+                        generation: 0
 
                     };
 
                 }
 
-                // Building Wise Generation
-
-                reportMap[item.date].buildings[building.name] =
-                    Number(item.generation);
-
-                // Campus Total Generation
-
-                reportMap[item.date].totalGeneration +=
-                    Number(item.generation);
-
-            });
-
-        });
-
-        // ================= RETURN SORTED =================
-
-        return Object.values(reportMap).sort(
-
-            (a, b) => new Date(a.date) - new Date(b.date)
+            })
 
         );
 
-    }
 
+        // 5. Campus total
+        const campusTotal = buildingReports.reduce(
+            (total, building) => {
+
+                return (
+                    total +
+                    Number(building.generation || 0)
+                );
+
+            },
+            0
+        );
+
+
+        // 6. Final response
+        const result = {
+
+            campus: campus,
+
+            fromDate: fromDate,
+
+            toDate: toDate,
+
+            totalGeneration:
+                Number(campusTotal.toFixed(2)),
+
+            buildings: buildingReports
+
+        };
+
+
+        console.log(
+            "FINAL CAMPUS REPORT:",
+            JSON.stringify(result, null, 2)
+        );
+
+
+        return result;
+
+    }
     catch (err) {
 
-        console.log("Campus Report Error :", err.message);
+        console.log(
+            "Campus Report Error:",
+            err.message
+        );
 
-        return [];
+        throw err;
 
     }
 
 }
-
 // ================= PGT INVERTER ENERGY =================
 
 async function getPgtInverterEnergy(stationId, date) {
