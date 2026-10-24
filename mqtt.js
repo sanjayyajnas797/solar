@@ -534,11 +534,53 @@ weatherCalculation[campus].hasData = true;
             // INCLINED DATA
             // =========================================
 
-           if (
+          if (campus === "BTPS") {
+
+    // =========================================
+    // BTPS - START INCLINED CUMULATIVE FROM 0
+    // =========================================
+
+    weatherCalculation[campus].inclinedCumulative = 0;
+
+    weatherCalculation[campus].previousInclined =
+        Number(row.inclined_irradiance) || 0;
+
+    weatherCalculation[campus].previousInclinedTimestamp =
+        getDate(row.mqtt_timestamp);
+
+    weatherCalculation[campus].latestInclinedIrradiance =
+        Number(row.inclined_irradiance) || 0;
+
+    memory.inclinedCumulative = 0;
+
+    memory.previousInclined =
+        Number(row.inclined_irradiance) || 0;
+
+    memory.previousInclinedTimestamp =
+        new Date(Number(row.mqtt_timestamp));
+
+    memory.latestInclinedIrradiance =
+        Number(row.inclined_irradiance) || 0;
+
+    memory.inclinedIntervalEnergy = 0;
+
+    console.log(
+        `♻️ ${campus} TODAY RESTORED | ` +
+        `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
+        `Inclined:0.000 | ` +
+        `Previous I:${memory.previousIrradiance} | ` +
+        `Previous GII:${memory.previousInclined}`
+    );
+
+} else if (
     campus === "NUPPL" ||
-    campus === "BTPS" ||
     campus === "NTPL"
 ) {
+
+    // =========================================
+    // NUPPL / NTPL - EXISTING LOGIC
+    // =========================================
+
     weatherCalculation[campus].inclinedCumulative =
         Number(row.inclined_cumulative) || 0;
 
@@ -551,37 +593,36 @@ weatherCalculation[campus].hasData = true;
     weatherCalculation[campus].latestInclinedIrradiance =
         Number(row.inclined_irradiance) || 0;
 
-    
-                memory.inclinedCumulative =
-                    Number(row.inclined_cumulative) || 0;
+    memory.inclinedCumulative =
+        Number(row.inclined_cumulative) || 0;
 
-                memory.previousInclined =
-                    Number(row.inclined_irradiance) || 0;
+    memory.previousInclined =
+        Number(row.inclined_irradiance) || 0;
 
-               memory.previousInclinedTimestamp =
-    new Date(Number(row.mqtt_timestamp));
+    memory.previousInclinedTimestamp =
+        new Date(Number(row.mqtt_timestamp));
 
-                memory.latestInclinedIrradiance =
-                    Number(row.inclined_irradiance) || 0;
+    memory.latestInclinedIrradiance =
+        Number(row.inclined_irradiance) || 0;
 
-                memory.inclinedIntervalEnergy = 0;
+    memory.inclinedIntervalEnergy = 0;
 
-                console.log(
-                    `♻️ ${campus} TODAY RESTORED | ` +
-                    `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
-                    `Inclined:${memory.inclinedCumulative.toFixed(3)} | ` +
-                    `Previous I:${memory.previousIrradiance} | ` +
-                    `Previous GII:${memory.previousInclined}`
-                );
+    console.log(
+        `♻️ ${campus} TODAY RESTORED | ` +
+        `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
+        `Inclined:${memory.inclinedCumulative.toFixed(3)} | ` +
+        `Previous I:${memory.previousIrradiance} | ` +
+        `Previous GII:${memory.previousInclined}`
+    );
 
-            } else {
+} else {
 
-                console.log(
-                    `♻️ ${campus} TODAY RESTORED | ` +
-                    `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
-                    `Previous I:${memory.previousIrradiance}`
-                );
-            }
+    console.log(
+        `♻️ ${campus} TODAY RESTORED | ` +
+        `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
+        `Previous I:${memory.previousIrradiance}`
+    );
+}
 
         } catch (err) {
 

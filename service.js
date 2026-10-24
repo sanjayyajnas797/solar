@@ -6396,39 +6396,34 @@ async function getBTPSPgtReport(
         // =================================================
 
         const weatherResult =
-            await db.query(
-                `
-                SELECT
+    await db.query(
+        `
+        SELECT
+            to_char(
+                to_timestamp(mqtt_timestamp / 1000)
+                    AT TIME ZONE 'Asia/Kolkata',
+                'YYYY-MM-DD HH24:MI:SS'
+            ) AS time,
 
-                    to_char(
-                        created_at
-                            AT TIME ZONE 'Asia/Kolkata',
-                        'YYYY-MM-DD HH24:MI:SS'
-                    ) AS time,
+            irradiance,
+            temperature,
+            inclined_irradiance,
+            cumulative_irradiance,
+            inclined_cumulative
 
-                    irradiance,
+        FROM weather_logs
 
-                    temperature,
+        WHERE UPPER(TRIM(campus)) = 'BTPS'
 
-                    inclined_irradiance,
+        AND DATE(
+            to_timestamp(mqtt_timestamp / 1000)
+                AT TIME ZONE 'Asia/Kolkata'
+        ) = $1::date
 
-                    cumulative_irradiance,
-
-                    inclined_cumulative
-
-                FROM weather_logs
-
-                WHERE campus = 'BTPS'
-
-                AND DATE(
-                    created_at
-                        AT TIME ZONE 'Asia/Kolkata'
-                ) = $1::date
-
-                ORDER BY created_at ASC
-                `,
-                [date]
-            );
+        ORDER BY mqtt_timestamp ASC
+        `,
+        [date]
+    );
 
 
         const weatherData =
