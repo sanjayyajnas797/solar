@@ -390,21 +390,25 @@ function getDate(timestamp) {
 }
 
 
+
 // =====================================================
 // IST DATE KEY
 // Used to detect new day
 // =====================================================
 
 function getISTDateKey(date) {
-
     return new Intl.DateTimeFormat("en-CA", {
         timeZone: "Asia/Kolkata",
         year: "numeric",
         month: "2-digit",
         day: "2-digit"
     }).format(date);
-
 }
+
+
+// =====================================================
+// RESTORE TODAY CUMULATIVE FROM DATABASE
+// =====================================================
 
 async function loadCumulativeFromDatabase() {
 
@@ -422,16 +426,31 @@ async function loadCumulativeFromDatabase() {
 
         try {
 
+            // =====================================================
+            // IMPORTANT:
+            // 1. MAX cumulative -> restore cumulative safely
+            // 2. Latest row -> restore previous sensor values
+            // =====================================================
+
             const result = await db.query(`
                 SELECT
-    irradiance,
-    inclined_irradiance,
-    temperature,
-    cumulative_irradiance,
-    inclined_cumulative,
-    mqtt_timestamp
-FROM weather_logs
+                    cumulative_irradiance,
+                    inclined_cumulative,
+                    irradiance,
+                    inclined_irradiance,
+                    temperature,
+                    mqtt_timestamp,
+
+                    MAX(COALESCE(cumulative_irradiance, 0))
+                        OVER () AS max_horizontal_cumulative,
+
+                    MAX(COALESCE(inclined_cumulative, 0))
+                        OVER () AS max_inclined_cumulative
+
+                FROM weather_logs
+
                 WHERE UPPER(TRIM(campus)) = $1
+
                 AND (
                     to_timestamp(mqtt_timestamp / 1000)
                     AT TIME ZONE 'Asia/Kolkata'
@@ -439,17 +458,23 @@ FROM weather_logs
                     CURRENT_TIMESTAMP
                     AT TIME ZONE 'Asia/Kolkata'
                 )::date
+
                 ORDER BY mqtt_timestamp DESC
+
                 LIMIT 1
             `, [campus]);
 
+
             const memory = weatherCalculation[campus];
 
-            if (!memory) continue;
+            if (!memory) {
+                continue;
+            }
 
-            // =========================================
+
+            // =====================================================
             // NO TODAY DATA
-            // =========================================
+            // =====================================================
 
             if (result.rows.length === 0) {
 
@@ -462,167 +487,148 @@ FROM weather_logs
                 memory.latestIrradiance = 0;
                 memory.latestTemperature = 0;
 
-                memory.calculationDate = getISTDateKey(new Date());
+                memory.calculationDate =
+                    getISTDateKey(new Date());
+
+
+                // =============================================
+                // INCLINED CAMPUSES
+                // =============================================
 
                 if (
                     campus === "NUPPL" ||
                     campus === "BTPS" ||
                     campus === "NTPL"
                 ) {
+
                     memory.inclinedCumulative = 0;
                     memory.inclinedIntervalEnergy = 0;
+
                     memory.previousInclined = null;
                     memory.previousInclinedTimestamp = null;
+
                     memory.latestInclinedIrradiance = 0;
                 }
 
+
                 console.log(
-                    `🆕 ${campus} | NO TODAY DATA | Cumulative START = 0`
+                    `🆕 ${campus} | NO TODAY DATA | ` +
+                    `Cumulative START = 0`
                 );
 
                 continue;
             }
 
-            // =========================================
+
+            // =====================================================
             // TODAY DATA EXISTS
-            // =========================================
+            // =====================================================
 
             const row = result.rows[0];
 
-            // =============================================
-// RESTORE LAST WEATHER READING
-// =============================================
 
-weatherCalculation[campus].previousIrradiance =
-    Number(row.irradiance) || 0;
-
-weatherCalculation[campus].previousTimestamp =
-    getDate(row.mqtt_timestamp);
-
-weatherCalculation[campus].latestIrradiance =
-    Number(row.irradiance) || 0;
-
-weatherCalculation[campus].latestTemperature =
-    Number(row.temperature) || 0;
-
-weatherCalculation[campus].latestTimestamp =
-    getDate(row.mqtt_timestamp);
-
-weatherCalculation[campus].hasData = true;
+            // =====================================================
+            // IMPORTANT FIX
+            //
+            // Do NOT restore latest cumulative value.
+            //
+            // Restore MAX cumulative value of TODAY.
+            //
+            // Example:
+            //
+            // 15:45 -> 2063.66
+            // 16:00 -> 6.25
+            //
+            // Restart should restore:
+            // 2063.66
+            //
+            // NOT:
+            // 6.25
+            // =====================================================
 
             memory.cumulativeEnergy =
-                Number(row.cumulative_irradiance) || 0;
+                Number(row.max_horizontal_cumulative) || 0;
+
+
+            // =====================================================
+            // LATEST SENSOR VALUE
+            // =====================================================
 
             memory.previousIrradiance =
                 Number(row.irradiance) || 0;
 
-           memory.previousTimestamp =
-    new Date(Number(row.mqtt_timestamp));
+
+            memory.previousTimestamp =
+                new Date(Number(row.mqtt_timestamp));
+
 
             memory.latestIrradiance =
                 Number(row.irradiance) || 0;
 
+
             memory.latestTemperature =
                 Number(row.temperature) || 0;
+
 
             memory.calculationDate =
                 getISTDateKey(
                     new Date(Number(row.mqtt_timestamp))
                 );
 
-            // =========================================
+
+            // =====================================================
             // INCLINED DATA
-            // =========================================
+            // =====================================================
 
-          if (campus === "BTPS") {
+            if (
+                campus === "NUPPL" ||
+                campus === "BTPS" ||
+                campus === "NTPL"
+            ) {
 
-    // =========================================
-    // BTPS - START INCLINED CUMULATIVE FROM 0
-    // =========================================
+                // =============================================
+                // RESTORE MAX INCLINED CUMULATIVE
+                // =============================================
 
-    weatherCalculation[campus].inclinedCumulative = 0;
+                memory.inclinedCumulative =
+                    Number(row.max_inclined_cumulative) || 0;
 
-    weatherCalculation[campus].previousInclined =
-        Number(row.inclined_irradiance) || 0;
 
-    weatherCalculation[campus].previousInclinedTimestamp =
-        getDate(row.mqtt_timestamp);
+                // =============================================
+                // LATEST GII VALUE
+                // =============================================
 
-    weatherCalculation[campus].latestInclinedIrradiance =
-        Number(row.inclined_irradiance) || 0;
+                memory.previousInclined =
+                    Number(row.inclined_irradiance) || 0;
 
-    memory.inclinedCumulative = 0;
 
-    memory.previousInclined =
-        Number(row.inclined_irradiance) || 0;
+                memory.previousInclinedTimestamp =
+                    new Date(Number(row.mqtt_timestamp));
 
-    memory.previousInclinedTimestamp =
-        new Date(Number(row.mqtt_timestamp));
 
-    memory.latestInclinedIrradiance =
-        Number(row.inclined_irradiance) || 0;
+                memory.latestInclinedIrradiance =
+                    Number(row.inclined_irradiance) || 0;
 
-    memory.inclinedIntervalEnergy = 0;
 
-    console.log(
-        `♻️ ${campus} TODAY RESTORED | ` +
-        `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
-        `Inclined:0.000 | ` +
-        `Previous I:${memory.previousIrradiance} | ` +
-        `Previous GII:${memory.previousInclined}`
-    );
+                memory.inclinedIntervalEnergy = 0;
 
-} else if (
-    campus === "NUPPL" ||
-    campus === "NTPL"
-) {
 
-    // =========================================
-    // NUPPL / NTPL - EXISTING LOGIC
-    // =========================================
+                console.log(
+                    `♻️ ${campus} TODAY RESTORED | ` +
+                    `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
+                    `Inclined:${memory.inclinedCumulative.toFixed(3)} | ` +
+                    `Previous I:${memory.previousIrradiance} | ` +
+                    `Previous GII:${memory.previousInclined}`
+                );
 
-    weatherCalculation[campus].inclinedCumulative =
-        Number(row.inclined_cumulative) || 0;
+            } else {
 
-    weatherCalculation[campus].previousInclined =
-        Number(row.inclined_irradiance) || 0;
-
-    weatherCalculation[campus].previousInclinedTimestamp =
-        getDate(row.mqtt_timestamp);
-
-    weatherCalculation[campus].latestInclinedIrradiance =
-        Number(row.inclined_irradiance) || 0;
-
-    memory.inclinedCumulative =
-        Number(row.inclined_cumulative) || 0;
-
-    memory.previousInclined =
-        Number(row.inclined_irradiance) || 0;
-
-    memory.previousInclinedTimestamp =
-        new Date(Number(row.mqtt_timestamp));
-
-    memory.latestInclinedIrradiance =
-        Number(row.inclined_irradiance) || 0;
-
-    memory.inclinedIntervalEnergy = 0;
-
-    console.log(
-        `♻️ ${campus} TODAY RESTORED | ` +
-        `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
-        `Inclined:${memory.inclinedCumulative.toFixed(3)} | ` +
-        `Previous I:${memory.previousIrradiance} | ` +
-        `Previous GII:${memory.previousInclined}`
-    );
-
-} else {
-
-    console.log(
-        `♻️ ${campus} TODAY RESTORED | ` +
-        `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
-        `Previous I:${memory.previousIrradiance}`
-    );
-}
+                console.log(
+                    `♻️ ${campus} TODAY RESTORED | ` +
+                    `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
+                    `Previous I:${memory.previousIrradiance}`
+                );
+            }
 
         } catch (err) {
 
@@ -633,7 +639,10 @@ weatherCalculation[campus].hasData = true;
         }
     }
 
-    console.log("✅ TODAY CUMULATIVE RESTORE COMPLETED");
+
+    console.log(
+        "✅ TODAY CUMULATIVE RESTORE COMPLETED"
+    );
 }
 
 async function saveWeather(
