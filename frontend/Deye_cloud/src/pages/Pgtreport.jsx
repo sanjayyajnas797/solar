@@ -53,99 +53,64 @@ const [isBuildingDropdownOpen, setIsBuildingDropdownOpen] = useState(false);
 const [pgtStationCache, setPgtStationCache] = useState({
     NLCIL: [],
     NUPPL: [],
-     BTPS: []
+     BTPS: [],
+    NTPL: []
 });
 
 const [pgtStationsLoading, setPgtStationsLoading] = useState(true);
 
 
 // =========================================================
-// LOAD BOTH CAMPUSES ON PAGE LOAD
+// LOAD BUILDINGS FOR SELECTED CAMPUS
 // =========================================================
 
 useEffect(() => {
 
-    const loadAllPgtStations = async () => {
+    const loadPgtStations = async () => {
 
         try {
 
             setPgtStationsLoading(true);
 
-           const [nlcilRes, nupplRes, btpsRes] = await Promise.all([
-    axios.get(
-        `${API_BASE}/pgt/stations`,
-        {
-            params: {
-                campus: "NLCIL"
-            }
-        }
-    ),
+            console.log(
+                "Loading PGT buildings for campus:",
+                selectedCampus
+            );
 
-    axios.get(
-        `${API_BASE}/pgt/stations`,
-        {
-            params: {
-                campus: "NUPPL"
-            }
-        }
-    ),
+            const res = await axios.get(
+                `${API_BASE}/pgt/stations`,
+                {
+                    params: {
+                        campus: selectedCampus
+                    }
+                }
+            );
 
-    axios.get(
-        `${API_BASE}/pgt/stations`,
-        {
-            params: {
-                campus: "BTPS"
-            }
-        }
-    )
-]);
-
-            const nlcilStations =
-                Array.isArray(nlcilRes.data)
-                    ? nlcilRes.data
+            const stations =
+                Array.isArray(res.data)
+                    ? res.data
                     : [];
 
-            const nupplStations =
-                Array.isArray(nupplRes.data)
-                    ? nupplRes.data
-                    : [];
+            console.log(
+                `${selectedCampus} PGT BUILDINGS:`,
+                stations
+            );
 
-                    const btpsStations =
-    Array.isArray(btpsRes.data)
-        ? btpsRes.data
-        : [];
+            setPgtStations(stations);
 
-            setPgtStationCache({
-                NLCIL: nlcilStations,
-                NUPPL: nupplStations,
-                BTPS: btpsStations
-            });
-
-            // Set currently selected campus buildings
-          setPgtStations(
-    selectedCampus === "NUPPL"
-        ? nupplStations
-        : selectedCampus === "BTPS"
-            ? btpsStations
-            : nlcilStations
-);
-
-            console.log("PGT NLCIL BUILDINGS:", nlcilStations);
-            console.log("PGT NUPPL BUILDINGS:", nupplStations);
+            // cache
+            setPgtStationCache(prev => ({
+                ...prev,
+                [selectedCampus]: stations
+            }));
 
         }
         catch (error) {
 
             console.error(
-                "PGT Buildings Load Error:",
-                error
+                `${selectedCampus} PGT Buildings Load Error:`,
+                error.response?.data || error.message
             );
-
-            setPgtStationCache({
-                NLCIL: [],
-                NUPPL: [],
-                BTPS: []
-            });
 
             setPgtStations([]);
 
@@ -158,36 +123,11 @@ useEffect(() => {
 
     };
 
-    loadAllPgtStations();
+    loadPgtStations();
 
-}, []);
+}, [selectedCampus]);
 
 
-// =========================================================
-// SWITCH BUILDINGS INSTANTLY WHEN CAMPUS CHANGES
-// =========================================================
-
-useEffect(() => {
-
-    const stations =
-        pgtStationCache[selectedCampus] || [];
-
-    setPgtStations(stations);
-
-    setSelectedStationId("");
-    setSelectedBuildingName("");
-    setSelectedStationSource("");
-
-    // Optional: clear previous report
-    setReportData([]);
-    setTotals({
-        inverterEnergyInterval: null,
-        netExportEnergyInterval: null,
-        poaIrradiationInterval: null
-    });
-    setPgtCalculation(null);
-
-}, [selectedCampus, pgtStationCache]);
     // =========================================================
     // GENERATE REPORT
     // =========================================================
@@ -289,6 +229,20 @@ else if (selectedCampus === "BTPS") {
 
     res = await axios.get(
         `${API_BASE}/pgt/btps/report/${stationId}`,
+        {
+            params: {
+                date: fromDate,
+                fromTime: fromTime,
+                toTime: toTime
+            }
+        }
+    );
+
+}
+else if (selectedCampus === "NTPL") {
+
+    res = await axios.get(
+        `${API_BASE}/pgt/ntpl/report/${stationId}`,
         {
             params: {
                 date: fromDate,
@@ -2943,6 +2897,10 @@ link.download =
         <option value="NLCIL">
             NLCIL
         </option>
+
+        <option value="NTPL">
+    NTPL
+</option>
 
         <option value="NUPPL">
             NUPPL

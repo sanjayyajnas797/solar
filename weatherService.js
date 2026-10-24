@@ -467,237 +467,294 @@ const fullReport = rows.map(row => ({
     };
 }
 
-// =====================================================
-// GII DETAILED REPORT
-// =====================================================
 async function getGIIDetailedReport(
+    campus,
     fromDate,
     toDate,
     interval = "15"
 ) {
+    try {
 
-    // =================================================
-    // GET STORED 15-MINUTE GII DATA
-    // =================================================
-
-    const { rows } = await db.query(`
-        SELECT
-            to_char(
-                created_at AT TIME ZONE 'Asia/Kolkata',
-                'YYYY-MM-DD HH24:MI:SS'
-            ) AS created_at,
-
-            mqtt_timestamp,
-
-            horizontal_irradiance,
-
-            inclined_irradiance,
-
-            temperature,
-
-            horizontal_cumulative,
-
-            inclined_cumulative
-
-        FROM gii_weather_logs
-
-        WHERE DATE(
-            created_at AT TIME ZONE 'Asia/Kolkata'
-        )
-        BETWEEN $1::date AND $2::date
-
-        ORDER BY mqtt_timestamp ASC;
-
-    `, [
-        fromDate,
-        toDate
-    ]);
-
-
-    // =================================================
-    // DIRECTLY USE DATABASE CUMULATIVE VALUES
-    // =================================================
-
-    const fullReport = rows.map(row => ({
-
-        time:
-            row.created_at,
-
-        horizontal:
-            Number(row.horizontal_irradiance),
-
-        temperature:
-            Number(row.temperature),
-
-        inclined:
-            Number(row.inclined_irradiance),
-
-        horizontalCumulative:
-            Number(
-                Number(row.horizontal_cumulative || 0)
-                    .toFixed(2)
-            ),
-
-        inclinedCumulative:
-            Number(
-                Number(row.inclined_cumulative || 0)
-                    .toFixed(2)
-            )
-
-    }));
-
-
-    // =================================================
-    // FILTER ONLY FOR DISPLAY
-    // =================================================
-// =====================================================
-// DISPLAY REPORT
-// =====================================================
-
-// SINGLE DATE
-// -> Full day readings based on selected interval
-//
-// MULTIPLE DATES
-// -> Only final cumulative of each date
-// =====================================================
-
-let report;
-
-if (fromDate === toDate) {
-
-    // Single date -> full day report
-    report =
-        filterByInterval(
-            fullReport,
-            interval
+        console.log(
+            `📊 GII REPORT | Campus: ${campus} | From: ${fromDate} | To: ${toDate} | Interval: ${interval}`
         );
 
-}
-else {
+        let rows = [];
 
-    // Multiple dates -> one row per date
-    // containing only that day's final cumulative
+        // =====================================================
+        // 1. NLC TA BUILDING
+        //    Data comes from gii_weather_logs
+        // =====================================================
 
-    const dailyReportMap = new Map();
+        if (
+            campus === "GII" ||
+            campus === "NLC TA BUILDING"
+        ) {
 
-    for (const row of fullReport) {
+            const result = await db.query(
+                `
+                SELECT
+                    to_char(
+                        created_at AT TIME ZONE 'Asia/Kolkata',
+                        'YYYY-MM-DD HH24:MI:SS'
+                    ) AS time,
 
-        const dateKey =
-            String(row.time).slice(0, 10);
+                    mqtt_timestamp,
 
-        dailyReportMap.set(dateKey, {
-            time: dateKey,
+                    horizontal_irradiance,
 
-            horizontal: null,
+                    inclined_irradiance,
 
-            temperature: null,
+                    temperature,
 
-            inclined: null,
+                    horizontal_cumulative,
 
-            horizontalCumulative:
-                Number(
-                    row.horizontalCumulative || 0
-                ),
+                    inclined_cumulative
 
-            inclinedCumulative:
-                Number(
-                    row.inclinedCumulative || 0
+                FROM gii_weather_logs
+
+                WHERE DATE(
+                    created_at AT TIME ZONE 'Asia/Kolkata'
                 )
-        });
-    }
+                BETWEEN $1::date AND $2::date
 
-    report =
-        Array.from(
-            dailyReportMap.values()
+                ORDER BY mqtt_timestamp ASC
+                `,
+                [
+                    fromDate,
+                    toDate
+                ]
+            );
+
+            rows = result.rows;
+
+        }
+
+        // =====================================================
+        // 2. ALL OTHER CAMPUSES
+        //    BTPS / NTPL / NUPPL / NLCIL
+        //    Data comes from weather_logs
+        //    campus column separates each campus
+        // =====================================================
+
+        else {
+
+            const result = await db.query(
+                `
+                SELECT
+
+                    to_char(
+                        to_timestamp(mqtt_timestamp / 1000)
+                            AT TIME ZONE 'Asia/Kolkata',
+                        'YYYY-MM-DD HH24:MI:SS'
+                    ) AS time,
+
+                    mqtt_timestamp,
+
+                    irradiance,
+
+                    inclined_irradiance,
+
+                    temperature,
+
+                    cumulative_irradiance,
+
+                    inclined_cumulative
+
+                FROM weather_logs
+
+                WHERE UPPER(TRIM(campus))
+                    = UPPER(TRIM($1))
+
+                AND DATE(
+                    to_timestamp(mqtt_timestamp / 1000)
+                        AT TIME ZONE 'Asia/Kolkata'
+                )
+                BETWEEN $2::date AND $3::date
+
+                ORDER BY mqtt_timestamp ASC
+                `,
+                [
+                    campus,
+                    fromDate,
+                    toDate
+                ]
+            );
+
+            rows = result.rows;
+        }
+
+        console.log(
+            `📦 ${campus} | DB Records: ${rows.length}`
         );
-}
 
-    // =================================================
-    // SUMMARY
-    // =================================================
+        // =====================================================
+        // 3. FORMAT COMMON DATA
+        //    Same output structure for ALL campuses
+        // =====================================================
 
-  // =====================================================
-// SUMMARY
-// =====================================================
+        const fullReport = rows.map(row => {
 
-// DAILY CUMULATIVE VALUES ARE STORED IN DB.
-// For month-wise report, take the LAST cumulative
-// value of EACH DAY and add them together.
-// =====================================================
+            const horizontal =
+                campus === "NLC TA BUILDING" ||
+                campus === "GII"
+                    ? Number(row.horizontal_irradiance ?? 0)
+                    : Number(row.irradiance ?? 0);
 
-const dailyTotals = new Map();
+            const inclined =
+                Number(row.inclined_irradiance ?? 0);
 
-for (const row of fullReport) {
+            const horizontalCumulative =
+                campus === "NLC TA BUILDING" ||
+                campus === "GII"
+                    ? Number(row.horizontal_cumulative ?? 0)
+                    : Number(row.cumulative_irradiance ?? 0);
 
-    const dateKey =
-        String(row.time).slice(0, 10);
+            const inclinedCumulative =
+                Number(row.inclined_cumulative ?? 0);
 
-    dailyTotals.set(dateKey, {
-        horizontal:
-            Number(row.horizontalCumulative || 0),
+            return {
 
-        inclined:
-            Number(row.inclinedCumulative || 0)
-    });
-}
+                time: row.time,
 
+                horizontal: horizontal,
 
-// =====================================================
-// MONTHLY CUMULATIVE
-// =====================================================
+                temperature:
+                    Number(row.temperature ?? 0),
 
-let horizontalTotal = 0;
-let inclinedTotal = 0;
+                inclined: inclined,
 
-for (const daily of dailyTotals.values()) {
+                horizontalCumulative:
+                    Number(
+                        horizontalCumulative.toFixed(2)
+                    ),
 
-    horizontalTotal +=
-        daily.horizontal;
+                inclinedCumulative:
+                    Number(
+                        inclinedCumulative.toFixed(2)
+                    )
+            };
+        });
 
-    inclinedTotal +=
-        daily.inclined;
-}
+        // =====================================================
+        // 4. INTERVAL FILTER
+        // =====================================================
 
+        let report = [];
 
-// =====================================================
-// SUMMARY
-// =====================================================
+        if (interval === "10") {
 
-const summary = {
+            report = fullReport;
 
-    campus: "GII",
+        } else {
 
-    date: fromDate,
+            const gapSeconds = {
 
-    from: fromDate,
+                "15": 15 * 60,
 
-    to: toDate,
+                "30": 30 * 60,
 
-    records:
-        report.length,
+                "60": 60 * 60
 
-    days:
-        dailyTotals.size,
+            }[interval];
 
-    horizontalTotal:
-        Number(horizontalTotal.toFixed(2)),
+            // Invalid interval
+            if (!gapSeconds) {
 
-    inclinedTotal:
-        Number(inclinedTotal.toFixed(2))
+                report = fullReport;
 
-};
+            } else {
 
+                let lastTime = null;
 
-    return {
+                for (const row of fullReport) {
 
-        summary,
+                    const currentTime =
+                        new Date(row.time).getTime();
 
-        rows: report
+                    if (!lastTime) {
 
-    };
+                        report.push(row);
 
-}
+                        lastTime = currentTime;
 
+                        continue;
+                    }
+
+                    const diff =
+                        (
+                            currentTime -
+                            lastTime
+                        ) / 1000;
+
+                    if (diff >= gapSeconds) {
+
+                        report.push(row);
+
+                        lastTime = currentTime;
+                    }
+                }
+            }
+        }
+
+        // =====================================================
+        // 5. SUMMARY
+        // =====================================================
+
+        const lastRow =
+            report.length > 0
+                ? report[report.length - 1]
+                : null;
+
+        const summary = {
+
+            campus: campus,
+
+            date: fromDate,
+
+            records:
+                report.length,
+
+            totalHorizontalEnergy:
+                lastRow
+                    ? Number(
+                        lastRow.horizontalCumulative
+                    )
+                    : 0,
+
+            totalInclinedEnergy:
+                lastRow
+                    ? Number(
+                        lastRow.inclinedCumulative
+                    )
+                    : 0
+        };
+
+        console.log(
+            `✅ ${campus} REPORT | Records: ${summary.records} | ` +
+            `Horizontal: ${summary.totalHorizontalEnergy} | ` +
+            `Inclined: ${summary.totalInclinedEnergy}`
+        );
+
+        return {
+
+            summary,
+
+            rows: report
+
+        };
+
+    }
+    catch (error) {
+
+        console.error(
+            `❌ GII REPORT ERROR | ${campus}:`,
+            error
+        );
+
+        throw error;
+    }
+        } 
 // =====================================================
 // EXPORT
 // =====================================================

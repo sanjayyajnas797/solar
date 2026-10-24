@@ -1,39 +1,30 @@
 const db = require("./db");
 
-async function createGIITable() {
-
+async function deleteBTPS() {
     try {
+        console.log("\n========================================");
+        console.log("        DELETING BTPS DATA");
+        console.log("========================================\n");
 
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS gii_weather_logs (
-
-                id SERIAL PRIMARY KEY,
-
-                horizontal_irradiance DOUBLE PRECISION,
-
-                inclined_irradiance DOUBLE PRECISION,
-
-                temperature DOUBLE PRECISION,
-
-                mqtt_timestamp BIGINT,
-
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-
-            );
+        const result = await db.query(`
+            DELETE FROM weather_logs
+            WHERE UPPER(TRIM(campus)) = 'BTPS'
         `);
 
-        console.log("✅ GII Weather Table Created");
+        console.log("✅ BTPS RECORDS DELETED:", result.rowCount);
+
+        console.log("\n========================================");
+        console.log("        BTPS DELETE COMPLETED");
+        console.log("========================================\n");
+
+        process.exit(0);
 
     } catch (err) {
 
-        console.log("❌", err.message);
+        console.error("❌ ERROR:", err.message);
 
-    } finally {
-
-        process.exit();
-
+        process.exit(1);
     }
-
 }
 
-createGIITable();
+deleteBTPS();

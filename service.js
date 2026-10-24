@@ -10,12 +10,12 @@ const https = require("https");
 
 const { getMQTTWeather } = require('./mqtt');
 
-const {
-    getSolarmanBuildings,
-    getSolarmanDevices,
-    getSolarmanDeviceHistory,
-    getSolarmanPgtFrameHistory
-} = require('./solarman');
+// const {
+//     getSolarmanBuildings,
+//     getSolarmanDevices,
+//     getSolarmanDeviceHistory,
+//     getSolarmanPgtFrameHistory
+// } = require('./solarman');
 
 const db = require("./db");
 
@@ -2767,64 +2767,14 @@ const deyeBuildings =
         }));
 
 
-        // -----------------------------
-        // 2. SOLARMAN BUILDINGS
-        // -----------------------------
-
-        const solarmanResponse =
-            await getSolarmanBuildings();
-
-        const solarmanList =
-            solarmanResponse?.stationList ||
-            solarmanResponse?.data?.stationList ||
-            [];
-
-
-        const solarmanBuildings =
-            solarmanList
-                .filter(station => {
-
-                    const name =
-                        String(
-                            station.name || ""
-                        ).trim();
-
-                    return name
-                        .toUpperCase()
-                        .includes("NLCIL");
-                })
-                .map(station => ({
-
-                    stationId:
-                        Number(
-                            station.id ||
-                            station.stationId
-                        ),
-
-                    buildingName:
-                        String(
-                            station.name || ""
-                        ).trim(),
-
-                    campus: "NLCIL",
-
-                    source: "SOLARMAN",
-
-                    installedDcCapacity:
-                        Number(
-                            station.installedCapacity ||
-                            0
-                        )
-                }));
-
-
+        
         // -----------------------------
         // 3. COMBINE
         // -----------------------------
 
         const combined = [
-            ...deyeBuildings,
-            ...solarmanBuildings
+            ...deyeBuildings
+           
         ];
 
 
@@ -2833,10 +2783,7 @@ const deyeBuildings =
             deyeBuildings.length
         );
 
-        console.log(
-            "NLCIL Solarman Buildings:",
-            solarmanBuildings.length
-        );
+       
 
         console.log(
             "NLCIL TOTAL PGT Buildings:",
@@ -4410,1300 +4357,1300 @@ async function getNUPPLPgtStations() {
 // Existing Deye / Weather / Cumulative APIs untouched
 // =====================================================
 
-async function getSolarmanPgtInverterEnergy(
-    stationId,
-    date
-) {
-    try {
-
-        // =================================================
-        // 1. GET SOLARMAN INVERTER DEVICES
-        // =================================================
-
-        const devices =
-            await getSolarmanDevices(stationId);
-
-        console.log(
-            "SOLARMAN PGT DEVICES:",
-            {
-                stationId,
-                deviceCount: devices.length,
-                devices: devices.map(inv => ({
-                    deviceSn: inv.deviceSn,
-                    deviceId: inv.deviceId,
-                    deviceType: inv.deviceType
-                }))
-            }
-        );
-
-
-        // =================================================
-        // 2. FILTER ONLY INVERTERS
-        // =================================================
-
-        const inverters =
-            devices.filter(device => {
-
-                const type =
-                    String(
-                        device?.deviceType ?? ""
-                    )
-                    .trim()
-                    .toUpperCase();
-
-                return (
-                    type === "INVERTER" ||
-                    type === "INV" ||
-                    type === "1"
-                );
-            });
-
-
-        console.log(
-            "SOLARMAN PGT INVERTERS:",
-            {
-                stationId,
-                inverterCount: inverters.length,
-
-                inverters:
-                    inverters.map(inv => ({
-                        deviceSn: inv.deviceSn,
-                        deviceId: inv.deviceId,
-                        deviceType: inv.deviceType
-                    }))
-            }
-        );
-
-
-        // =================================================
-        // 3. NO INVERTER
-        // =================================================
-
-        if (!inverters.length) {
-
-            console.warn(
-                "NO SOLARMAN INVERTER FOUND:",
-                stationId
-            );
-
-            return [];
-        }
-
-
-        // =================================================
-        // 4. GET DEVICE HISTORY
-        //
-        // IMPORTANT:
-        //
-        // DO NOT USE:
-        // getSolarmanPgtFrameHistory()
-        //
-        // DO NOT USE:
-        // /station/v1.0/history
-        //
-        // USE:
-        // getSolarmanDeviceHistory()
-        //
-        // This is inverter-level history.
-        // =================================================
-
-        const historyResults =
-            await Promise.all(
-
-                inverters.map(
-                    async inv => {
+// async function getSolarmanPgtInverterEnergy(
+//     stationId,
+//     date
+// ) {
+//     try {
+
+//         // =================================================
+//         // 1. GET SOLARMAN INVERTER DEVICES
+//         // =================================================
+
+//         const devices =
+//             await getSolarmanDevices(stationId);
+
+//         console.log(
+//             "SOLARMAN PGT DEVICES:",
+//             {
+//                 stationId,
+//                 deviceCount: devices.length,
+//                 devices: devices.map(inv => ({
+//                     deviceSn: inv.deviceSn,
+//                     deviceId: inv.deviceId,
+//                     deviceType: inv.deviceType
+//                 }))
+//             }
+//         );
+
+
+//         // =================================================
+//         // 2. FILTER ONLY INVERTERS
+//         // =================================================
+
+//         const inverters =
+//             devices.filter(device => {
+
+//                 const type =
+//                     String(
+//                         device?.deviceType ?? ""
+//                     )
+//                     .trim()
+//                     .toUpperCase();
+
+//                 return (
+//                     type === "INVERTER" ||
+//                     type === "INV" ||
+//                     type === "1"
+//                 );
+//             });
+
+
+//         console.log(
+//             "SOLARMAN PGT INVERTERS:",
+//             {
+//                 stationId,
+//                 inverterCount: inverters.length,
+
+//                 inverters:
+//                     inverters.map(inv => ({
+//                         deviceSn: inv.deviceSn,
+//                         deviceId: inv.deviceId,
+//                         deviceType: inv.deviceType
+//                     }))
+//             }
+//         );
+
+
+//         // =================================================
+//         // 3. NO INVERTER
+//         // =================================================
+
+//         if (!inverters.length) {
+
+//             console.warn(
+//                 "NO SOLARMAN INVERTER FOUND:",
+//                 stationId
+//             );
+
+//             return [];
+//         }
+
+
+//         // =================================================
+//         // 4. GET DEVICE HISTORY
+//         //
+//         // IMPORTANT:
+//         //
+//         // DO NOT USE:
+//         // getSolarmanPgtFrameHistory()
+//         //
+//         // DO NOT USE:
+//         // /station/v1.0/history
+//         //
+//         // USE:
+//         // getSolarmanDeviceHistory()
+//         //
+//         // This is inverter-level history.
+//         // =================================================
+
+//         const historyResults =
+//             await Promise.all(
+
+//                 inverters.map(
+//                     async inv => {
 
-                        const deviceSn =
-                            String(
-                                inv.deviceSn
-                            );
+//                         const deviceSn =
+//                             String(
+//                                 inv.deviceSn
+//                             );
 
 
-                        console.log(
-                            "SOLARMAN DEVICE HISTORY REQUEST:",
-                            {
-                                stationId,
-                                deviceSn,
-                                date
-                            }
-                        );
+//                         console.log(
+//                             "SOLARMAN DEVICE HISTORY REQUEST:",
+//                             {
+//                                 stationId,
+//                                 deviceSn,
+//                                 date
+//                             }
+//                         );
 
 
-                        const result =
-                            await getSolarmanDeviceHistory(
-                                deviceSn,
-                                date
-                            );
+//                         const result =
+//                             await getSolarmanDeviceHistory(
+//                                 deviceSn,
+//                                 date
+//                             );
 
 
-                        console.log(
-                            "SOLARMAN DEVICE HISTORY RESPONSE:",
-                            {
-                                stationId,
-                                deviceSn,
+//                         console.log(
+//                             "SOLARMAN DEVICE HISTORY RESPONSE:",
+//                             {
+//                                 stationId,
+//                                 deviceSn,
 
-                                success:
-                                    result?.success,
+//                                 success:
+//                                     result?.success,
 
-                                count:
-                                    result?.dataList
-                                        ?.length || 0,
+//                                 count:
+//                                     result?.dataList
+//                                         ?.length || 0,
 
-                                first:
-                                    result?.dataList?.[0],
+//                                 first:
+//                                     result?.dataList?.[0],
 
-                                last:
-                                    result?.dataList?.[
-                                        result?.dataList?.length - 1
-                                    ]
-                            }
-                        );
+//                                 last:
+//                                     result?.dataList?.[
+//                                         result?.dataList?.length - 1
+//                                     ]
+//                             }
+//                         );
 
 
-                        return result;
-                    }
-                )
-            );
+//                         return result;
+//                     }
+//                 )
+//             );
 
 
-        // =================================================
-        // 5. COMBINE ALL INVERTERS
-        //
-        // Same timestamp:
-        //
-        // INV1 + INV2 + INV3
-        // =================================================
+//         // =================================================
+//         // 5. COMBINE ALL INVERTERS
+//         //
+//         // Same timestamp:
+//         //
+//         // INV1 + INV2 + INV3
+//         // =================================================
 
-        const timeMap = {};
+//         const timeMap = {};
 
 
-        for (
-            const result
-            of historyResults
-        ) {
+//         for (
+//             const result
+//             of historyResults
+//         ) {
 
-            const raw =
-                result?.dataList || [];
+//             const raw =
+//                 result?.dataList || [];
 
 
-            for (
-                const item
-                of raw
-            ) {
+//             for (
+//                 const item
+//                 of raw
+//             ) {
 
-                if (
-                    item?.time === undefined ||
-                    item?.time === null
-                ) {
-                    continue;
-                }
+//                 if (
+//                     item?.time === undefined ||
+//                     item?.time === null
+//                 ) {
+//                     continue;
+//                 }
 
 
-                // =================================================
-                // UTC TIMESTAMP
-                // =================================================
+//                 // =================================================
+//                 // UTC TIMESTAMP
+//                 // =================================================
 
-                const utcDate =
-                    new Date(
-                        Number(item.time) * 1000
-                    );
+//                 const utcDate =
+//                     new Date(
+//                         Number(item.time) * 1000
+//                     );
 
 
-                if (
-                    Number.isNaN(
-                        utcDate.getTime()
-                    )
-                ) {
-                    continue;
-                }
+//                 if (
+//                     Number.isNaN(
+//                         utcDate.getTime()
+//                     )
+//                 ) {
+//                     continue;
+//                 }
 
 
-                // =================================================
-                // UTC → IST
-                // =================================================
+//                 // =================================================
+//                 // UTC → IST
+//                 // =================================================
 
-                const istDate =
-                    new Date(
-                        utcDate.getTime() +
-                        (
-                            5.5 *
-                            60 *
-                            60 *
-                            1000
-                        )
-                    );
+//                 const istDate =
+//                     new Date(
+//                         utcDate.getTime() +
+//                         (
+//                             5.5 *
+//                             60 *
+//                             60 *
+//                             1000
+//                         )
+//                     );
 
 
-                const datePart =
-                    istDate
-                        .toISOString()
-                        .split("T")[0];
+//                 const datePart =
+//                     istDate
+//                         .toISOString()
+//                         .split("T")[0];
 
 
-                const hours =
-                    String(
-                        istDate.getUTCHours()
-                    )
-                    .padStart(2, "0");
+//                 const hours =
+//                     String(
+//                         istDate.getUTCHours()
+//                     )
+//                     .padStart(2, "0");
 
 
-                const minutes =
-                    String(
-                        istDate.getUTCMinutes()
-                    )
-                    .padStart(2, "0");
+//                 const minutes =
+//                     String(
+//                         istDate.getUTCMinutes()
+//                     )
+//                     .padStart(2, "0");
 
 
-                const time =
-                    `${hours}:${minutes}:00`;
+//                 const time =
+//                     `${hours}:${minutes}:00`;
 
 
-                const fullTime =
-                    `${datePart} ${time}`;
+//                 const fullTime =
+//                     `${datePart} ${time}`;
 
 
-                // =================================================
-                // DAILY ACTIVE PRODUCTION
-                //
-                // This is cumulative inverter energy
-                // for that day.
-                // =================================================
+//                 // =================================================
+//                 // DAILY ACTIVE PRODUCTION
+//                 //
+//                 // This is cumulative inverter energy
+//                 // for that day.
+//                 // =================================================
 
-                const energy =
-                    Number(
-                        item.itemList
-                            ?.find(
-                                point =>
-                                    point.key ===
-                                    "DailyActiveProduction"
-                            )
-                            ?.value || 0
-                    );
+//                 const energy =
+//                     Number(
+//                         item.itemList
+//                             ?.find(
+//                                 point =>
+//                                     point.key ===
+//                                     "DailyActiveProduction"
+//                             )
+//                             ?.value || 0
+//                     );
 
 
-                console.log(
-                    "SOLARMAN PGT ENERGY POINT:",
-                    {
-                        stationId,
-                        deviceSn:
-                            result?.deviceSn,
+//                 console.log(
+//                     "SOLARMAN PGT ENERGY POINT:",
+//                     {
+//                         stationId,
+//                         deviceSn:
+//                             result?.deviceSn,
 
-                        deviceTime:
-                            item.time,
+//                         deviceTime:
+//                             item.time,
 
-                        fullTime,
+//                         fullTime,
 
-                        energy
-                    }
-                );
+//                         energy
+//                     }
+//                 );
 
 
-                // =================================================
-                // COMBINE MULTIPLE INVERTERS
-                // =================================================
+//                 // =================================================
+//                 // COMBINE MULTIPLE INVERTERS
+//                 // =================================================
 
-                if (
-                    !timeMap[fullTime]
-                ) {
-                    timeMap[fullTime] = 0;
-                }
+//                 if (
+//                     !timeMap[fullTime]
+//                 ) {
+//                     timeMap[fullTime] = 0;
+//                 }
 
 
-                timeMap[fullTime] +=
-                    energy;
-            }
-        }
+//                 timeMap[fullTime] +=
+//                     energy;
+//             }
+//         }
 
 
-        // =================================================
-        // 6. RAW SOLARMAN DATA
-        // =================================================
+//         // =================================================
+//         // 6. RAW SOLARMAN DATA
+//         // =================================================
 
-        const rawData =
-            Object.keys(timeMap)
-                .sort()
-                .map(time => ({
+//         const rawData =
+//             Object.keys(timeMap)
+//                 .sort()
+//                 .map(time => ({
 
-                    time,
+//                     time,
 
-                    inverterEnergy:
-                        Number(
-                            timeMap[time]
-                                .toFixed(2)
-                        )
+//                     inverterEnergy:
+//                         Number(
+//                             timeMap[time]
+//                                 .toFixed(2)
+//                         )
 
-                }));
+//                 }));
 
 
-        console.log(
-            "SOLARMAN PGT RAW DATA:",
-            {
-                stationId,
-                date,
+//         console.log(
+//             "SOLARMAN PGT RAW DATA:",
+//             {
+//                 stationId,
+//                 date,
 
-                count:
-                    rawData.length,
+//                 count:
+//                     rawData.length,
 
-                first:
-                    rawData[0],
+//                 first:
+//                     rawData[0],
 
-                last:
-                    rawData[
-                        rawData.length - 1
-                    ]
-            }
-        );
+//                 last:
+//                     rawData[
+//                         rawData.length - 1
+//                     ]
+//             }
+//         );
 
 
-        // =================================================
-        // 7. FINAL 15-MINUTE DATA
-        // =================================================
+//         // =================================================
+//         // 7. FINAL 15-MINUTE DATA
+//         // =================================================
 
-        const pgtData = [];
+//         const pgtData = [];
 
 
-        for (
-            const row
-            of rawData
-        ) {
+//         for (
+//             const row
+//             of rawData
+//         ) {
 
-            const rowTime =
-                row.time.substring(
-                    11,
-                    16
-                );
+//             const rowTime =
+//                 row.time.substring(
+//                     11,
+//                     16
+//                 );
 
 
-            if (
-                !/^\d{2}:\d{2}$/
-                    .test(rowTime)
-            ) {
-                continue;
-            }
+//             if (
+//                 !/^\d{2}:\d{2}$/
+//                     .test(rowTime)
+//             ) {
+//                 continue;
+//             }
 
 
-            pgtData.push({
+//             pgtData.push({
 
-                time:
-                    `${rowTime}:00`,
+//                 time:
+//                     `${rowTime}:00`,
 
-                inverterEnergy:
-                    Number(
-                        row.inverterEnergy
-                    )
+//                 inverterEnergy:
+//                     Number(
+//                         row.inverterEnergy
+//                     )
 
-            });
-        }
+//             });
+//         }
 
 
-        // =================================================
-        // 8. FINAL LOG
-        // =================================================
+//         // =================================================
+//         // 8. FINAL LOG
+//         // =================================================
 
-        console.log(
-            "SOLARMAN PGT FINAL INVERTER DATA:",
-            {
-                stationId,
+//         console.log(
+//             "SOLARMAN PGT FINAL INVERTER DATA:",
+//             {
+//                 stationId,
 
-                count:
-                    pgtData.length,
+//                 count:
+//                     pgtData.length,
 
-                first:
-                    pgtData[0],
+//                 first:
+//                     pgtData[0],
 
-                last:
-                    pgtData[
-                        pgtData.length - 1
-                    ]
-            }
-        );
+//                 last:
+//                     pgtData[
+//                         pgtData.length - 1
+//                     ]
+//             }
+//         );
 
 
-        return pgtData;
+//         return pgtData;
 
-    }
-    catch (err) {
+//     }
+//     catch (err) {
 
-        console.error(
-            "SOLARMAN PGT INVERTER ERROR:",
-            err.response?.data ||
-            err.message
-        );
+//         console.error(
+//             "SOLARMAN PGT INVERTER ERROR:",
+//             err.response?.data ||
+//             err.message
+//         );
 
-        throw err;
-    }
-}
-// =====================================================
-// SOLARMAN PGT REPORT
-// Same calculation as DEYE PGT
-// =====================================================
+//         throw err;
+//     }
+// }
+// // =====================================================
+// // SOLARMAN PGT REPORT
+// // Same calculation as DEYE PGT
+// // =====================================================
 
-async function getSolarmanPgtReport(
-    stationId,
-    buildingName,
-    installedDcCapacity,
-    date,
-    fromTime,
-    toTime
-) {
+// async function getSolarmanPgtReport(
+//     stationId,
+//     buildingName,
+//     installedDcCapacity,
+//     date,
+//     fromTime,
+//     toTime
+// ) {
 
-    try {
+//     try {
 
-        // =================================================
-        // 0. VALIDATE CAPACITY
-        // =================================================
+//         // =================================================
+//         // 0. VALIDATE CAPACITY
+//         // =================================================
 
-        if (
-            installedDcCapacity === null ||
-            installedDcCapacity === undefined ||
-            Number(installedDcCapacity) <= 0
-        ) {
+//         if (
+//             installedDcCapacity === null ||
+//             installedDcCapacity === undefined ||
+//             Number(installedDcCapacity) <= 0
+//         ) {
 
-            throw new Error(
-                `Installed DC capacity not configured for ${buildingName}`
-            );
-        }
+//             throw new Error(
+//                 `Installed DC capacity not configured for ${buildingName}`
+//             );
+//         }
 
-        console.log(
-            "SOLARMAN PGT SELECTED BUILDING:",
-            {
-                stationId,
-                buildingName,
-                installedDcCapacity
-            }
-        );
+//         console.log(
+//             "SOLARMAN PGT SELECTED BUILDING:",
+//             {
+//                 stationId,
+//                 buildingName,
+//                 installedDcCapacity
+//             }
+//         );
 
 
-        // =================================================
-        // 1. GET SOLARMAN INVERTER DATA
-        // =================================================
+//         // =================================================
+//         // 1. GET SOLARMAN INVERTER DATA
+//         // =================================================
 
-        const inverterData =
-            await getSolarmanPgtInverterEnergy(
-                stationId,
-                date
-            );
+//         const inverterData =
+//             await getSolarmanPgtInverterEnergy(
+//                 stationId,
+//                 date
+//             );
 
 
-        // =================================================
-        // 2. FILTER SELECTED TIME
-        // =================================================
+//         // =================================================
+//         // 2. FILTER SELECTED TIME
+//         // =================================================
 
-        const filteredInverterData =
-            inverterData.filter(row => {
+//         const filteredInverterData =
+//             inverterData.filter(row => {
 
-                const time =
-                    String(
-                        row.time || ""
-                    ).substring(0, 5);
+//                 const time =
+//                     String(
+//                         row.time || ""
+//                     ).substring(0, 5);
 
-                return (
-                    time >= fromTime &&
-                    time <= toTime
-                );
-            });
+//                 return (
+//                     time >= fromTime &&
+//                     time <= toTime
+//                 );
+//             });
 
 
-        // =================================================
-        // 3. GET COMMON WEATHER DATA
-        // =================================================
+//         // =================================================
+//         // 3. GET COMMON WEATHER DATA
+//         // =================================================
 
-        const { rows } =
-            await db.query(
-                `
-                SELECT
-                    to_char(
-                        created_at
-                            AT TIME ZONE 'Asia/Kolkata',
-                        'YYYY-MM-DD HH24:MI:SS'
-                    ) AS time,
+//         const { rows } =
+//             await db.query(
+//                 `
+//                 SELECT
+//                     to_char(
+//                         created_at
+//                             AT TIME ZONE 'Asia/Kolkata',
+//                         'YYYY-MM-DD HH24:MI:SS'
+//                     ) AS time,
 
-                    horizontal_irradiance,
+//                     horizontal_irradiance,
 
-                    inclined_irradiance,
+//                     inclined_irradiance,
 
-                    temperature,
+//                     temperature,
 
-                    inclined_cumulative
+//                     inclined_cumulative
 
-                FROM gii_weather_logs
+//                 FROM gii_weather_logs
 
-                WHERE DATE(
-                    created_at
-                        AT TIME ZONE 'Asia/Kolkata'
-                ) = $1::date
+//                 WHERE DATE(
+//                     created_at
+//                         AT TIME ZONE 'Asia/Kolkata'
+//                 ) = $1::date
 
-                ORDER BY created_at ASC;
-                `,
-                [date]
-            );
+//                 ORDER BY created_at ASC;
+//                 `,
+//                 [date]
+//             );
 
 
-        // =================================================
-        // 4. CONVERT WEATHER DATA
-        // =================================================
+//         // =================================================
+//         // 4. CONVERT WEATHER DATA
+//         // =================================================
 
-        const weatherData =
-            rows.map(row => ({
+//         const weatherData =
+//             rows.map(row => ({
 
-                time:
-                    row.time,
+//                 time:
+//                     row.time,
 
-                ghi:
-                    row.horizontal_irradiance !== null &&
-                    row.horizontal_irradiance !== undefined
-                        ? Number(
-                            row.horizontal_irradiance
-                        )
-                        : null,
+//                 ghi:
+//                     row.horizontal_irradiance !== null &&
+//                     row.horizontal_irradiance !== undefined
+//                         ? Number(
+//                             row.horizontal_irradiance
+//                         )
+//                         : null,
 
-                gii:
-                    row.inclined_irradiance !== null &&
-                    row.inclined_irradiance !== undefined
-                        ? Number(
-                            row.inclined_irradiance
-                        )
-                        : null,
+//                 gii:
+//                     row.inclined_irradiance !== null &&
+//                     row.inclined_irradiance !== undefined
+//                         ? Number(
+//                             row.inclined_irradiance
+//                         )
+//                         : null,
 
-                moduleTemp:
-                    row.temperature !== null &&
-                    row.temperature !== undefined
-                        ? Number(
-                            row.temperature
-                        )
-                        : null,
+//                 moduleTemp:
+//                     row.temperature !== null &&
+//                     row.temperature !== undefined
+//                         ? Number(
+//                             row.temperature
+//                         )
+//                         : null,
 
-                inclinedCumulative:
-                    row.inclined_cumulative !== null &&
-                    row.inclined_cumulative !== undefined
-                        ? Number(
-                            row.inclined_cumulative
-                        )
-                        : null
-            }));
+//                 inclinedCumulative:
+//                     row.inclined_cumulative !== null &&
+//                     row.inclined_cumulative !== undefined
+//                         ? Number(
+//                             row.inclined_cumulative
+//                         )
+//                         : null
+//             }));
 
 
-        // =================================================
-        // 5. COMBINE INVERTER + WEATHER
-        // =================================================
+//         // =================================================
+//         // 5. COMBINE INVERTER + WEATHER
+//         // =================================================
 
-        let previousInverterEnergy =
-            null;
+//         let previousInverterEnergy =
+//             null;
 
-        const report = [];
+//         const report = [];
 
 
-        for (
-            const inverterRow
-            of filteredInverterData
-        ) {
+//         for (
+//             const inverterRow
+//             of filteredInverterData
+//         ) {
 
-            const targetTime =
-                String(
-                    inverterRow.time || ""
-                ).substring(0, 5);
+//             const targetTime =
+//                 String(
+//                     inverterRow.time || ""
+//                 ).substring(0, 5);
 
 
-            // =================================================
-            // INVERTER ENERGY INTERVAL
-            // =================================================
+//             // =================================================
+//             // INVERTER ENERGY INTERVAL
+//             // =================================================
 
-            let inverterEnergyInterval =
-                null;
+//             let inverterEnergyInterval =
+//                 null;
 
-            if (
-                previousInverterEnergy !== null &&
-                inverterRow.inverterEnergy !== null &&
-                inverterRow.inverterEnergy !== undefined
-            ) {
+//             if (
+//                 previousInverterEnergy !== null &&
+//                 inverterRow.inverterEnergy !== null &&
+//                 inverterRow.inverterEnergy !== undefined
+//             ) {
 
-                inverterEnergyInterval =
-                    Number(
-                        (
-                            Number(
-                                inverterRow.inverterEnergy
-                            ) -
-                            Number(
-                                previousInverterEnergy
-                            )
-                        ).toFixed(2)
-                    );
+//                 inverterEnergyInterval =
+//                     Number(
+//                         (
+//                             Number(
+//                                 inverterRow.inverterEnergy
+//                             ) -
+//                             Number(
+//                                 previousInverterEnergy
+//                             )
+//                         ).toFixed(2)
+//                     );
 
-                if (
-                    inverterEnergyInterval < 0
-                ) {
-                    inverterEnergyInterval = 0;
-                }
-            }
+//                 if (
+//                     inverterEnergyInterval < 0
+//                 ) {
+//                     inverterEnergyInterval = 0;
+//                 }
+//             }
 
-            previousInverterEnergy =
-                inverterRow.inverterEnergy;
+//             previousInverterEnergy =
+//                 inverterRow.inverterEnergy;
 
 
-            // =================================================
-            // FIND NEAREST WEATHER
-            // =================================================
+//             // =================================================
+//             // FIND NEAREST WEATHER
+//             // =================================================
 
-            let nearestWeather =
-                null;
+//             let nearestWeather =
+//                 null;
 
-            let minDifference =
-                Infinity;
+//             let minDifference =
+//                 Infinity;
 
 
-            const targetParts =
-                targetTime.split(":");
+//             const targetParts =
+//                 targetTime.split(":");
 
-            const targetMinutes =
-                Number(targetParts[0]) * 60 +
-                Number(targetParts[1]);
+//             const targetMinutes =
+//                 Number(targetParts[0]) * 60 +
+//                 Number(targetParts[1]);
 
 
-            for (
-                const weatherRow
-                of weatherData
-            ) {
+//             for (
+//                 const weatherRow
+//                 of weatherData
+//             ) {
 
-                if (!weatherRow.time) {
-                    continue;
-                }
+//                 if (!weatherRow.time) {
+//                     continue;
+//                 }
 
-                const weatherTime =
-                    weatherRow.time
-                        .split(" ")[1]
-                        .substring(0, 5);
+//                 const weatherTime =
+//                     weatherRow.time
+//                         .split(" ")[1]
+//                         .substring(0, 5);
 
-                const weatherParts =
-                    weatherTime.split(":");
+//                 const weatherParts =
+//                     weatherTime.split(":");
 
-                const weatherMinutes =
-                    Number(weatherParts[0]) * 60 +
-                    Number(weatherParts[1]);
+//                 const weatherMinutes =
+//                     Number(weatherParts[0]) * 60 +
+//                     Number(weatherParts[1]);
 
 
-                const difference =
-                    Math.abs(
-                        targetMinutes -
-                        weatherMinutes
-                    );
+//                 const difference =
+//                     Math.abs(
+//                         targetMinutes -
+//                         weatherMinutes
+//                     );
 
 
-                if (
-                    difference <
-                    minDifference
-                ) {
+//                 if (
+//                     difference <
+//                     minDifference
+//                 ) {
 
-                    minDifference =
-                        difference;
+//                     minDifference =
+//                         difference;
 
-                    nearestWeather =
-                        weatherRow;
-                }
-            }
+//                     nearestWeather =
+//                         weatherRow;
+//                 }
+//             }
 
 
-            // =================================================
-            // WEATHER WITHIN 10 MINUTES
-            // =================================================
+//             // =================================================
+//             // WEATHER WITHIN 10 MINUTES
+//             // =================================================
 
-            if (
-                nearestWeather &&
-                minDifference <= 10
-            ) {
+//             if (
+//                 nearestWeather &&
+//                 minDifference <= 10
+//             ) {
 
-                report.push({
+//                 report.push({
 
-                    date,
+//                     date,
 
-                    time:
-                        targetTime,
+//                     time:
+//                         targetTime,
 
-                    ghi:
-                        nearestWeather.ghi,
+//                     ghi:
+//                         nearestWeather.ghi,
 
-                    gii:
-                        nearestWeather.gii,
+//                     gii:
+//                         nearestWeather.gii,
 
-                    moduleTemp:
-                        nearestWeather.moduleTemp,
+//                     moduleTemp:
+//                         nearestWeather.moduleTemp,
 
-                    inverterEnergy:
-                        inverterRow.inverterEnergy,
+//                     inverterEnergy:
+//                         inverterRow.inverterEnergy,
 
-                    inverterEnergyInterval:
-                        inverterEnergyInterval,
+//                     inverterEnergyInterval:
+//                         inverterEnergyInterval,
 
-                    netMeterReading:
-                        null,
+//                     netMeterReading:
+//                         null,
 
-                    netExportEnergyInterval:
-                        null,
+//                     netExportEnergyInterval:
+//                         null,
 
-                    ghiIrradiationInterval:
-                        null,
+//                     ghiIrradiationInterval:
+//                         null,
 
-                    giiIrradiationInterval:
-                        null
-                });
+//                     giiIrradiationInterval:
+//                         null
+//                 });
 
-            }
-            else {
+//             }
+//             else {
 
-                report.push({
+//                 report.push({
 
-                    date,
+//                     date,
 
-                    time:
-                        targetTime,
+//                     time:
+//                         targetTime,
 
-                    ghi: null,
+//                     ghi: null,
 
-                    gii: null,
+//                     gii: null,
 
-                    moduleTemp: null,
+//                     moduleTemp: null,
 
-                    inverterEnergy:
-                        inverterRow.inverterEnergy,
+//                     inverterEnergy:
+//                         inverterRow.inverterEnergy,
 
-                    inverterEnergyInterval:
-                        inverterEnergyInterval,
+//                     inverterEnergyInterval:
+//                         inverterEnergyInterval,
 
-                    netMeterReading:
-                        null,
+//                     netMeterReading:
+//                         null,
 
-                    netExportEnergyInterval:
-                        null,
+//                     netExportEnergyInterval:
+//                         null,
 
-                    ghiIrradiationInterval:
-                        null,
+//                     ghiIrradiationInterval:
+//                         null,
 
-                    giiIrradiationInterval:
-                        null
-                });
-            }
-        }
+//                     giiIrradiationInterval:
+//                         null
+//                 });
+//             }
+//         }
 
 
-        // =================================================
-        // 6. PGT START
-        // FIRST GHI > 750
-        // =================================================
+//         // =================================================
+//         // 6. PGT START
+//         // FIRST GHI > 750
+//         // =================================================
 
-        const pgtStartIndex =
-            report.findIndex(
-                row =>
-                    row.ghi !== null &&
-                    row.ghi !== undefined &&
-                    Number(row.ghi) > 750
-            );
+//         const pgtStartIndex =
+//             report.findIndex(
+//                 row =>
+//                     row.ghi !== null &&
+//                     row.ghi !== undefined &&
+//                     Number(row.ghi) > 750
+//             );
 
 
-        // =================================================
-        // 7. IRRADIATION INTERVAL
-        // =================================================
+//         // =================================================
+//         // 7. IRRADIATION INTERVAL
+//         // =================================================
 
-        for (
-            let i = 0;
-            i < report.length - 1;
-            i++
-        ) {
+//         for (
+//             let i = 0;
+//             i < report.length - 1;
+//             i++
+//         ) {
 
-            const current =
-                report[i];
+//             const current =
+//                 report[i];
 
-            const next =
-                report[i + 1];
+//             const next =
+//                 report[i + 1];
 
 
-            // GHI
-            if (
-                current.ghi !== null &&
-                current.ghi !== undefined &&
-                next.ghi !== null &&
-                next.ghi !== undefined
-            ) {
+//             // GHI
+//             if (
+//                 current.ghi !== null &&
+//                 current.ghi !== undefined &&
+//                 next.ghi !== null &&
+//                 next.ghi !== undefined
+//             ) {
 
-                current.ghiIrradiationInterval =
-                    Number(
-                        (
-                            (
-                                Number(
-                                    current.ghi
-                                ) +
-                                Number(
-                                    next.ghi
-                                )
-                            ) / 2 * 0.25
-                        ).toFixed(2)
-                    );
-            }
+//                 current.ghiIrradiationInterval =
+//                     Number(
+//                         (
+//                             (
+//                                 Number(
+//                                     current.ghi
+//                                 ) +
+//                                 Number(
+//                                     next.ghi
+//                                 )
+//                             ) / 2 * 0.25
+//                         ).toFixed(2)
+//                     );
+//             }
 
 
-            // GII
-            if (
-                current.gii !== null &&
-                current.gii !== undefined &&
-                next.gii !== null &&
-                next.gii !== undefined
-            ) {
+//             // GII
+//             if (
+//                 current.gii !== null &&
+//                 current.gii !== undefined &&
+//                 next.gii !== null &&
+//                 next.gii !== undefined
+//             ) {
 
-                current.giiIrradiationInterval =
-                    Number(
-                        (
-                            (
-                                Number(
-                                    current.gii
-                                ) +
-                                Number(
-                                    next.gii
-                                )
-                            ) / 2 * 0.25
-                        ).toFixed(2)
-                    );
-            }
-        }
+//                 current.giiIrradiationInterval =
+//                     Number(
+//                         (
+//                             (
+//                                 Number(
+//                                     current.gii
+//                                 ) +
+//                                 Number(
+//                                     next.gii
+//                                 )
+//                             ) / 2 * 0.25
+//                         ).toFixed(2)
+//                     );
+//             }
+//         }
 
 
-        // =================================================
-        // 8. LAST ROW INTERVAL NULL
-        // =================================================
+//         // =================================================
+//         // 8. LAST ROW INTERVAL NULL
+//         // =================================================
 
-        if (report.length > 0) {
+//         if (report.length > 0) {
 
-            report[
-                report.length - 1
-            ].ghiIrradiationInterval = null;
+//             report[
+//                 report.length - 1
+//             ].ghiIrradiationInterval = null;
 
-            report[
-                report.length - 1
-            ].giiIrradiationInterval = null;
-        }
+//             report[
+//                 report.length - 1
+//             ].giiIrradiationInterval = null;
+//         }
 
 
-        // =================================================
-        // 9. TOTAL INVERTER ENERGY INTERVAL
-        // =================================================
+//         // =================================================
+//         // 9. TOTAL INVERTER ENERGY INTERVAL
+//         // =================================================
 
-        const totalInverterEnergyInterval =
-            Number(
-                report
-                    .reduce(
-                        (sum, row) =>
-                            sum +
-                            Number(
-                                row.inverterEnergyInterval || 0
-                            ),
-                        0
-                    )
-                    .toFixed(2)
-            );
+//         const totalInverterEnergyInterval =
+//             Number(
+//                 report
+//                     .reduce(
+//                         (sum, row) =>
+//                             sum +
+//                             Number(
+//                                 row.inverterEnergyInterval || 0
+//                             ),
+//                         0
+//                     )
+//                     .toFixed(2)
+//             );
 
 
-        // =================================================
-        // 10. PGT END
-        // =================================================
+//         // =================================================
+//         // 10. PGT END
+//         // =================================================
 
-        let pgtEndIndex = -1;
+//         let pgtEndIndex = -1;
 
-        let pgtCumulativeGii = 0;
+//         let pgtCumulativeGii = 0;
 
 
-        if (
-            pgtStartIndex >= 0
-        ) {
+//         if (
+//             pgtStartIndex >= 0
+//         ) {
 
-            for (
-                let i = pgtStartIndex;
-                i < report.length;
-                i++
-            ) {
+//             for (
+//                 let i = pgtStartIndex;
+//                 i < report.length;
+//                 i++
+//             ) {
 
-                const row =
-                    report[i];
+//                 const row =
+//                     report[i];
 
 
-                const ghiValid =
-                    row.ghi !== null &&
-                    row.ghi !== undefined &&
-                    row.ghi !== "" &&
-                    !isNaN(
-                        Number(row.ghi)
-                    );
+//                 const ghiValid =
+//                     row.ghi !== null &&
+//                     row.ghi !== undefined &&
+//                     row.ghi !== "" &&
+//                     !isNaN(
+//                         Number(row.ghi)
+//                     );
 
 
-                const giiValid =
-                    row.gii !== null &&
-                    row.gii !== undefined &&
-                    row.gii !== "" &&
-                    !isNaN(
-                        Number(row.gii)
-                    );
+//                 const giiValid =
+//                     row.gii !== null &&
+//                     row.gii !== undefined &&
+//                     row.gii !== "" &&
+//                     !isNaN(
+//                         Number(row.gii)
+//                     );
 
 
-                // Missing irradiance -> skip
-                if (
-                    !ghiValid ||
-                    !giiValid
-                ) {
-                    continue;
-                }
+//                 // Missing irradiance -> skip
+//                 if (
+//                     !ghiValid ||
+//                     !giiValid
+//                 ) {
+//                     continue;
+//                 }
 
 
-                // Latest valid row
-                pgtEndIndex = i;
+//                 // Latest valid row
+//                 pgtEndIndex = i;
 
 
-                // Add GII interval
-                pgtCumulativeGii +=
-                    Number(
-                        row.giiIrradiationInterval || 0
-                    );
+//                 // Add GII interval
+//                 pgtCumulativeGii +=
+//                     Number(
+//                         row.giiIrradiationInterval || 0
+//                     );
 
 
-                // 5000 Wh/m2 reached
-                if (
-                    pgtCumulativeGii >= 5000
-                ) {
+//                 // 5000 Wh/m2 reached
+//                 if (
+//                     pgtCumulativeGii >= 5000
+//                 ) {
 
-                    pgtEndIndex = i;
+//                     pgtEndIndex = i;
 
-                    break;
-                }
-            }
-        }
+//                     break;
+//                 }
+//             }
+//         }
 
 
-        // =================================================
-        // 11. START / END ROW
-        // =================================================
+//         // =================================================
+//         // 11. START / END ROW
+//         // =================================================
 
-        const pgtStartRow =
-            pgtStartIndex >= 0
-                ? report[pgtStartIndex]
-                : null;
+//         const pgtStartRow =
+//             pgtStartIndex >= 0
+//                 ? report[pgtStartIndex]
+//                 : null;
 
 
-        const pgtEndRow =
-            pgtEndIndex >= 0
-                ? report[pgtEndIndex]
-                : null;
+//         const pgtEndRow =
+//             pgtEndIndex >= 0
+//                 ? report[pgtEndIndex]
+//                 : null;
 
 
-        // =================================================
-        // 12. TOTAL POA IRRADIATION
-        // =================================================
+//         // =================================================
+//         // 12. TOTAL POA IRRADIATION
+//         // =================================================
 
-        const totalPoaIrradiation =
-            (
-                pgtStartIndex >= 0 &&
-                pgtEndIndex >= pgtStartIndex
-            )
-                ? Number(
-                    report
-                        .slice(
-                            pgtStartIndex,
-                            pgtEndIndex + 1
-                        )
-                        .reduce(
-                            (sum, row) =>
-                                sum +
-                                Number(
-                                    row.giiIrradiationInterval || 0
-                                ),
-                            0
-                        )
-                        .toFixed(2)
-                )
-                : null;
+//         const totalPoaIrradiation =
+//             (
+//                 pgtStartIndex >= 0 &&
+//                 pgtEndIndex >= pgtStartIndex
+//             )
+//                 ? Number(
+//                     report
+//                         .slice(
+//                             pgtStartIndex,
+//                             pgtEndIndex + 1
+//                         )
+//                         .reduce(
+//                             (sum, row) =>
+//                                 sum +
+//                                 Number(
+//                                     row.giiIrradiationInterval || 0
+//                                 ),
+//                             0
+//                         )
+//                         .toFixed(2)
+//                 )
+//                 : null;
 
 
-        // =================================================
-        // 13. INITIAL INVERTER ENERGY
-        // =================================================
+//         // =================================================
+//         // 13. INITIAL INVERTER ENERGY
+//         // =================================================
 
-        const initialInverterEnergy =
-            pgtStartRow &&
-            pgtStartRow.inverterEnergy !== null &&
-            pgtStartRow.inverterEnergy !== undefined
-                ? Number(
-                    Number(
-                        pgtStartRow.inverterEnergy
-                    ).toFixed(2)
-                )
-                : null;
+//         const initialInverterEnergy =
+//             pgtStartRow &&
+//             pgtStartRow.inverterEnergy !== null &&
+//             pgtStartRow.inverterEnergy !== undefined
+//                 ? Number(
+//                     Number(
+//                         pgtStartRow.inverterEnergy
+//                     ).toFixed(2)
+//                 )
+//                 : null;
 
 
-        // =================================================
-        // 14. FINAL INVERTER ENERGY
-        // =================================================
+//         // =================================================
+//         // 14. FINAL INVERTER ENERGY
+//         // =================================================
 
-        const finalInverterEnergy =
-            pgtEndRow &&
-            pgtEndRow.inverterEnergy !== null &&
-            pgtEndRow.inverterEnergy !== undefined
-                ? Number(
-                    Number(
-                        pgtEndRow.inverterEnergy
-                    ).toFixed(2)
-                )
-                : null;
+//         const finalInverterEnergy =
+//             pgtEndRow &&
+//             pgtEndRow.inverterEnergy !== null &&
+//             pgtEndRow.inverterEnergy !== undefined
+//                 ? Number(
+//                     Number(
+//                         pgtEndRow.inverterEnergy
+//                     ).toFixed(2)
+//                 )
+//                 : null;
 
 
-        // =================================================
-        // 15. START / END DATETIME
-        // =================================================
+//         // =================================================
+//         // 15. START / END DATETIME
+//         // =================================================
 
-        const testStartDateTime =
-            pgtStartRow
-                ? `${date} ${pgtStartRow.time}`
-                : null;
+//         const testStartDateTime =
+//             pgtStartRow
+//                 ? `${date} ${pgtStartRow.time}`
+//                 : null;
 
-        const testEndDateTime =
-            pgtEndRow
-                ? `${date} ${pgtEndRow.time}`
-                : null;
+//         const testEndDateTime =
+//             pgtEndRow
+//                 ? `${date} ${pgtEndRow.time}`
+//                 : null;
 
 
-        // =================================================
-        // 16. REFERENCE YIELD
-        // =================================================
+//         // =================================================
+//         // 16. REFERENCE YIELD
+//         // =================================================
 
-        const referenceYield =
-            totalPoaIrradiation !== null
-                ? Number(
-                    (
-                        totalPoaIrradiation /
-                        1000
-                    ).toFixed(5)
-                )
-                : null;
+//         const referenceYield =
+//             totalPoaIrradiation !== null
+//                 ? Number(
+//                     (
+//                         totalPoaIrradiation /
+//                         1000
+//                     ).toFixed(5)
+//                 )
+//                 : null;
 
 
-        // =================================================
-        // 17. TOTAL AC ENERGY
-        // =================================================
+//         // =================================================
+//         // 17. TOTAL AC ENERGY
+//         // =================================================
 
-        const totalAcEnergyGenerated =
-            initialInverterEnergy !== null &&
-            finalInverterEnergy !== null
-                ? Number(
-                    (
-                        finalInverterEnergy -
-                        initialInverterEnergy
-                    ).toFixed(2)
-                )
-                : null;
-
-
-        // =================================================
-        // 18. DIFFERENTIAL ENERGY
-        // =================================================
-
-        // Solarman has no separate manual net-meter map here.
-        const differentialEnergy = 0;
-
-
-        // =================================================
-        // 19. FINAL YIELD
-        // =================================================
-
-        const finalYield =
-            totalAcEnergyGenerated !== null
-                ? Number(
-                    (
-                        (
-                            totalAcEnergyGenerated -
-                            differentialEnergy
-                        ) /
-                        Number(
-                            installedDcCapacity
-                        )
-                    ).toFixed(3)
-                )
-                : null;
-
-
-        // =================================================
-        // 20. PERFORMANCE RATIO
-        // =================================================
-
-        const performanceRatio =
-            finalYield !== null &&
-            referenceYield !== null &&
-            referenceYield !== 0
-                ? Number(
-                    (
-                        (
-                            finalYield /
-                            referenceYield
-                        ) * 100
-                    ).toFixed(2)
-                )
-                : null;
+//         const totalAcEnergyGenerated =
+//             initialInverterEnergy !== null &&
+//             finalInverterEnergy !== null
+//                 ? Number(
+//                     (
+//                         finalInverterEnergy -
+//                         initialInverterEnergy
+//                     ).toFixed(2)
+//                 )
+//                 : null;
+
+
+//         // =================================================
+//         // 18. DIFFERENTIAL ENERGY
+//         // =================================================
+
+//         // Solarman has no separate manual net-meter map here.
+//         const differentialEnergy = 0;
+
+
+//         // =================================================
+//         // 19. FINAL YIELD
+//         // =================================================
+
+//         const finalYield =
+//             totalAcEnergyGenerated !== null
+//                 ? Number(
+//                     (
+//                         (
+//                             totalAcEnergyGenerated -
+//                             differentialEnergy
+//                         ) /
+//                         Number(
+//                             installedDcCapacity
+//                         )
+//                     ).toFixed(3)
+//                 )
+//                 : null;
+
+
+//         // =================================================
+//         // 20. PERFORMANCE RATIO
+//         // =================================================
+
+//         const performanceRatio =
+//             finalYield !== null &&
+//             referenceYield !== null &&
+//             referenceYield !== 0
+//                 ? Number(
+//                     (
+//                         (
+//                             finalYield /
+//                             referenceYield
+//                         ) * 100
+//                     ).toFixed(2)
+//                 )
+//                 : null;
 
 
-        // =================================================
-        // 21. GUARANTEED PR
-        // =================================================
+//         // =================================================
+//         // 21. GUARANTEED PR
+//         // =================================================
 
-        const guaranteedPr = 75;
+//         const guaranteedPr = 75;
 
 
-        // =================================================
-        // 22. PASS / FAIL
-        // =================================================
+//         // =================================================
+//         // 22. PASS / FAIL
+//         // =================================================
 
-        const pgtResult =
-            performanceRatio !== null
-                ? (
-                    performanceRatio >=
-                    guaranteedPr
-                        ? "PASS"
-                        : "FAIL"
-                )
-                : "PENDING";
+//         const pgtResult =
+//             performanceRatio !== null
+//                 ? (
+//                     performanceRatio >=
+//                     guaranteedPr
+//                         ? "PASS"
+//                         : "FAIL"
+//                 )
+//                 : "PENDING";
 
 
-        // =================================================
-        // 23. TOTAL POA kWh/m2
-        // =================================================
+//         // =================================================
+//         // 23. TOTAL POA kWh/m2
+//         // =================================================
 
-        const totalPoaKwh =
-            totalPoaIrradiation !== null
-                ? Number(
-                    (
-                        totalPoaIrradiation /
-                        1000
-                    ).toFixed(5)
-                )
-                : null;
+//         const totalPoaKwh =
+//             totalPoaIrradiation !== null
+//                 ? Number(
+//                     (
+//                         totalPoaIrradiation /
+//                         1000
+//                     ).toFixed(5)
+//                 )
+//                 : null;
 
 
-        // =================================================
-        // LOG
-        // =================================================
+//         // =================================================
+//         // LOG
+//         // =================================================
 
-        console.log(
-            "SOLARMAN PGT CALCULATION:",
-            {
-                stationId,
-                buildingName,
-                installedDcCapacity,
-                pgtStartIndex,
-                pgtEndIndex,
-                testStartDateTime,
-                testEndDateTime,
-                totalPoaIrradiation,
-                totalPoaKwh,
-                initialInverterEnergy,
-                finalInverterEnergy,
-                totalAcEnergyGenerated,
-                differentialEnergy,
-                referenceYield,
-                finalYield,
-                performanceRatio,
-                guaranteedPr,
-                pgtResult
-            }
-        );
+//         console.log(
+//             "SOLARMAN PGT CALCULATION:",
+//             {
+//                 stationId,
+//                 buildingName,
+//                 installedDcCapacity,
+//                 pgtStartIndex,
+//                 pgtEndIndex,
+//                 testStartDateTime,
+//                 testEndDateTime,
+//                 totalPoaIrradiation,
+//                 totalPoaKwh,
+//                 initialInverterEnergy,
+//                 finalInverterEnergy,
+//                 totalAcEnergyGenerated,
+//                 differentialEnergy,
+//                 referenceYield,
+//                 finalYield,
+//                 performanceRatio,
+//                 guaranteedPr,
+//                 pgtResult
+//             }
+//         );
 
 
-        // =================================================
-        // FINAL RESPONSE
-        // Same response structure as DEYE
-        // =================================================
+//         // =================================================
+//         // FINAL RESPONSE
+//         // Same response structure as DEYE
+//         // =================================================
 
-        return {
+//         return {
 
-            station: {
+//             station: {
 
-                stationId:
-                    Number(stationId),
+//                 stationId:
+//                     Number(stationId),
 
-                buildingName:
-                    buildingName,
+//                 buildingName:
+//                     buildingName,
 
-                campus:
-                    "NLCIL",
+//                 campus:
+//                     "NLCIL",
 
-                source:
-                    "SOLARMAN",
+//                 source:
+//                     "SOLARMAN",
 
-                installedDcCapacity:
-                    Number(
-                        installedDcCapacity
-                    )
-            },
+//                 installedDcCapacity:
+//                     Number(
+//                         installedDcCapacity
+//                     )
+//             },
 
 
-            rows:
-                report,
+//             rows:
+//                 report,
 
 
-            totals: {
+//             totals: {
 
-                inverterEnergyInterval:
-                    totalInverterEnergyInterval,
+//                 inverterEnergyInterval:
+//                     totalInverterEnergyInterval,
 
-                netExportEnergyInterval:
-                    null,
+//                 netExportEnergyInterval:
+//                     null,
 
-                poaIrradiationInterval:
-                    totalPoaIrradiation
-            },
+//                 poaIrradiationInterval:
+//                     totalPoaIrradiation
+//             },
 
 
-            pgtCalculation: {
+//             pgtCalculation: {
 
-                buildingName:
-                    buildingName,
+//                 buildingName:
+//                     buildingName,
 
-                stationId:
-                    Number(stationId),
+//                 stationId:
+//                     Number(stationId),
 
-                installedDcCapacity:
-                    Number(
-                        installedDcCapacity
-                    ),
+//                 installedDcCapacity:
+//                     Number(
+//                         installedDcCapacity
+//                     ),
 
-                testStartDateTime,
+//                 testStartDateTime,
 
-                testEndDateTime,
+//                 testEndDateTime,
 
-                totalPoaIrradiation:
-                    totalPoaKwh,
+//                 totalPoaIrradiation:
+//                     totalPoaKwh,
 
-                initialInverterEnergy,
+//                 initialInverterEnergy,
 
-                finalInverterEnergy,
+//                 finalInverterEnergy,
 
-                totalAcEnergyGenerated,
+//                 totalAcEnergyGenerated,
 
-                differentialEnergy,
+//                 differentialEnergy,
 
-                referenceYield,
+//                 referenceYield,
 
-                finalYield,
+//                 finalYield,
 
-                performanceRatio,
+//                 performanceRatio,
 
-                guaranteedPr,
+//                 guaranteedPr,
 
-                pgtResult
-            }
-        };
+//                 pgtResult
+//             }
+//         };
 
-    }
-    catch (err) {
+//     }
+//     catch (err) {
 
-        console.error(
-            "SOLARMAN PGT REPORT ERROR:",
-            err
-        );
+//         console.error(
+//             "SOLARMAN PGT REPORT ERROR:",
+//             err
+//         );
 
-        throw err;
-    }
-}
+//         throw err;
+//     }
+// }
 // =====================================================
 // NLCIL PGT SUMMARY REPORT
 // =====================================================
@@ -7719,6 +7666,1244 @@ async function getNTPLPgtStations() {
 
 }
 
+// =====================================================
+// NTPL PGT COMBINED REPORT
+// Same PGT calculation logic as NUPPL / BTPS
+// =====================================================
+
+async function getNTPLPgtReport(
+    date,
+    fromTime,
+    toTime,
+    selectedStationId = null
+) {
+
+    try {
+
+        console.log(
+            "========================================"
+        );
+
+        console.log(
+            "NTPL PGT REPORT START"
+        );
+
+
+        // =================================================
+        // 1. GET ALL NTPL STATIONS
+        // =================================================
+
+        const ntplStations =
+            await getStations();
+
+
+        const filteredStations =
+            ntplStations
+                .filter(station => {
+
+                    const name =
+                        String(
+                            station.name || ""
+                        )
+                        .trim()
+                        .toUpperCase();
+
+                    return name.includes("NTPL");
+
+                });
+
+
+        // =================================================
+        // 2. SELECTED BUILDING
+        // =================================================
+
+        let reportStations =
+            filteredStations;
+
+
+        if (selectedStationId) {
+
+            reportStations =
+                filteredStations.filter(
+                    building =>
+                        Number(
+                            building.id
+                        ) ===
+                        Number(
+                            selectedStationId
+                        )
+                );
+
+
+            if (!reportStations.length) {
+
+                throw new Error(
+                    `NTPL station not found: ${selectedStationId}`
+                );
+
+            }
+
+        }
+
+
+        if (!reportStations.length) {
+
+            throw new Error(
+                "No NTPL station found"
+            );
+
+        }
+
+
+        // =================================================
+        // 3. NTPL INSTALLED DC CAPACITY
+        // =================================================
+        //
+        // NTPL RTS = 0.3 MW
+        // 0.3 MW = 300 kW
+        //
+        // If actual installed DC capacity is different,
+        // change ONLY this value.
+        // =================================================
+
+        const NTPL_INSTALLED_DC_CAPACITY =
+            300;
+
+
+        const ntplStationDetails =
+            reportStations.map(
+                building => ({
+
+                    stationId:
+                        Number(
+                            building.id
+                        ),
+
+                    buildingName:
+                        String(
+                            building.name || ""
+                        ).trim(),
+
+                    campus:
+                        "NTPL",
+
+                    installedDcCapacity:
+                        NTPL_INSTALLED_DC_CAPACITY
+
+                })
+            );
+
+
+        const totalNTPLInstalledDcCapacity =
+            Number(
+                ntplStationDetails
+                    .reduce(
+                        (
+                            sum,
+                            station
+                        ) =>
+                            sum +
+                            station.installedDcCapacity,
+                        0
+                    )
+                    .toFixed(2)
+            );
+
+
+        // =================================================
+        // 4. GET INVERTER DATA
+        // =================================================
+
+        const stationReports =
+            await Promise.all(
+
+                reportStations.map(
+                    async building => {
+
+                        const stationId =
+                            Number(
+                                building.id
+                            );
+
+
+                        const data =
+                            await getPgtInverterEnergy(
+                                stationId,
+                                date
+                            );
+
+
+                        return {
+
+                            stationId,
+
+                            buildingName:
+                                building.name,
+
+                            data
+
+                        };
+
+                    }
+                )
+
+            );
+
+
+        // =================================================
+        // 5. COMBINE INVERTER DATA
+        // =================================================
+
+        const combinedTimeMap = {};
+
+
+        for (
+            const stationReport
+            of stationReports
+        ) {
+
+            for (
+                const row
+                of stationReport.data
+            ) {
+
+                if (
+                    !row ||
+                    !row.time
+                ) {
+                    continue;
+                }
+
+
+                const time =
+                    String(
+                        row.time
+                    )
+                    .substring(
+                        0,
+                        5
+                    );
+
+
+                // Selected time range
+
+                if (
+                    time < fromTime ||
+                    time > toTime
+                ) {
+                    continue;
+                }
+
+
+                const energy =
+                    Number(
+                        row.inverterEnergy
+                    );
+
+
+                if (
+                    !Number.isFinite(
+                        energy
+                    )
+                ) {
+                    continue;
+                }
+
+
+                if (
+                    !combinedTimeMap[time]
+                ) {
+
+                    combinedTimeMap[time] =
+                        0;
+
+                }
+
+
+                combinedTimeMap[time] +=
+                    energy;
+
+            }
+
+        }
+
+
+        // =================================================
+        // 6. SORT INVERTER DATA
+        // =================================================
+
+        const combinedInverterData =
+            Object.keys(
+                combinedTimeMap
+            )
+            .sort()
+            .map(
+                time => ({
+
+                    time:
+                        `${date} ${time}:00`,
+
+                    inverterEnergy:
+                        Number(
+                            combinedTimeMap[time]
+                        .toFixed(2)
+                    )
+
+                })
+            );
+
+
+        // =================================================
+        // 7. GET NTPL WEATHER DATA
+        //
+        // weather_logs
+        // campus = NTPL
+        //
+        // irradiance          -> GHI
+        // inclined_irradiance -> GII
+        // temperature         -> Module Temperature
+        // =================================================
+
+      const weatherResult =
+    await db.query(
+        `
+        SELECT
+            to_char(
+                to_timestamp(mqtt_timestamp / 1000)
+                    AT TIME ZONE 'Asia/Kolkata',
+                'YYYY-MM-DD HH24:MI:SS'
+            ) AS time,
+
+            irradiance,
+            temperature,
+            inclined_irradiance,
+            cumulative_irradiance,
+            inclined_cumulative
+
+        FROM weather_logs
+
+        WHERE campus = 'NTPL'
+
+        AND inclined_irradiance > 0
+
+        AND DATE(
+            to_timestamp(mqtt_timestamp / 1000)
+                AT TIME ZONE 'Asia/Kolkata'
+        ) = $1::date
+
+        ORDER BY mqtt_timestamp ASC
+        `,
+        [date]
+    );
+
+        // =================================================
+        // 8. CONVERT WEATHER DATA
+        // =================================================
+
+        const weatherData =
+            weatherResult.rows.map(
+                row => ({
+
+                    time:
+                        row.time,
+
+                    ghi:
+                        row.irradiance !== null &&
+                        row.irradiance !== undefined
+                            ? Number(
+                                row.irradiance
+                            )
+                            : null,
+
+                    gii:
+                        row.inclined_irradiance !== null &&
+                        row.inclined_irradiance !== undefined
+                            ? Number(
+                                row.inclined_irradiance
+                            )
+                            : null,
+
+                    moduleTemp:
+                        row.temperature !== null &&
+                        row.temperature !== undefined
+                            ? Number(
+                                row.temperature
+                            )
+                            : null,
+
+                    cumulative:
+                        row.cumulative_irradiance !== null &&
+                        row.cumulative_irradiance !== undefined
+                            ? Number(
+                                row.cumulative_irradiance
+                            )
+                            : null,
+
+                    inclinedCumulative:
+                        row.inclined_cumulative !== null &&
+                        row.inclined_cumulative !== undefined
+                            ? Number(
+                                row.inclined_cumulative
+                            )
+                            : null
+
+                })
+            );
+
+
+        // =================================================
+        // 9. COMBINE INVERTER + WEATHER
+        // =================================================
+
+        const report = [];
+
+
+        for (
+            const inverterRow
+            of combinedInverterData
+        ) {
+
+            const targetTime =
+                String(
+                    inverterRow.time
+                )
+                .substring(
+                    11,
+                    16
+                );
+
+
+            const targetParts =
+                targetTime.split(":");
+
+
+            const targetMinutes =
+                (
+                    Number(
+                        targetParts[0]
+                    ) * 60
+                )
+                +
+                Number(
+                    targetParts[1]
+                );
+
+
+            let nearestWeather =
+                null;
+
+            let minDifference =
+                Infinity;
+
+
+            // =================================================
+            // FIND NEAREST WEATHER
+            // =================================================
+
+            for (
+                const weatherRow
+                of weatherData
+            ) {
+
+                if (
+                    !weatherRow.time
+                ) {
+                    continue;
+                }
+
+
+                const weatherTime =
+                    weatherRow.time
+                        .split(" ")[1]
+                        .substring(
+                            0,
+                            5
+                        );
+
+
+                const weatherParts =
+                    weatherTime.split(":");
+
+
+                const weatherMinutes =
+                    (
+                        Number(
+                            weatherParts[0]
+                        ) * 60
+                    )
+                    +
+                    Number(
+                        weatherParts[1]
+                    );
+
+
+                const difference =
+                    Math.abs(
+                        targetMinutes -
+                        weatherMinutes
+                    );
+
+
+                if (
+                    difference <
+                    minDifference
+                ) {
+
+                    minDifference =
+                        difference;
+
+                    nearestWeather =
+                        weatherRow;
+
+                }
+
+            }
+
+
+            // =================================================
+            // WEATHER WITHIN 10 MINUTES
+            // =================================================
+
+            if (
+                nearestWeather &&
+                minDifference <= 10
+            ) {
+
+                report.push({
+
+                    date,
+
+                    time:
+                        targetTime,
+
+                    ghi:
+                        nearestWeather.ghi,
+
+                    gii:
+                        nearestWeather.gii,
+
+                    moduleTemp:
+                        nearestWeather.moduleTemp,
+
+                    inverterEnergy:
+                        inverterRow.inverterEnergy,
+
+                    inverterEnergyInterval:
+                        null,
+
+                    netMeterReading:
+                        null,
+
+                    netExportEnergyInterval:
+                        null,
+
+                    ghiIrradiationInterval:
+                        null,
+
+                    giiIrradiationInterval:
+                        null
+
+                });
+
+            }
+            else {
+
+                report.push({
+
+                    date,
+
+                    time:
+                        targetTime,
+
+                    ghi:
+                        null,
+
+                    gii:
+                        null,
+
+                    moduleTemp:
+                        null,
+
+                    inverterEnergy:
+                        inverterRow.inverterEnergy,
+
+                    inverterEnergyInterval:
+                        null,
+
+                    netMeterReading:
+                        null,
+
+                    netExportEnergyInterval:
+                        null,
+
+                    ghiIrradiationInterval:
+                        null,
+
+                    giiIrradiationInterval:
+                        null
+
+                });
+
+            }
+
+        }
+
+
+        // =================================================
+        // 10. INVERTER ENERGY INTERVAL
+        // =================================================
+
+        let previousInverterEnergy =
+            null;
+
+
+        for (
+            const row
+            of report
+        ) {
+
+            if (
+                previousInverterEnergy !== null &&
+                row.inverterEnergy !== null &&
+                row.inverterEnergy !== undefined
+            ) {
+
+                row.inverterEnergyInterval =
+                    Number(
+                        (
+                            Number(
+                                row.inverterEnergy
+                            )
+                            -
+                            Number(
+                                previousInverterEnergy
+                            )
+                        )
+                        .toFixed(2)
+                    );
+
+
+                // Meter reset protection
+
+                if (
+                    row.inverterEnergyInterval < 0
+                ) {
+
+                    row.inverterEnergyInterval =
+                        0;
+
+                }
+
+            }
+
+
+            previousInverterEnergy =
+                row.inverterEnergy;
+
+        }
+
+
+        // =================================================
+        // 11. IRRADIATION INTERVAL
+        //
+        // SAME PGT FORMULA
+        //
+        // ((CURRENT + NEXT) / 2) * 0.25
+        // =================================================
+
+        for (
+            let i = 0;
+            i < report.length - 1;
+            i++
+        ) {
+
+            const current =
+                report[i];
+
+            const next =
+                report[i + 1];
+
+
+            // =================================================
+            // GHI
+            // =================================================
+
+            if (
+                current.ghi !== null &&
+                current.ghi !== undefined &&
+                next.ghi !== null &&
+                next.ghi !== undefined
+            ) {
+
+                current.ghiIrradiationInterval =
+                    Number(
+                        (
+                            (
+                                Number(
+                                    current.ghi
+                                )
+                                +
+                                Number(
+                                    next.ghi
+                                )
+                            )
+                            / 2
+                            * 0.25
+                        )
+                        .toFixed(2)
+                    );
+
+            }
+
+
+            // =================================================
+            // GII
+            // =================================================
+
+            if (
+                current.gii !== null &&
+                current.gii !== undefined &&
+                next.gii !== null &&
+                next.gii !== undefined
+            ) {
+
+                current.giiIrradiationInterval =
+                    Number(
+                        (
+                            (
+                                Number(
+                                    current.gii
+                                )
+                                +
+                                Number(
+                                    next.gii
+                                )
+                            )
+                            / 2
+                            * 0.25
+                        )
+                        .toFixed(2)
+                    );
+
+            }
+
+        }
+
+
+        // =================================================
+        // 12. LAST ROW INTERVAL = NULL
+        // =================================================
+
+        if (
+            report.length > 0
+        ) {
+
+            report[
+                report.length - 1
+            ].ghiIrradiationInterval =
+                null;
+
+
+            report[
+                report.length - 1
+            ].giiIrradiationInterval =
+                null;
+
+        }
+
+
+        // =================================================
+        // 13. TOTAL INVERTER ENERGY
+        // =================================================
+
+        const totalInverterEnergyInterval =
+            Number(
+                report
+                    .reduce(
+                        (
+                            sum,
+                            row
+                        ) =>
+                            sum +
+                            Number(
+                                row.inverterEnergyInterval ||
+                                0
+                            ),
+                        0
+                    )
+                    .toFixed(2)
+            );
+
+
+        // =================================================
+        // 14. PGT START
+        //
+        // FIRST GHI > 750
+        // =================================================
+
+        const pgtStartIndex =
+            report.findIndex(
+                row =>
+                    row.ghi !== null &&
+                    row.ghi !== undefined &&
+                    Number(row.ghi) > 750
+            );
+
+
+        const pgtStartRow =
+            pgtStartIndex >= 0
+                ? report[
+                    pgtStartIndex
+                ]
+                : null;
+
+
+        // =================================================
+        // 15. PGT END
+        //
+        // GII CUMULATIVE >= 5000
+        //
+        // Otherwise LAST VALID GHI/GII
+        // =================================================
+
+        let pgtEndIndex =
+            -1;
+
+        let pgtCumulativeGii =
+            0;
+
+
+        if (
+            pgtStartIndex >= 0
+        ) {
+
+            for (
+                let i =
+                    pgtStartIndex;
+
+                i < report.length;
+
+                i++
+            ) {
+
+                const row =
+                    report[i];
+
+
+                const ghiValid =
+                    row.ghi !== null &&
+                    row.ghi !== undefined &&
+                    row.ghi !== "" &&
+                    !isNaN(
+                        Number(
+                            row.ghi
+                        )
+                    );
+
+
+                const giiValid =
+                    row.gii !== null &&
+                    row.gii !== undefined &&
+                    row.gii !== "" &&
+                    !isNaN(
+                        Number(
+                            row.gii
+                        )
+                    );
+
+
+                // Missing weather → continue
+
+                if (
+                    !ghiValid ||
+                    !giiValid
+                ) {
+
+                    continue;
+
+                }
+
+
+                // Latest valid row
+
+                pgtEndIndex =
+                    i;
+
+
+                pgtCumulativeGii +=
+                    Number(
+                        row.giiIrradiationInterval ||
+                        0
+                    );
+
+
+                // 5000 reached
+
+                if (
+                    pgtCumulativeGii >= 5000
+                ) {
+
+                    break;
+
+                }
+
+            }
+
+        }
+
+
+        const pgtEndRow =
+            pgtEndIndex >= 0
+                ? report[
+                    pgtEndIndex
+                ]
+                : null;
+
+
+        // =================================================
+        // 16. PGT REPORT RANGE
+        // =================================================
+
+        let pgtReport =
+            report;
+
+
+        if (
+            pgtStartIndex >= 0 &&
+            pgtEndIndex >= pgtStartIndex
+        ) {
+
+            pgtReport =
+                report.slice(
+                    pgtStartIndex,
+                    pgtEndIndex + 1
+                );
+
+        }
+
+
+        // =================================================
+        // 17. TOTAL POA / GII
+        // =================================================
+
+        const totalPoaIrradiation =
+            Number(
+                pgtReport
+                    .reduce(
+                        (
+                            sum,
+                            row
+                        ) =>
+                            sum +
+                            Number(
+                                row.giiIrradiationInterval ||
+                                0
+                            ),
+                        0
+                    )
+                    .toFixed(2)
+            );
+
+
+        // =================================================
+        // 18. INITIAL INVERTER ENERGY
+        // =================================================
+
+        const initialInverterEnergy =
+            pgtStartRow &&
+            pgtStartRow.inverterEnergy !== null &&
+            pgtStartRow.inverterEnergy !== undefined
+
+                ? Number(
+                    Number(
+                        pgtStartRow.inverterEnergy
+                    )
+                    .toFixed(2)
+                )
+
+                : null;
+
+
+        // =================================================
+        // 19. FINAL INVERTER ENERGY
+        // =================================================
+
+        const finalInverterEnergy =
+            pgtEndRow &&
+            pgtEndRow.inverterEnergy !== null &&
+            pgtEndRow.inverterEnergy !== undefined
+
+                ? Number(
+                    Number(
+                        pgtEndRow.inverterEnergy
+                    )
+                    .toFixed(2)
+                )
+
+                : null;
+
+
+        // =================================================
+        // 20. TEST START / END
+        // =================================================
+
+        const testStartDateTime =
+            pgtStartRow
+                ? `${date} ${pgtStartRow.time}`
+                : null;
+
+
+        const testEndDateTime =
+            pgtEndRow
+                ? `${date} ${pgtEndRow.time}`
+                : null;
+
+
+        // =================================================
+        // 21. TOTAL AC ENERGY
+        // =================================================
+
+        const totalAcEnergyGenerated =
+            initialInverterEnergy !== null &&
+            finalInverterEnergy !== null
+
+                ? Number(
+                    (
+                        finalInverterEnergy -
+                        initialInverterEnergy
+                    )
+                    .toFixed(2)
+                )
+
+                : null;
+
+
+        // =================================================
+        // 22. DIFFERENTIAL ENERGY
+        // =================================================
+
+        const differentialEnergy =
+            0;
+
+
+        // =================================================
+        // 23. REFERENCE YIELD
+        // =================================================
+
+        const referenceYield =
+            Number(
+                (
+                    totalPoaIrradiation /
+                    1000
+                )
+                .toFixed(5)
+            );
+
+
+        // =================================================
+        // 24. FINAL YIELD
+        // =================================================
+
+        const finalYield =
+            totalAcEnergyGenerated !== null &&
+            totalNTPLInstalledDcCapacity > 0
+
+                ? Number(
+                    (
+                        (
+                            totalAcEnergyGenerated -
+                            differentialEnergy
+                        )
+                        /
+                        totalNTPLInstalledDcCapacity
+                    )
+                    .toFixed(3)
+                )
+
+                : null;
+
+
+        // =================================================
+        // 25. PERFORMANCE RATIO
+        // =================================================
+
+        const performanceRatio =
+            finalYield !== null &&
+            referenceYield !== null &&
+            referenceYield !== 0
+
+                ? Number(
+                    (
+                        (
+                            finalYield /
+                            referenceYield
+                        )
+                        * 100
+                    )
+                    .toFixed(2)
+                )
+
+                : null;
+
+
+        // =================================================
+        // 26. GUARANTEED PR
+        // =================================================
+
+        const guaranteedPr =
+            75;
+
+
+        // =================================================
+        // 27. PASS / FAIL
+        // =================================================
+
+        const pgtResult =
+            performanceRatio !== null
+
+                ? (
+                    performanceRatio >=
+                    guaranteedPr
+
+                        ? "PASS"
+
+                        : "FAIL"
+                )
+
+                : "PENDING";
+
+
+        // =================================================
+        // 28. TOTAL POA kWh/m²
+        // =================================================
+
+        const totalPoaKwh =
+            Number(
+                (
+                    totalPoaIrradiation /
+                    1000
+                )
+                .toFixed(5)
+            );
+
+
+        // =================================================
+        // 29. RESPONSE DETAILS
+        // =================================================
+
+        const selectedStationDetails =
+            ntplStationDetails[0];
+
+
+        const responseStationId =
+            selectedStationId
+                ? Number(
+                    selectedStationId
+                )
+                : "NTPL";
+
+
+        const responseBuildingName =
+            selectedStationId
+                ? selectedStationDetails
+                    .buildingName
+                : "NTPL RTS";
+
+
+        // =================================================
+        // 30. FINAL RESPONSE
+        // =================================================
+
+        return {
+
+            station: {
+
+                stationId:
+                    responseStationId,
+
+                buildingName:
+                    responseBuildingName,
+
+                campus:
+                    "NTPL",
+
+                installedDcCapacity:
+                    totalNTPLInstalledDcCapacity
+
+            },
+
+
+            rows:
+                report,
+
+
+            totals: {
+
+                inverterEnergyInterval:
+                    totalInverterEnergyInterval,
+
+                netExportEnergyInterval:
+                    null,
+
+                poaIrradiationInterval:
+                    totalPoaIrradiation
+
+            },
+
+
+            pgtCalculation: {
+
+                buildingName:
+                    responseBuildingName,
+
+                stationId:
+                    responseStationId,
+
+                installedDcCapacity:
+                    totalNTPLInstalledDcCapacity,
+
+                testStartDateTime,
+
+                testEndDateTime,
+
+                totalPoaIrradiation:
+                    totalPoaKwh,
+
+                initialInverterEnergy,
+
+                finalInverterEnergy,
+
+                totalAcEnergyGenerated,
+
+                differentialEnergy,
+
+                referenceYield,
+
+                finalYield,
+
+                performanceRatio,
+
+                guaranteedPr,
+
+                pgtResult
+
+            }
+
+        };
+
+    }
+    catch (err) {
+
+        console.error(
+            "NTPL PGT Report Error:",
+            err
+        );
+
+        throw err;
+
+    }
+
+}
 
 // ================= EXPORT =================
 
@@ -7744,6 +8929,7 @@ getGraph,
 getBTPSPgtStations,
 getBTPSPgtSummary,
 getAllNLCILPgtStations,
-getSolarmanPgtReport,
-getNTPLPgtStations
+
+getNTPLPgtStations,
+getNTPLPgtReport
 };

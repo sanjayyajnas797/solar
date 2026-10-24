@@ -15,6 +15,7 @@ const [campus, setCampus] = useState("NLCIL");
 const [fromDate, setFromDate] = useState("");
 const [toDate, setToDate] = useState("");
 const [interval, setInterval] = useState("15");
+const useGiiReport = true;
 
 const [reportData, setReportData] = useState([]);
 const [loading, setLoading] = useState(false);
@@ -94,75 +95,53 @@ const generateReport = async () => {
 
     if (!fromDate || !toDate) {
 
-       showAlert(
-  "Please select both From Date and To Date.",
-  "warning",
-  "Date Required"
-);
+        showAlert(
+            "Please select both From Date and To Date.",
+            "warning",
+            "Date Required"
+        );
 
         return;
-
     }
 
     try {
 
         setLoading(true);
 
-       let res;
+        const res = await axios.get(
+            `${API_BASE}/weather/gii-report`,
+            {
+                params: {
+                    campus: campus,
+                    from: fromDate,
+                    to: toDate,
+                    interval: interval
+                }
+            }
+        );
 
-if (campus === "GII") {
+        console.log("GII REPORT RESPONSE:", res.data);
 
-   res = await axios.get(
-    `${API_BASE}/weather/gii-report`,
-    {
-        params: {
-            from: fromDate,
-            to: toDate,
-            interval
-        }
-    }
-);
-
-}
-else {
-
-   res = await axios.get(
-    `${API_BASE}/weather/report/${campus}`,
-    {
-        params: {
-            from: fromDate,
-            to: toDate,
-            interval
-        }
-    }
-);
-
-}
-
-       setSummary(res.data.summary);
-
-setReportData(res.data.rows);
+        setSummary(res.data.summary);
+        setReportData(res.data.rows);
 
     }
-
     catch (err) {
 
-        console.log(err);
+        console.error("GII REPORT ERROR:", err);
 
-      showAlert(
-  "Unable to load the report. Please try again.",
-  "error",
-  "Report Error"
-);
+        showAlert(
+            "Unable to load the report. Please try again.",
+            "error",
+            "Report Error"
+        );
 
     }
-
     finally {
 
         setLoading(false);
 
     }
-
 };
 
 const pg=()=>{
@@ -704,6 +683,10 @@ else{
                                 NUPPL
                             </option>
 
+                            <option value="NTPL">
+    NTPL
+</option>
+
                             <option value="BTPS">
                                 BTPS
                             </option>
@@ -811,27 +794,32 @@ else{
     </div>
 
     <div className="GII_summary-card">
-        <h4>Total Energy</h4>
-        {
-campus === "GII"
+       <h4>Total Energy</h4>
+
+{
+useGiiReport
 ?
 <div className="gii-total-box">
 
     <div className="gii-total horizontal">
         <span>Horizontal</span>
-        <strong>{summary.horizontalTotal} Wh/m²</strong>
+        <strong>
+            {summary.totalHorizontalEnergy ?? 0} Wh/m²
+        </strong>
     </div>
 
     <div className="gii-total inclined">
         <span>Inclined</span>
-        <strong>{summary.inclinedTotal} Wh/m²</strong>
+        <strong>
+            {summary.totalInclinedEnergy ?? 0} Wh/m²
+        </strong>
     </div>
 
 </div>
 
 :
 
-<p>{summary.totalEnergy} Wh/m²</p>
+<p>{summary.totalEnergy ?? 0} Wh/m²</p>
 }
     </div>
 
@@ -853,8 +841,7 @@ campus === "GII"
 </button>
 
                 </div>
-{campus === "GII" ? (
-
+{useGiiReport ? (
     fromDate === toDate ? (
 
         // ==========================================

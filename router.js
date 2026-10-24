@@ -39,8 +39,9 @@ const {
    getBTPSPgtStations,
    getBTPSPgtSummary,
    getAllNLCILPgtStations,
-   getSolarmanPgtReport,
-   getNTPLPgtStations
+   
+   getNTPLPgtStations,
+   getNTPLPgtReport
    
 
 } = require("./service");
@@ -1089,5 +1090,136 @@ router.get("/alerts", (req, res) => {
 
     }
 });
+
+// =====================================================
+// NTPL PGT REPORT - SELECTED BUILDING
+// =====================================================
+
+router.get(
+    "/pgt/ntpl/report/:stationId",
+    async (req, res) => {
+
+        try {
+
+            const {
+                stationId
+            } = req.params;
+
+
+            const {
+                date,
+                fromTime,
+                toTime
+            } = req.query;
+
+
+            // =============================================
+            // VALIDATE STATION
+            // =============================================
+
+            if (!stationId) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Station ID is required"
+
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE DATE
+            // =============================================
+
+            if (!date) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Date is required"
+
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE TIME
+            // =============================================
+
+            if (
+                !fromTime ||
+                !toTime
+            ) {
+
+                return res.status(400).json({
+
+                    error:
+                        "From Time and To Time are required"
+
+                });
+
+            }
+
+
+            // =============================================
+            // VALIDATE TIME ORDER
+            // =============================================
+
+            if (
+                fromTime >= toTime
+            ) {
+
+                return res.status(400).json({
+
+                    error:
+                        "To Time must be greater than From Time"
+
+                });
+
+            }
+
+
+            // =============================================
+            // GET NTPL PGT REPORT
+            // =============================================
+
+            const data =
+                await getNTPLPgtReport(
+                    date,
+                    fromTime,
+                    toTime,
+                    stationId
+                );
+
+
+            // =============================================
+            // RESPONSE
+            // =============================================
+
+            res.json(data);
+
+        }
+        catch (err) {
+
+            console.error(
+                "NTPL PGT Report Route Error:",
+                err.message
+            );
+
+
+            res.status(500).json({
+
+                error:
+                    err.message
+
+            });
+
+        }
+
+    }
+);
 
 module.exports = router;

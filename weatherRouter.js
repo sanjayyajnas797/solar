@@ -81,32 +81,38 @@ router.get("/report/:campus", async (req, res) => {
 
 });
 
-// ================= GII Report =================
-
 router.get("/gii-report", async (req, res) => {
 
     try {
 
-       const { from, to, interval } = req.query;
+        const {
+            campus,
+            from,
+            to,
+            interval
+        } = req.query;
 
-const data = await getGIIDetailedReport(
-    from,
-    to,
-    interval
-);
+        const data =
+            await getGIIDetailedReport(
+                campus,
+                from,
+                to,
+                interval
+            );
 
         res.json(data);
 
     }
-
     catch (err) {
 
+        console.error(
+            "GII / CAMPUS REPORT ERROR:",
+            err
+        );
+
         res.status(500).json({
-
             error: err.message
-
         });
-
     }
 
 });
