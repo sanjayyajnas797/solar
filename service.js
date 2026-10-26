@@ -265,10 +265,34 @@ async function getBuilding(station) {
 
   try {
 
-    const [devices, yesterday] = await Promise.all([
-      getDevices(station.id),
-      getYesterday(station.id)
-    ]);
+    const [devicesResult, yesterdayResult] = await Promise.allSettled([
+  getDevices(station.id),
+  getYesterday(station.id)
+]);
+
+const devices =
+  devicesResult.status === "fulfilled"
+    ? devicesResult.value
+    : [];
+
+const yesterday =
+  yesterdayResult.status === "fulfilled"
+    ? yesterdayResult.value
+    : 0;
+
+if (devicesResult.status === "rejected") {
+  console.log(
+    `❌ DEVICE API FAILED: ${station.name}`,
+    devicesResult.reason?.message || devicesResult.reason
+  );
+}
+
+if (yesterdayResult.status === "rejected") {
+  console.log(
+    `⚠️ YESTERDAY API FAILED: ${station.name}`,
+    yesterdayResult.reason?.message || yesterdayResult.reason
+  );
+}
 
     const inverters = devices.filter(d =>
       d.deviceType === "INVERTER" ||
@@ -285,13 +309,25 @@ async function getBuilding(station) {
     let totalMPPTPower = 0;
 
   // ================= FETCH ALL INVERTER LATEST DATA IN PARALLEL =================
-const latestResults = await Promise.all(
+const latestResults = await Promise.allSettled(
   inverters.map(inv => getLatest(inv.deviceSn))
 );
 
       for (let i = 0; i < inverters.length; i++) {
 
-  const latest = latestResults[i];
+ const result = latestResults[i];
+
+const latest =
+  result.status === "fulfilled"
+    ? result.value
+    : null;
+
+if (result.status === "rejected") {
+  console.log(
+    `❌ LATEST API FAILED: ${station.name} | INV-${i + 1}`,
+    result.reason?.message || result.reason
+  );
+}
 
   // =====================================================
 // INVERTER ALERT CHECK
@@ -1436,7 +1472,20 @@ const capacityMap = {
 
     "NLCILTPS2EXPASHHANDLING": 40,
 
-    "NLCILNNTPSSOFTENINGPLANT": 109.61
+    "NLCILNNTPSSOFTENINGPLANT": 109.61,
+
+     "NLCILLDCBLOCK20INVERTER1":100,
+   "NLCILLDCBLOCK20INVERTER2":100,
+   "NLCILWTPFILTERBED":100.57,
+   "NLCILNNTPSBRINEPIT":27.12,
+   "NLCILNNTPSDMPLANTINVERTER1":100.57,
+   "NLCILNNTPSDMPLANTINVERTER2":100.57,
+   "NLCILNNTPSSALTSTORAGEAREA":40.68,
+   "NLCILNNTPSSERVICEBUILDING":100.57,
+   "NLCILNNTPSWCTPSTORE":10.17,
+  "NLCILTPS2CANTEENBUILDING": 81.36,
+   "NLCILTPS2AOBUILDING":76.84,
+   "NLCILTPS2CWPHSTAGE2":203.40,
 };
 
 // =====================================================
@@ -1687,6 +1736,48 @@ async function getPgtReport(
 
             });
 
+            
+// =================================================
+// CHECK INVERTER DATA AVAILABLE
+// =================================================
+
+if (
+    !Array.isArray(filteredInverterData) ||
+    filteredInverterData.length === 0
+) {
+    console.log(
+        "NO INVERTER DATA:",
+        {
+            stationId,
+            buildingName,
+            date,
+            fromTime,
+            toTime
+        }
+    );
+
+    return {
+        station: {
+            stationId: Number(stationId),
+            buildingName: buildingName,
+            campus: "NLCIL",
+            installedDcCapacity: installedDcCapacity
+        },
+
+        rows: [],
+
+        totals: {
+            inverterEnergyInterval: null,
+            netExportEnergyInterval: null,
+            poaIrradiationInterval: null
+        },
+
+        pgtCalculation: null,
+
+        // IMPORTANT
+        inverterDataAvailable: false
+    };
+}
 
         // =================================================
         // 2. GET COMMON GHI / GII / WEATHER DATA
@@ -2665,36 +2756,34 @@ async function getNLCILPgtStations() {
 
         const stations = await getStations();
 
-        const result = stations
-            .filter(station => {
+      const result = stations
+    .filter(station => {
+        const name =
+            String(station.name || "").trim();
 
-                const name =
-                    String(station.name || "").trim();
+        return name
+            .toUpperCase()
+            .includes("NLCIL");
+    })
+    .map(station => {
 
-                return name
-                    .toUpperCase()
-                    .includes("NLCIL");
-            })
-            .map(station => ({
+        const buildingName =
+            String(station.name || "").trim();
 
-                stationId:
-                    Number(station.id),
+        const mappedCapacity =
+            getInstalledDcCapacity(buildingName);
 
-                buildingName:
-                    String(station.name || "").trim(),
+        return {
+            stationId: Number(station.id),
 
-                campus:
-                    "NLCIL",
+            buildingName,
 
-                installedDcCapacity:
-                    getInstalledDcCapacity(
-                        String(station.name || "").trim()
-                    )
-            }))
-            .filter(station =>
-                station.installedDcCapacity !== null &&
-                station.installedDcCapacity > 0
-            );
+            campus: "NLCIL",
+
+            installedDcCapacity:
+                mappedCapacity
+        };
+    });
 
      
         return result;
@@ -7662,6 +7751,50 @@ async function getNTPLPgtStations() {
 }
 
 // =====================================================
+// NTPL PGT CAPACITY MAP
+// =====================================================
+
+const ntplCapacityMap = {
+
+    "NTPLSTORMWATER": 20.34,
+  "NTPLPARKINGSHED": 118.65,
+  "NTPLAOBUILDING":50.85,
+  "NTPLSERVICEBUILDING":110.74
+};
+
+
+// =====================================================
+// GET NTPL INSTALLED DC CAPACITY
+// =====================================================
+
+function getNTPLInstalledDcCapacity(buildingName) {
+
+    const key =
+        normalizeBuildingName(buildingName);
+
+    const capacity =
+        ntplCapacityMap[key];
+
+    if (
+        capacity === undefined ||
+        capacity === null
+    ) {
+
+        console.warn(
+            "⚠️ NTPL PGT CAPACITY NOT FOUND",
+            {
+                buildingName,
+                normalizedKey: key
+            }
+        );
+
+        return null;
+    }
+
+    return Number(capacity);
+}
+
+// =====================================================
 // NTPL PGT COMBINED REPORT
 // Same PGT calculation logic as NUPPL / BTPS
 // =====================================================
@@ -7750,44 +7883,60 @@ async function getNTPLPgtReport(
         }
 
 
+
         // =================================================
-        // 3. NTPL INSTALLED DC CAPACITY
-        // =================================================
-        //
-        // NTPL RTS = 0.3 MW
-        // 0.3 MW = 300 kW
-        //
-        // If actual installed DC capacity is different,
-        // change ONLY this value.
-        // =================================================
+// 3. BUILD NTPL STATION DETAILS WITH MANUAL CAPACITY
+// =================================================
 
-        const NTPL_INSTALLED_DC_CAPACITY =
-            300;
+const ntplStationDetails =
+    reportStations.map(station => {
 
+        const buildingName =
+            String(
+                station.name || ""
+            ).trim();
 
-        const ntplStationDetails =
-            reportStations.map(
-                building => ({
-
-                    stationId:
-                        Number(
-                            building.id
-                        ),
-
-                    buildingName:
-                        String(
-                            building.name || ""
-                        ).trim(),
-
-                    campus:
-                        "NTPL",
-
-                    installedDcCapacity:
-                        NTPL_INSTALLED_DC_CAPACITY
-
-                })
+        const installedDcCapacity =
+            getNTPLInstalledDcCapacity(
+                buildingName
             );
 
+        return {
+            stationId:
+                Number(station.id),
+
+            buildingName,
+
+            installedDcCapacity
+        };
+    });
+
+
+// =================================================
+// CHECK MANUAL CAPACITY
+// =================================================
+
+for (const station of ntplStationDetails) {
+
+    if (
+        station.installedDcCapacity === null ||
+        station.installedDcCapacity === undefined
+    ) {
+
+        throw new Error(
+            `NTPL capacity not configured for building: ${station.buildingName}`
+        );
+
+    }
+
+    console.log(
+        `✅ NTPL CAPACITY | ` +
+        `${station.buildingName} = ` +
+        `${station.installedDcCapacity} kWp`
+    );
+}
+
+       
 
         const totalNTPLInstalledDcCapacity =
             Number(

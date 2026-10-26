@@ -1065,18 +1065,144 @@ router.get(
 
 // ================= INVERTER ALERTS =================
 
-router.get("/alerts", (req, res) => {
+router.get("/alerts", async (req, res) => {
+
     try {
+
+        // ============================================
+        // 1. EXISTING ACTIVE INVERTER ALERTS
+        // ============================================
 
         const alerts = getActiveAlerts();
 
+        // Copy existing alerts
+        const finalAlerts = [...alerts];
+
+
+        // ============================================
+        // 2. GET ALL CAMPUS BUILDINGS
+        // ============================================
+
+        const buildings = await getSubBuildings();
+
+
+        // ============================================
+        // 3. FIND ALL OFFLINE BUILDINGS
+        // ============================================
+
+        const offlineBuildings =
+            buildings.filter(
+                building =>
+                    String(building.status)
+                        .toUpperCase() === "OFFLINE"
+            );
+
+
+        // ============================================
+        // 4. ADD MISSING OFFLINE BUILDINGS
+        // ============================================
+
+        for (const building of offlineBuildings) {
+
+            // Check whether this building already
+            // has an active inverter alert
+
+            const alreadyAlerted =
+                finalAlerts.some(
+                    alert =>
+                        String(alert.stationId) ===
+                            String(
+                                building.stationId ||
+                                building.id
+                            )
+                );
+
+
+            // Already present → don't duplicate
+            if (alreadyAlerted) {
+                continue;
+            }
+
+
+            // ========================================
+            // CREATE DISPLAY ALERT FOR OFFLINE BUILDING
+            // ========================================
+
+            finalAlerts.push({
+
+                id:
+                    `BUILDING_OFFLINE_${building.stationId || building.id}`,
+
+                type:
+                    "INVERTER_OFFLINE",
+
+                severity:
+                    "CRITICAL",
+
+                stationId:
+                    building.stationId ||
+                    building.id,
+
+                buildingName:
+                    building.name,
+
+                campus:
+                    building.campus || "OTHERS",
+
+                inverterName:
+                    "INVERTER",
+
+                deviceSn:
+                    null,
+
+                message:
+                    `Inverter is offline at ${building.name}`,
+
+                reason:
+                    "No inverter data received for more than 8 minutes",
+
+                detectedAt:
+                    new Date().toISOString(),
+
+                status:
+                    "ACTIVE"
+
+            });
+
+        }
+
+
+        // ============================================
+        // 5. SORT
+        // ============================================
+
+        finalAlerts.sort(
+            (a, b) =>
+                new Date(b.detectedAt) -
+                new Date(a.detectedAt)
+        );
+
+
+        // ============================================
+        // 6. RESPONSE
+        // ============================================
+
         res.json({
-            success: true,
-            count: alerts.length,
-            alerts
+
+            success:
+                true,
+
+            count:
+                finalAlerts.length,
+
+            alerts:
+                finalAlerts
+
         });
 
-    } catch (error) {
+
+    }
+    catch (error) {
 
         console.error(
             "Alert API error:",
@@ -1084,11 +1210,17 @@ router.get("/alerts", (req, res) => {
         );
 
         res.status(500).json({
-            success: false,
-            message: "Failed to fetch alerts"
+
+            success:
+                false,
+
+            message:
+                "Failed to fetch alerts"
+
         });
 
     }
+
 });
 
 // =====================================================

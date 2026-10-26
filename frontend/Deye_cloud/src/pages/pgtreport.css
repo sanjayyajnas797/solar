@@ -1335,3 +1335,263 @@
         padding: 20px 16px;
     }
 }
+
+.pgt-loading-message {
+    width: 100%;
+    margin: 25px auto;
+    padding: 22px;
+    background: #ffffff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #126b8a;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.pgt-spinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid #d9edf5;
+    border-top: 3px solid #168bd8;
+    border-radius: 50%;
+    animation: pgtSpin 0.8s linear infinite;
+}
+
+@keyframes pgtSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+.pgt-no-data-message {
+    width: 100%;
+    margin: 25px auto;
+    padding: 20px;
+    background: #fff7e6;
+    border: 1px solid #ffc107;
+    border-radius: 12px;
+    text-align: center;
+    color: #8a5a00;
+    font-size: 16px;
+    font-weight: 600;
+}
+/* =====================================================
+   PGT REPORT ADVANCED LOADING
+===================================================== */
+
+.pgtLoadingOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(5, 12, 24, 0.78);
+    backdrop-filter: blur(8px);
+}
+
+.pgtLoadingBox {
+    width: 390px;
+    padding: 35px 38px;
+
+    text-align: center;
+
+    border-radius: 22px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20, 35, 60, 0.98),
+            rgba(8, 18, 35, 0.98)
+        );
+
+    border: 1px solid rgba(255,255,255,0.12);
+
+    box-shadow:
+        0 25px 80px rgba(0,0,0,0.55),
+        0 0 40px rgba(0,180,255,0.12);
+
+    animation: pgtBoxIn 0.35s ease-out;
+}
+
+@keyframes pgtBoxIn {
+
+    from {
+        opacity: 0;
+        transform: scale(0.88);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+
+/* =====================================================
+   CIRCULAR PROGRESS
+===================================================== */
+
+.pgtLoadingRing {
+    width: 145px;
+    height: 145px;
+
+    margin: 0 auto 22px;
+
+    position: relative;
+}
+
+.pgtLoadingRing svg {
+    width: 145px;
+    height: 145px;
+
+    transform: rotate(-90deg);
+}
+
+.pgtRingBg {
+    fill: none;
+
+    stroke: rgba(255,255,255,0.08);
+
+    stroke-width: 8;
+}
+
+.pgtRingProgress {
+    fill: none;
+
+    stroke: #00e5ff;
+
+    stroke-width: 8;
+
+    stroke-linecap: round;
+
+    stroke-dasharray: 314;
+
+    transition:
+        stroke-dashoffset 0.25s ease;
+
+    filter:
+        drop-shadow(0 0 8px rgba(0,229,255,0.8));
+}
+
+
+/* =====================================================
+   PERCENTAGE
+===================================================== */
+
+.pgtProgressText {
+
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 30px;
+
+    font-weight: 800;
+
+    color: #ffffff;
+
+    text-shadow:
+        0 0 12px rgba(0,229,255,0.65);
+}
+
+
+/* =====================================================
+   TITLE
+===================================================== */
+
+.pgtLoadingTitle {
+
+    font-size: 21px;
+
+    font-weight: 700;
+
+    color: #ffffff;
+
+    margin-bottom: 8px;
+
+    letter-spacing: 0.4px;
+}
+
+
+/* =====================================================
+   SUB TITLE
+===================================================== */
+
+.pgtLoadingSub {
+
+    font-size: 13px;
+
+    color: rgba(255,255,255,0.62);
+
+    margin-bottom: 22px;
+}
+
+
+/* =====================================================
+   PROGRESS BAR
+===================================================== */
+
+.pgtLoadingBar {
+
+    width: 100%;
+
+    height: 7px;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    margin-bottom: 10px;
+}
+
+.pgtLoadingBarFill {
+
+    height: 100%;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #00b7ff,
+            #00e5ff,
+            #64ffda
+        );
+
+    box-shadow:
+        0 0 12px rgba(0,229,255,0.65);
+
+    transition:
+        width 0.25s ease;
+}
+
+
+/* =====================================================
+   COMPLETE TEXT
+===================================================== */
+
+.pgtLoadingPercent {
+
+    font-size: 12px;
+
+    color: rgba(255,255,255,0.55);
+
+    letter-spacing: 0.5px;
+}

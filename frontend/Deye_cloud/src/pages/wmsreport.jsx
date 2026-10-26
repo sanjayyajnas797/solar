@@ -26,6 +26,73 @@ const [summary, setSummary] = useState({
     totalEnergy: 0
 });
 
+const formatReportDate = (dateString) => {
+    if (!dateString) return "";
+
+    const [year, month, day] = String(dateString).slice(0, 10).split("-");
+
+    return `${day}-${month}-${year}`;
+};
+
+// =====================================================
+// MONTHLY REPORT - DATE WISE OVERALL DATA
+// =====================================================
+
+const isSingleDate =
+    String(fromDate).slice(0, 10) === String(toDate).slice(0, 10);
+
+const dateWiseReport = [];
+
+if (!isSingleDate && reportData.length > 0) {
+
+    const dailyMap = {};
+
+    for (const row of reportData) {
+
+        // Example:
+        // 2026-10-17 06:30:00
+        // 2026-10-17 06:45:00
+
+        const date = String(row.time).slice(0, 10);
+
+        if (!dailyMap[date]) {
+            dailyMap[date] = {
+                date: date,
+                horizontalCumulative: 0,
+                inclinedCumulative: 0
+            };
+        }
+
+        // Take the day's highest/final cumulative value
+        dailyMap[date].horizontalCumulative =
+            Math.max(
+                dailyMap[date].horizontalCumulative,
+                Number(row.horizontalCumulative) || 0
+            );
+
+        dailyMap[date].inclinedCumulative =
+            Math.max(
+                dailyMap[date].inclinedCumulative,
+                Number(row.inclinedCumulative) || 0
+            );
+    }
+
+    // Convert object -> array
+    Object.values(dailyMap).forEach(day => {
+
+        dateWiseReport.push({
+            time: day.date,
+
+            horizontalCumulative:
+                Number(day.horizontalCumulative.toFixed(2)),
+
+            inclinedCumulative:
+                Number(day.inclinedCumulative.toFixed(2))
+        });
+
+    });
+}
+
 const showAlert = (
   message,
   type = "warning",
@@ -150,292 +217,373 @@ const pg=()=>{
 
 const downloadPDF = () => {
 
-    const isSingleDate =
-        fromDate === toDate;
+    const isSingleDate = fromDate === toDate;
 
     if (reportData.length === 0) {
-
-       showAlert(
-  "Please generate the report before downloading the PDF.",
-  "info",
-  "Report Not Ready"
-);
-
+        showAlert(
+            "Please generate the report before downloading the PDF.",
+            "info",
+            "Report Not Ready"
+        );
         return;
-
     }
 
     const doc = new jsPDF("landscape");
 
-//================================================
-// HEADER
-//================================================
+    // =================================================
+    // HEADER
+    // =================================================
 
-// Navy Blue Header
-doc.setFillColor(15,42,63);
-doc.rect(0,0,297,28,"F");
+    doc.setFillColor(15, 42, 63);
+    doc.rect(0, 0, 297, 28, "F");
 
-// White Logo Background
-doc.setFillColor(255,255,255);
-doc.roundedRect(4,3,18,20,2,2,"F");
+    // NLC Logo Background
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(4, 3, 18, 20, 2, 2, "F");
 
-// NLC Logo
-doc.addImage(
-    MainLogo,
-    "PNG",
-    6,
-    4,
-    14,
-    18
-);
+    doc.addImage(
+        MainLogo,
+        "PNG",
+        6,
+        4,
+        14,
+        18
+    );
 
-// Divider
-doc.setDrawColor(90,120,150);
-doc.line(24,2,24,26);
+    // Divider
+    doc.setDrawColor(90, 120, 150);
+    doc.line(24, 2, 24, 26);
 
-// Title
-doc.setFont("helvetica","bold");
-doc.setFontSize(15);
-doc.setTextColor(255,255,255);
-
-doc.text("NLC India Limited",30,10);
-
-doc.setFont("helvetica","normal");
-doc.setFontSize(8);
-
-doc.text(
-    "Weather Monitoring System",
-    30,
-    16
-);
-
-doc.text(
-    "Environmental Monitoring Report",
-    30,
-    21
-);
-
-// Divider
-doc.line(150,2,150,26);
-
-// SUN Logo
-doc.addImage(
-    SunLogo,
-    "PNG",
-    156,
-    5,
-    12,
-    12
-);
-
-// EPC
-doc.setFont("helvetica","bold");
-doc.setFontSize(7);
-doc.setTextColor(210,210,210);
-
-doc.text(
-    "EPC BY",
-    172,
-    8
-);
-
-doc.setFontSize(10);
-doc.setTextColor(0,255,220);
-
-doc.text(
-    "SUN Industrial Automation & Solutions Pvt Ltd",
-    172,
-    16
-);
-
-    //==========================
-    // SUMMARY
-    //==========================
-//==========================
-// SUMMARY CARDS
-//==========================
-
-// Campus
-doc.setFillColor(46,134,222);
-doc.roundedRect(8,34,62,18,3,3,"F");
-
-doc.setFont("helvetica","bold");
-doc.setFontSize(8);
-doc.setTextColor(255);
-
-doc.text("CAMPUS",12,40);
-
-doc.setFontSize(12);
-doc.text(
- campus === "GII"
-    ? "NLC TA BUILDING"
-    : summary.campus,
-    12,
-    48
-);
-
-// Date
-doc.setFillColor(39,174,96);
-doc.roundedRect(79,34,62,18,3,3,"F");
-
-doc.setFontSize(8);
-
-doc.text(
-    isSingleDate
-        ? "DATE"
-        : "DATE RANGE",
-    83,
-    40
-);
-
-doc.setFontSize(
-    isSingleDate ? 11 : 8
-);
-
-doc.text(
-    isSingleDate
-        ? summary.date
-        : `${fromDate} to ${toDate}`,
-    83,
-    48
-);
-
-// Records
-doc.setFillColor(243,156,18);
-doc.roundedRect(150,34,62,18,3,3,"F");
-
-doc.setFontSize(8);
-
-doc.text(
-    isSingleDate
-        ? "TOTAL RECORDS"
-        : "TOTAL DAYS",
-    154,
-    40
-);
-
-doc.setFontSize(12);
-
-doc.text(
-    String(summary.records),
-    154,
-    48
-);
-
-//==========================
-// TOTAL ENERGY
-//==========================
-
-doc.setFillColor(155,89,182);
-doc.roundedRect(221,34,68,18,3,3,"F");
-
-doc.setFontSize(8);
-doc.setTextColor(255);
-doc.text("TOTAL ENERGY",225,40);
-
-if (campus === "GII") {
-
-    doc.setFontSize(9);
+    // Title
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.setTextColor(255, 255, 255);
 
     doc.text(
-        `Horizontal : ${summary.horizontalTotal} Wh/m²`,
-        225,
-        45
+        "NLC India Limited",
+        30,
+        10
+    );
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+
+    doc.text(
+        "Weather Monitoring System",
+        30,
+        16
     );
 
     doc.text(
-        `Inclined   : ${summary.inclinedTotal} Wh/m²`,
-        225,
-        50
+        "Environmental Monitoring Report",
+        30,
+        21
     );
 
-}
-else{
+    // Divider
+    doc.line(150, 2, 150, 26);
 
-    doc.setFontSize(11);
+    // SUN Logo
+    doc.addImage(
+        SunLogo,
+        "PNG",
+        156,
+        5,
+        12,
+        12
+    );
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(210, 210, 210);
 
     doc.text(
-        `${summary.totalEnergy} Wh/m²`,
-        225,
+        "EPC BY",
+        172,
+        8
+    );
+
+    doc.setFontSize(10);
+    doc.setTextColor(0, 255, 220);
+
+    doc.text(
+        "SUN Industrial Automation & Solutions Pvt Ltd",
+        172,
+        16
+    );
+
+
+    // =================================================
+    // SUMMARY CARDS
+    // =================================================
+
+    // Campus
+    doc.setFillColor(46, 134, 222);
+    doc.roundedRect(8, 34, 62, 18, 3, 3, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+
+    doc.text(
+        "CAMPUS",
+        12,
+        40
+    );
+
+    doc.setFontSize(12);
+
+    doc.text(
+        campus === "GII"
+            ? "NLC TA BUILDING"
+            : summary.campus,
+        12,
         48
     );
 
-}
-   //==========================
-// TABLE
-//==========================
-if (campus === "GII") {
 
-    // =====================================================
-    // SINGLE DATE
-    // FULL DAY DETAILED REPORT
-    // =====================================================
+    // =================================================
+    // DATE / DATE RANGE
+    // =================================================
 
-    if (isSingleDate) {
+    doc.setFillColor(39, 174, 96);
+    doc.roundedRect(79, 34, 62, 18, 3, 3, "F");
 
-        autoTable(doc, {
+    doc.setFontSize(8);
 
-            startY: 58,
+    doc.text(
+        isSingleDate
+            ? "DATE"
+            : "DATE RANGE",
+        83,
+        40
+    );
 
-            head: [[
-                "Date & Time",
-                "Horizontal Irradiance (W/m²)",
-                "Horizontal Cumulative (Wh/m²)",
-                "Inclined Irradiance (W/m²)",
-                "Inclined Cumulative (Wh/m²)",
-                "Module Temperature (°C)"
-            ]],
+    doc.setFontSize(
+        isSingleDate ? 11 : 8
+    );
 
-            body: reportData.map(r => [
+    doc.text(
+        isSingleDate
+            ? fromDate
+            : `${fromDate} to ${toDate}`,
+        83,
+        48
+    );
 
-                r.time,
 
-                r.horizontal,
+    // =================================================
+    // TOTAL RECORDS
+    // =================================================
 
-                r.horizontalCumulative,
+    doc.setFillColor(243, 156, 18);
+    doc.roundedRect(150, 34, 62, 18, 3, 3, "F");
 
-                r.inclined,
+    doc.setFontSize(8);
 
-                r.inclinedCumulative,
+    doc.text(
+        "TOTAL RECORDS",
+        154,
+        40
+    );
 
-                r.temperature
+    doc.setFontSize(12);
 
-            ]),
+    doc.text(
+        String(summary.records ?? reportData.length),
+        154,
+        48
+    );
 
-            theme: "grid",
 
-            headStyles: {
-                fillColor: [22, 90, 145],
-                textColor: [255, 255, 255],
-                fontSize: 9,
-                halign: "center",
-                valign: "middle"
-            },
+    // =================================================
+    // TOTAL ENERGY
+    // =================================================
 
-            alternateRowStyles: {
-                fillColor: [245, 245, 245],
-                textColor: [0, 0, 0]
-            },
+    doc.setFillColor(155, 89, 182);
+    doc.roundedRect(221, 34, 68, 18, 3, 3, "F");
 
-            styles: {
-                fontSize: 8.5,
-                cellPadding: 2,
-                textColor: [0, 0, 0],
-                fontStyle: "bold",
-                lineColor: [225, 225, 225],
-                lineWidth: 0.1,
-                halign: "center",
-                valign: "middle"
-            }
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
 
-        });
+    doc.text(
+        "TOTAL ENERGY",
+        225,
+        40
+    );
+
+    if (useGiiReport) {
+
+        doc.setFontSize(9);
+
+        doc.text(
+            `Horizontal : ${summary.totalHorizontalEnergy ?? 0} Wh/m²`,
+            225,
+            45
+        );
+
+        doc.text(
+            `Inclined   : ${summary.totalInclinedEnergy ?? 0} Wh/m²`,
+            225,
+            50
+        );
+
+    } else {
+
+        doc.setFontSize(11);
+
+        doc.text(
+            `${summary.totalEnergy ?? 0} Wh/m²`,
+            225,
+            48
+        );
+    }
+
+
+    // =================================================
+    // TABLE
+    // =================================================
+
+    if (useGiiReport) {
+
+        // =================================================
+        // SINGLE DATE
+        // FULL DAY DETAILED REPORT
+        // =================================================
+
+        if (isSingleDate) {
+
+            autoTable(doc, {
+
+                startY: 58,
+
+                head: [[
+                    "Date & Time",
+                    "Horizontal Irradiance (W/m²)",
+                    "Horizontal Cumulative (Wh/m²)",
+                    "Inclined Irradiance (W/m²)",
+                    "Inclined Cumulative (Wh/m²)",
+                    "Module Temperature (°C)"
+                ]],
+
+                body: reportData.map(row => [
+
+                    row.time,
+                    row.horizontal ?? 0,
+                    row.horizontalCumulative ?? 0,
+                    row.inclined ?? 0,
+                    row.inclinedCumulative ?? 0,
+                    row.temperature ?? 0
+
+                ]),
+
+                theme: "grid",
+
+                headStyles: {
+                    fillColor: [22, 90, 145],
+                    textColor: [255, 255, 255],
+                    fontSize: 9,
+                    halign: "center",
+                    valign: "middle"
+                },
+
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245],
+                    textColor: [0, 0, 0]
+                },
+
+                styles: {
+                    fontSize: 8.5,
+                    cellPadding: 2,
+                    textColor: [0, 0, 0],
+                    fontStyle: "bold",
+                    lineColor: [225, 225, 225],
+                    lineWidth: 0.1,
+                    halign: "center",
+                    valign: "middle"
+                }
+
+            });
+
+        }
+
+        // =================================================
+        // MULTIPLE DATE
+        // DATE-WISE OVERALL REPORT
+        // =================================================
+
+        else {
+
+            autoTable(doc, {
+
+                startY: 58,
+
+                head: [[
+                    "Date",
+                    "Horizontal Overall (Wh/m²)",
+                    "Inclined Overall (Wh/m²)"
+                ]],
+
+                body: reportData.map(row => [
+
+                    row.time,
+                    row.horizontalCumulative ?? 0,
+                    row.inclinedCumulative ?? 0
+
+                ]),
+
+                theme: "grid",
+
+                headStyles: {
+                    fillColor: [22, 90, 145],
+                    textColor: [255, 255, 255],
+                    fontSize: 10,
+                    halign: "center",
+                    valign: "middle",
+                    cellPadding: 4
+                },
+
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245],
+                    textColor: [0, 0, 0]
+                },
+
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 4,
+                    textColor: [0, 0, 0],
+                    fontStyle: "bold",
+                    lineColor: [225, 225, 225],
+                    lineWidth: 0.1,
+                    halign: "center",
+                    valign: "middle"
+                },
+
+                columnStyles: {
+
+                    0: {
+                        cellWidth: 70
+                    },
+
+                    1: {
+                        cellWidth: 90
+                    },
+
+                    2: {
+                        cellWidth: 90
+                    }
+
+                }
+
+            });
+
+        }
 
     }
 
-    // =====================================================
-    // MULTIPLE DATES
-    // DATE-WISE OVERALL CUMULATIVE ONLY
-    // =====================================================
+    // =================================================
+    // NORMAL WMS REPORT
+    // =================================================
 
     else {
 
@@ -444,18 +592,18 @@ if (campus === "GII") {
             startY: 58,
 
             head: [[
-                "Date",
-                "Horizontal Overall (Wh/m²)",
-                "Inclined Overall (Wh/m²)"
+                "Date & Time",
+                "Irradiance (W/m²)",
+                "Temperature (°C)",
+                "Cumulative (Wh/m²)"
             ]],
 
-            body: reportData.map(r => [
+            body: reportData.map(row => [
 
-                r.time,
-
-                r.horizontalCumulative,
-
-                r.inclinedCumulative
+                row.time,
+                row.irradiance ?? 0,
+                row.temperature ?? 0,
+                row.cumulative ?? 0
 
             ]),
 
@@ -466,108 +614,40 @@ if (campus === "GII") {
                 textColor: [255, 255, 255],
                 fontSize: 10,
                 halign: "center",
-                valign: "middle",
-                cellPadding: 4
+                valign: "middle"
             },
 
             alternateRowStyles: {
-                fillColor: [245, 245, 245],
-                textColor: [0, 0, 0]
+                fillColor: [245, 245, 245]
             },
 
             styles: {
-                fontSize: 10,
-                cellPadding: 4,
+                fontSize: 9.5,
+                cellPadding: 2,
                 textColor: [0, 0, 0],
                 fontStyle: "bold",
                 lineColor: [225, 225, 225],
                 lineWidth: 0.1,
-                halign: "center",
-                valign: "middle"
-            },
-
-            columnStyles: {
-
-                0: {
-                    cellWidth: 70
-                },
-
-                1: {
-                    cellWidth: 90
-                },
-
-                2: {
-                    cellWidth: 90
-                }
-
+                halign: "center"
             }
 
         });
 
     }
 
-}
 
-else{
-
-    autoTable(doc,{
-
-        startY:58,
-
-        head:[[
-            "Date & Time",
-            "Irradiance(W/m²)",
-            "Temperature(°C)",
-            "Cumulative(W/m²)"
-        ]],
-
-        body:reportData.map(r=>[
-            r.time,
-            r.irradiance,
-            r.temperature,
-            r.cumulative
-        ]),
-
-        theme:"grid",
-
-        headStyles:{
-            fillColor:[22,90,145],
-            textColor:[255,255,255],
-            fontSize:10,
-            halign:"center",
-            valign:"middle"
-        },
-
-        alternateRowStyles:{
-            fillColor:[245,245,245],
-            textColor:[0,0,0]
-        },
-
-        styles:{
-            fontSize:9.5,
-            cellPadding:2,
-            textColor:[0,0,0],
-            fontStyle:"bold",
-            lineColor:[225,225,225],
-            lineWidth:0.1,
-            halign:"center"
-        }
-
-    });
-
-}
-
-    //==========================
+    // =================================================
     // FOOTER
-    //==========================
+    // =================================================
 
-    const pageCount=doc.getNumberOfPages();
+    const pageCount = doc.getNumberOfPages();
 
-    for(let i=1;i<=pageCount;i++){
+    for (let i = 1; i <= pageCount; i++) {
 
         doc.setPage(i);
 
         doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
 
         doc.text(
             "Generated by SUN Industrial Automation & Solutions Pvt Ltd",
@@ -579,16 +659,26 @@ else{
             `Page ${i} of ${pageCount}`,
             280,
             205,
-            {align:"right"}
+            {
+                align: "right"
+            }
         );
-
     }
 
+
+    // =================================================
+    // FILE NAME
+    // =================================================
+
+    const fileDate = isSingleDate
+        ? fromDate
+        : `${fromDate}_to_${toDate}`;
+
     doc.save(
-        `WMS_Report_${summary.campus}_${summary.date}.pdf`
+        `WMS_Report_${summary.campus}_${fileDate}.pdf`
     );
 
-}
+};
 
     return (
 
@@ -705,13 +795,18 @@ else{
 
                         <label>From Date</label>
 
-                        <input
-                            type="date"
-                            value={fromDate}
-                            onChange={(e) =>
-                                setFromDate(e.target.value)
-                            }
-                        />
+                       <input
+    type="date"
+    value={fromDate}
+    onChange={(e) => {
+        const selectedDate = e.target.value;
+
+        setFromDate(selectedDate);
+
+        // Single date by default
+        setToDate(selectedDate);
+    }}
+/>
 
                     </div>
 
@@ -842,7 +937,7 @@ useGiiReport
 
                 </div>
 {useGiiReport ? (
-    fromDate === toDate ? (
+    isSingleDate ? (
 
         // ==========================================
         // SINGLE DATE -> FULL DAY REPORT
@@ -957,25 +1052,21 @@ useGiiReport
 
             <tbody>
 
-                {reportData.map((row, index) => (
+              {dateWiseReport.map((row, index) => (
+    <tr key={index}>
+        <td>
+            {formatReportDate(row.time)}
+        </td>
 
-                    <tr key={index}>
+        <td>
+            {row.horizontalCumulative}
+        </td>
 
-                        <td>
-                            {row.time}
-                        </td>
-
-                        <td>
-                            {row.horizontalCumulative}
-                        </td>
-
-                        <td>
-                            {row.inclinedCumulative}
-                        </td>
-
-                    </tr>
-
-                ))}
+        <td>
+            {row.inclinedCumulative}
+        </td>
+    </tr>
+))}
 
             </tbody>
 

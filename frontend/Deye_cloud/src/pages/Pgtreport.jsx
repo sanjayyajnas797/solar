@@ -33,6 +33,8 @@ const [selectedStationSource, setSelectedStationSource] =
 
      const [pgtCalculation, setPgtCalculation] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [noDataMessage, setNoDataMessage] = useState("");
 
     // =========================================================
 // PGT NLCIL BUILDING SELECTION
@@ -171,25 +173,62 @@ if (fromTime >= toTime) {
         }
 
 
-        try {
+      try {
 
-            setLoading(true);
+    // =========================================================
+    // VALIDATE BUILDING
+    // =========================================================
 
+    if (!selectedStationId) {
+        alert("Please select Building.");
+        return;
+    }
 
-          // =========================================================
-// VALIDATE BUILDING
+    // =========================================================
+    // START LOADING
+    // =========================================================
+
+    setLoading(true);
+       setProgress(0);
+
+    // Clear previous report
+    setReportData([]);
+
+    setTotals({
+        inverterEnergyInterval: null,
+        netExportEnergyInterval: null,
+        poaIrradiationInterval: null
+    });
+
+    setPgtCalculation(null);
+
+    setNoDataMessage("");
+
+   const stationId = selectedStationId;
+const stationSource = selectedStationSource;
+
+// =========================================================
+// SMOOTH PROGRESS WHILE API IS LOADING
 // =========================================================
 
-if (!selectedStationId) {
+let progressTimer = setInterval(() => {
+    setProgress(prev => {
+        if (prev >= 90) {
+            return 90;
+        }
 
-    alert("Please select Building.");
+        // Smooth progress
+        if (prev < 30) {
+            return prev + 2;
+        }
 
-    return;
+        if (prev < 60) {
+            return prev + 1;
+        }
 
-}
-
-const stationId = selectedStationId;
-const stationSource = selectedStationSource;
+        return prev + 0.5;
+    });
+}, 100);
 
 
 // =========================================================
@@ -254,25 +293,75 @@ else if (selectedCampus === "NTPL") {
 
 }
 
-            console.log(
-                "PGT REPORT RESPONSE:",
-                res.data
-            );
 
 
-            setReportData(
-                res.data.rows || []
-            );
+// =========================================================
+// CHECK INVERTER DATA
+// =========================================================
 
+const rows = Array.isArray(res.data.rows)
+    ? res.data.rows
+    : [];
 
-            setTotals(
-                res.data.totals || {}
-            );
+const inverterDataAvailable =
+    res.data.inverterDataAvailable !== false &&
+    rows.length > 0;
 
-            setPgtCalculation(
+if (!inverterDataAvailable) {
+
+    console.log(
+        "NO INVERTER DATA FOR SELECTED BUILDING/DATE/TIME"
+    );
+
+    setReportData([]);
+
+    setTotals({
+        inverterEnergyInterval: null,
+        netExportEnergyInterval: null,
+        poaIrradiationInterval: null
+    });
+
+    setPgtCalculation(null);
+
+   setNoDataMessage(
+    "No inverter data available for the selected building/date/time."
+);
+
+clearInterval(progressTimer);
+
+setProgress(100);
+
+setTimeout(() => {
+    setLoading(false);
+}, 500);
+
+return;
+}
+
+// =========================================================
+// DATA AVAILABLE
+// =========================================================
+
+setNoDataMessage("");
+
+setReportData(rows);
+
+setTotals(
+    res.data.totals || {}
+);
+
+setPgtCalculation(
     res.data.pgtCalculation || null
 );
 
+clearInterval(progressTimer);
+
+// Smoothly complete 90 -> 100
+setProgress(100);
+
+setTimeout(() => {
+    setLoading(false);
+}, 500);
 
         }
         catch (err) {
@@ -288,11 +377,9 @@ else if (selectedCampus === "NTPL") {
             );
 
         }
-        finally {
-
-            setLoading(false);
-
-        }
+      finally {
+    // Loading state is handled after progress reaches 100
+}
 
     };
 
@@ -2734,6 +2821,69 @@ link.download =
 
         <div className="wms-page">
 
+       {/* =====================================================
+    PGT REPORT LOADING
+===================================================== */}
+
+{loading && (
+    <div className="pgtLoadingOverlay">
+
+        <div className="pgtLoadingBox">
+
+            <div className="pgtLoadingRing">
+                <svg viewBox="0 0 120 120">
+
+                    <circle
+                        className="pgtRingBg"
+                        cx="60"
+                        cy="60"
+                        r="50"
+                    />
+
+                    <circle
+                        className="pgtRingProgress"
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        style={{
+                            strokeDashoffset:
+                                314 -
+                                (314 * progress) / 100
+                        }}
+                    />
+
+                </svg>
+
+                <div className="pgtProgressText">
+                    {progress}%
+                </div>
+            </div>
+
+            <div className="pgtLoadingTitle">
+                Generating Report
+            </div>
+
+            <div className="pgtLoadingSub">
+                Fetching inverter data and calculating PGT...
+            </div>
+
+            <div className="pgtLoadingBar">
+                <div
+                    className="pgtLoadingBarFill"
+                    style={{
+                        width: `${progress}%`
+                    }}
+                />
+            </div>
+
+            <div className="pgtLoadingPercent">
+                {progress}% Complete
+            </div>
+
+        </div>
+
+    </div>
+)}
 
             {/* =====================================================
                 FIXED TOP HEADER
@@ -3052,11 +3202,10 @@ link.download =
                                 disabled={loading}
                             >
 
-                                {loading
-                                    ? "Generating..."
-                                    : "📄 Generate Report"
-                                }
-
+                               {loading
+    ? "⏳ Loading data..."
+    : "📄 Generate Report"
+}
                             </button>
 
                         </div>
@@ -3065,7 +3214,15 @@ link.download =
 
                 </div>
 
+{/* =================================================
+    NO DATA MESSAGE
+================================================= */}
 
+{noDataMessage && !loading && (
+    <div className="pgt-no-data-message">
+        ⚠️ {noDataMessage}
+    </div>
+)}
 
                 {/* =================================================
                     REPORT

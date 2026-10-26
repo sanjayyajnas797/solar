@@ -697,44 +697,115 @@ async function getGIIDetailedReport(
             }
         }
 
-        // =====================================================
-        // 5. SUMMARY
-        // =====================================================
+       // =====================================================
+// 5. SUMMARY
+// =====================================================
 
-        const lastRow =
-            report.length > 0
-                ? report[report.length - 1]
-                : null;
+let totalHorizontalEnergy = 0;
+let totalInclinedEnergy = 0;
 
-        const summary = {
+if (fromDate === toDate) {
 
-            campus: campus,
+    // ==========================================
+    // SINGLE DATE
+    // Existing daily cumulative
+    // ==========================================
 
-            date: fromDate,
+    const lastRow =
+        report.length > 0
+            ? report[report.length - 1]
+            : null;
 
-            records:
-                report.length,
+    totalHorizontalEnergy =
+        lastRow
+            ? Number(lastRow.horizontalCumulative)
+            : 0;
 
-            totalHorizontalEnergy:
-                lastRow
-                    ? Number(
-                        lastRow.horizontalCumulative
-                    )
-                    : 0,
+    totalInclinedEnergy =
+        lastRow
+            ? Number(lastRow.inclinedCumulative)
+            : 0;
 
-            totalInclinedEnergy:
-                lastRow
-                    ? Number(
-                        lastRow.inclinedCumulative
-                    )
-                    : 0
-        };
+} else {
 
-        console.log(
-            `✅ ${campus} REPORT | Records: ${summary.records} | ` +
-            `Horizontal: ${summary.totalHorizontalEnergy} | ` +
-            `Inclined: ${summary.totalInclinedEnergy}`
-        );
+    // ==========================================
+    // MULTIPLE DATE / MONTHLY REPORT
+    // Sum each day's final cumulative value
+    // ==========================================
+
+    const dailyTotals = {};
+
+    for (const row of report) {
+
+        const dateKey =
+            new Date(row.time)
+                .toISOString()
+                .slice(0, 10);
+
+        if (!dailyTotals[dateKey]) {
+
+            dailyTotals[dateKey] = {
+                horizontal: 0,
+                inclined: 0
+            };
+
+        }
+
+        // Since cumulative resets every day,
+        // keep the latest/highest cumulative of that day.
+
+        dailyTotals[dateKey].horizontal =
+            Math.max(
+                dailyTotals[dateKey].horizontal,
+                Number(row.horizontalCumulative) || 0
+            );
+
+        dailyTotals[dateKey].inclined =
+            Math.max(
+                dailyTotals[dateKey].inclined,
+                Number(row.inclinedCumulative) || 0
+            );
+    }
+
+    // ==========================================
+    // SUM ALL DAYS
+    // ==========================================
+
+    for (const date of Object.keys(dailyTotals)) {
+
+        totalHorizontalEnergy +=
+            dailyTotals[date].horizontal;
+
+        totalInclinedEnergy +=
+            dailyTotals[date].inclined;
+    }
+
+    totalHorizontalEnergy =
+        Number(totalHorizontalEnergy.toFixed(2));
+
+    totalInclinedEnergy =
+        Number(totalInclinedEnergy.toFixed(2));
+}
+
+
+const summary = {
+
+    campus: campus,
+
+    date:
+        fromDate === toDate
+            ? fromDate
+            : `${fromDate} to ${toDate}`,
+
+    records: report.length,
+
+    totalHorizontalEnergy,
+
+    totalInclinedEnergy
+};
+
+
+
 
         return {
 
