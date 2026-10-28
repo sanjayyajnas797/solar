@@ -1724,6 +1724,7 @@ const isAllBuildings =
 
                     <th>
                         Performance Ratio
+                         ≥ 75% = PASS
                     </th>
 
                     <th>
