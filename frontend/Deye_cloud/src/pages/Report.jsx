@@ -723,15 +723,14 @@ if (selectedBuilding === "ALL") {
             "S.No",
             "Building Name",
             "Generation",
-            "Performance Ratio",
-            "Building Status"
+           "Performance Ratio\n75%+ = PASS",
+            "System Status"
         ]
     ];
 
     tableBody =
         reportData.map(
             (item, index) => [
-
                 index + 1,
 
                 item?.buildingName ||
@@ -753,7 +752,6 @@ if (selectedBuilding === "ALL") {
                     item?.status ||
                     "UNKNOWN"
                 ).toUpperCase()
-
             ]
         );
 
@@ -776,51 +774,63 @@ if (selectedBuilding === "ALL") {
 
     else {
 
-        tableHead = [
-            [
-                "S.No",
-                "Date",
-                "Generation"
-            ]
-        ];
+       tableHead = [
+    [
+        "S.No",
+        "Building Name",
+        "Generation",
+        "Performance Ratio\n75%+ = PASS",
+        "Building Status"
+    ]
+];
 
 
         tableBody =
-            reportData.map(
-                (
-                    item,
-                    index
-                ) => [
+    buildingsData.map(
+        (item, index) => [
+            index + 1,
 
-                    index + 1,
+            item?.buildingName ||
+            item?.name ||
+            "-",
 
-                    item?.date ||
-                    "-",
+            `${Number(
+                item?.generation ||
+                item?.totalGeneration ||
+                0
+            ).toFixed(2)} kWh`,
 
-                    item?.generation !== undefined &&
-                    item?.generation !== null
-                        ? `${Number(
-                            item.generation
-                        ).toFixed(2)} kWh`
-                        : "-"
+            item?.performanceRatio !== null &&
+            item?.performanceRatio !== undefined
+                ? `${Number(
+                    item.performanceRatio
+                ).toFixed(2)}%`
+                : "-",
 
-                ]
-            );
+            item?.status
+                ? String(
+                    item.status
+                ).toUpperCase()
+                : "-"
+        ]
+    );
 
 
         // -------------------------------------------------
         // TOTAL ROW
         // -------------------------------------------------
 
-        tableBody.push(
-            [
-                "",
-                "TOTAL GENERATION",
-                `${Number(
-                    totalGeneration || 0
-                ).toFixed(2)} kWh`
-            ]
-        );
+       tableBody.push(
+    [
+        "",
+        "TOTAL GENERATION",
+        `${Number(
+            totalGeneration || 0
+        ).toFixed(2)} kWh`,
+        "",
+        ""
+    ]
+);
 
     }
 
@@ -914,34 +924,31 @@ if (selectedBuilding === "ALL") {
             // -------------------------------------------------
             // COLUMN WIDTH
             // -------------------------------------------------
-
-          columnStyles: {
-
+columnStyles: {
     0: {
-        cellWidth: 20,
+        cellWidth: 25,
         halign: "center"
     },
 
     1: {
-        cellWidth: 105,
+        cellWidth: 95,
         halign: "center"
     },
 
     2: {
-        cellWidth: 55,
+        cellWidth: 50,
         halign: "center"
     },
 
     3: {
-        cellWidth: 50,
-        halign: "center"
-    },
+    cellWidth: 65,
+    halign: "center"
+},
 
     4: {
-        cellWidth: 50,
+        cellWidth: 55,
         halign: "center"
     }
-
 },
 
 
@@ -1728,7 +1735,7 @@ const isAllBuildings =
                     </th>
 
                     <th>
-                        Building Status
+                        System Status
                     </th>
                 </>
 
