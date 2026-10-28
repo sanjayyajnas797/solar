@@ -9049,6 +9049,316 @@ for (const station of ntplStationDetails) {
 
 }
 
+// =====================================================
+// GET DAILY STATION GENERATION
+// Keep Dashboard Yesterday value consistent
+// =====================================================
+
+async function getStationDailyGeneration(
+    stationId,
+    date
+) {
+
+    // -------------------------------------------------
+    // If selected date is yesterday,
+    // use the SAME value already used by Dashboard
+    // -------------------------------------------------
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const yesterdayDate =
+        yesterday.toISOString().split("T")[0];
+
+    if (String(date) === yesterdayDate) {
+
+        return Number(
+            await getYesterday(stationId)
+        );
+    }
+
+    // -------------------------------------------------
+    // For other selected dates
+    // get exact date generation
+    // -------------------------------------------------
+
+    const data = await api(
+        "/v1.0/station/history",
+        {
+            stationId: Number(stationId),
+            startAt: date,
+            endAt: date,
+            granularity: 2
+        }
+    );
+
+    const items =
+        Array.isArray(data?.stationDataItems)
+            ? data.stationDataItems
+            : [];
+
+    const [year, month, day] =
+        String(date).split("-").map(Number);
+
+    const matchedItem =
+        items.find(item =>
+            Number(item.year) === year &&
+            Number(item.month) === month &&
+            Number(item.day) === day
+        );
+
+    return Number(
+        matchedItem?.generationValue || 0
+    );
+}
+// =====================================================
+// CAMPUS PGT SUMMARY
+// Generation + Performance Ratio + Building Status
+// =====================================================
+
+async function getCampusPgtSummary(
+    campus,
+    date
+) {
+
+    const selectedCampus =
+        String(campus)
+            .trim()
+            .toUpperCase();
+
+
+    // =================================================
+    // GET CAMPUS BUILDINGS
+    // =================================================
+
+   let stations = [];
+
+if (selectedCampus === "NLCIL") {
+
+    stations = await getNLCILPgtStations();
+
+} else if (selectedCampus === "NUPPL") {
+
+    stations = await getNUPPLPgtStations();
+
+} else if (selectedCampus === "BTPS") {
+
+    stations = await getBTPSPgtStations();
+
+} else if (selectedCampus === "NTPL") {
+
+    stations = await getNTPLPgtStations();
+
+} else {
+
+    throw new Error(
+        `Invalid campus: ${selectedCampus}`
+    );
+
+}
+
+    // =================================================
+    // GET CURRENT BUILDING STATUS
+    // =================================================
+
+    const liveBuildings =
+        await getSubBuildings();
+
+
+    // =================================================
+// CAMPUS BUILDINGS
+// =================================================
+
+const campusStations = stations;
+
+    // =================================================
+    // PROCESS EACH BUILDING
+    // =================================================
+
+    const buildings =
+        await Promise.all(
+
+            campusStations.map(
+                async (station) => {
+
+                    let generation = 0;
+
+try {
+
+    generation =
+        await getStationDailyGeneration(
+            station.stationId,
+            date
+        );
+
+}
+catch (err) {
+
+    console.error(
+        "GENERATION ERROR:",
+        station.buildingName,
+        err.message
+    );
+
+}
+
+                    // -------------------------------------
+                    // PGT PERFORMANCE RATIO
+                    // -------------------------------------
+
+                    let performanceRatio = null;
+
+                    try {
+
+                   let pgt;
+
+if (selectedCampus === "NLCIL") {
+
+    pgt = await getPgtReport(
+        station.stationId,
+        date,
+        "06:00",
+        "18:00"
+    );
+
+}
+else if (selectedCampus === "NUPPL") {
+
+    pgt = await getNUPPLPgtReport(
+        date,
+        "06:00",
+        "18:00",
+        station.stationId
+    );
+
+}
+else if (selectedCampus === "BTPS") {
+
+    pgt = await getBTPSPgtReport(
+        date,
+        "06:00",
+        "18:00",
+        station.stationId
+    );
+
+}
+
+else if (selectedCampus === "NTPL") {
+
+    pgt = await getNTPLPgtReport(
+        date,
+        "06:00",
+        "18:00",
+        station.stationId
+    );
+
+}
+
+performanceRatio =
+    pgt
+        ?.pgtCalculation
+        ?.performanceRatio
+        ?? null;
+
+                    }
+                    catch (err) {
+
+                        console.error(
+                            "PGT ERROR:",
+                            station.buildingName,
+                            err.message
+                        );
+
+                    }
+
+
+                    // -------------------------------------
+                    // BUILDING STATUS
+                    // -------------------------------------
+
+                    const liveBuilding =
+                        liveBuildings.find(
+                            building =>
+                                String(
+                                    building.stationId ||
+                                    building.id
+                                ) ===
+                                String(
+                                    station.stationId
+                                )
+                        );
+
+
+                    const status =
+                        String(
+                            liveBuilding?.status ||
+                            "UNKNOWN"
+                        ).toUpperCase();
+
+
+                    // -------------------------------------
+                    // FINAL BUILDING OBJECT
+                    // -------------------------------------
+
+                    return {
+
+                        buildingName:
+                            station.buildingName,
+
+                        generation:
+                            Number(
+                                generation.toFixed(2)
+                            ),
+
+                        performanceRatio:
+                            performanceRatio !== null
+                                ? Number(
+                                    Number(
+                                        performanceRatio
+                                    ).toFixed(2)
+                                )
+                                : null,
+
+                        status:
+                            status
+
+                    };
+
+                }
+            )
+
+        );
+
+
+    // =================================================
+    // SORT
+    // =================================================
+
+    buildings.sort(
+        (a, b) =>
+            String(
+                a.buildingName
+            ).localeCompare(
+                String(
+                    b.buildingName
+                )
+            )
+    );
+
+
+    // =================================================
+    // RESPONSE
+    // =================================================
+
+   return {
+    campus: selectedCampus,
+    date,
+    totalBuildings: buildings.length,
+    buildings
+};
+
+}
+
 // ================= EXPORT =================
 
 module.exports={
@@ -9061,6 +9371,7 @@ getGraph,
  getLast10DaysData,
  getReportData,
  getCampusReport,
+ getCampusPgtSummary,
  getPgtInverterEnergy,
 
  getPgtReport,

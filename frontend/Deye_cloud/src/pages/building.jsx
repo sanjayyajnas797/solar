@@ -130,7 +130,7 @@ export default function Buildings() {
   const [displayToday,setDisplayToday] = useState(0)
 const [displayYesterday,setDisplayYesterday] = useState(0)
 const [displayLive,setDisplayLive] = useState(0)
-
+const [pgtYesterdayMap, setPgtYesterdayMap] = useState({});
  
 
   const [time, setTime] = useState("");
@@ -156,6 +156,76 @@ const data=useSelector((state)=>state.userinfo.list)
     return () => clearInterval(interval);
 
   }, [dispatch]);
+
+  // =====================================================
+// PGT YESTERDAY GENERATION
+// Use PGT API value for Building Yesterday
+// =====================================================
+
+useEffect(() => {
+
+    const fetchPgtYesterday = async () => {
+
+        try {
+
+            const yesterdayDate =
+                new Date();
+
+            yesterdayDate.setDate(
+                yesterdayDate.getDate() - 1
+            );
+
+            const date =
+                yesterdayDate
+                    .toISOString()
+                    .split("T")[0];
+
+            const res = await fetch(
+                `${API_BASE}/report/campus-pgt/NLCIL?date=${date}`
+            );
+
+            if (!res.ok) {
+                throw new Error(
+                    `PGT API failed: ${res.status}`
+                );
+            }
+
+            const result =
+                await res.json();
+
+           const map = {};
+
+(result?.buildings || [])
+    .forEach(item => {
+
+        map[String(item.stationId)] =
+            Number(item.generation || 0);
+
+    });
+
+setPgtYesterdayMap(map);
+
+            console.log(
+                "✅ PGT YESTERDAY:",
+                date,
+                map
+            );
+
+        }
+        catch (err) {
+
+            console.error(
+                "❌ PGT Yesterday Error:",
+                err
+            );
+
+        }
+
+    };
+
+    fetchPgtYesterday();
+
+}, []);
 
 
  /* ========================= */
@@ -231,11 +301,16 @@ useEffect(() => {
     );
 
 
-  const totalYesterday =
+ const totalYesterday =
     buildings.reduce(
-      (sum, b) =>
-        sum + Number(b.yesterday || 0),
-      0
+        (sum, b) =>
+            sum +
+            Number(
+                pgtYesterdayMap[String(b.stationId)] ??
+                b.yesterday ??
+                0
+            ),
+        0
     );
 
 
@@ -532,11 +607,22 @@ const isOffline =
   const isAlert =
   b.status === "ALERT";
 
-const today = isOffline ? 0 : Number(b.today || 0);
-const live = isOffline ? 0 : current;
+const today =
+    isOffline
+        ? 0
+        : Number(b.today || 0);
 
-const yesterday = Number(b.yesterday || 0);
-const total = Number(b.total || 0);
+const live =
+    isOffline
+        ? 0
+        : current;
+
+const yesterday =
+    pgtYesterdayMap[String(b.stationId)] ??
+    Number(b.yesterday || 0);
+
+const total =
+    Number(b.total || 0);
 
 const capacity =
 capacityMap[

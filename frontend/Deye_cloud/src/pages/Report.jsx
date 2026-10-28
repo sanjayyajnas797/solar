@@ -111,294 +111,254 @@ function Report() {
     };
 
 
-    // =====================================================
-    // GENERATE BUILDING REPORT
-    // =====================================================
+const generateReport = async () => {
 
-    const generateReport = async () => {
+    // -------------------------------------------------
+    // VALIDATION
+    // -------------------------------------------------
+
+    if (!selectedBuilding) {
+        alert("Please Select Building");
+        return;
+    }
+
+    if (!fromDate || !toDate) {
+        alert("Please Select From Date and To Date");
+        return;
+    }
+
+    if (fromDate > toDate) {
+        alert("To Date must be greater than or equal to From Date");
+        return;
+    }
+
+    // -------------------------------------------------
+    // ALL BUILDINGS
+    // PGT SUMMARY IS SINGLE DATE
+    // -------------------------------------------------
+
+    if (
+        selectedBuilding === "ALL" &&
+        fromDate !== toDate
+    ) {
+        alert(
+            "For All Buildings PGT Report, From Date and To Date must be the same."
+        );
+        return;
+    }
+
+    // -------------------------------------------------
+    // SELECTED BUILDING
+    // -------------------------------------------------
+
+    const building =
+        selectedBuilding === "ALL"
+            ? null
+            : buildings.find(
+                item =>
+                    String(item.stationId) ===
+                    String(selectedBuilding)
+            );
+
+    if (
+        selectedBuilding !== "ALL" &&
+        !building
+    ) {
+        alert("Selected Building Not Found");
+        return;
+    }
+
+    console.log(
+        "Selected Building:",
+        building
+    );
+
+    // -------------------------------------------------
+    // START LOADING
+    // -------------------------------------------------
+
+    setLoadingReport(true);
+    setProgress(10);
+    setReportData([]);
+    setTotalGeneration(0);
+
+    try {
 
         // -------------------------------------------------
-        // VALIDATION
+        // SMOOTH PROGRESS
         // -------------------------------------------------
 
-        if (!selectedBuilding) {
+        const progressTimer =
+            setInterval(() => {
 
-            alert(
-                "Please Select Building"
+                setProgress(prev => {
+
+                    if (prev >= 90) {
+                        return prev;
+                    }
+
+                    return prev + 10;
+
+                });
+
+            }, 200);
+
+        let res;
+
+        // =================================================
+        // ALL BUILDINGS
+        // NEW CAMPUS PGT API
+        // =================================================
+
+        if (selectedBuilding === "ALL") {
+
+            console.log(
+                "Calling Campus PGT API"
             );
 
-            return;
+            console.log(
+                "Campus:",
+                campus
+            );
+
+            console.log(
+                "Date:",
+                fromDate
+            );
+
+            res = await axios.get(
+                `${API_BASE}/report/campus-pgt/${campus}`,
+                {
+                    params: {
+                        date: fromDate
+                    }
+                }
+            );
+
+            console.log(
+                "Campus PGT Response:",
+                res.data
+            );
+
+            // ---------------------------------------------
+            // NEW API RESPONSE
+            // ---------------------------------------------
+
+            const data =
+                Array.isArray(res.data?.buildings)
+                    ? res.data.buildings
+                    : [];
+
+            setReportData(data);
+
+            // ---------------------------------------------
+            // TOTAL GENERATION
+            // ---------------------------------------------
+
+            const total =
+                data.reduce(
+                    (sum, item) =>
+                        sum +
+                        Number(
+                            item?.generation || 0
+                        ),
+                    0
+                );
+
+            setTotalGeneration(total);
 
         }
 
+        // =================================================
+        // INDIVIDUAL BUILDING
+        // EXISTING API - DO NOT CHANGE
+        // =================================================
 
-        if (!fromDate || !toDate) {
+        else {
 
-            alert(
-                "Please Select From Date and To Date"
+            console.log(
+                "Calling Individual Building Report API"
             );
 
-            return;
-
-        }
-
-
-        if (fromDate > toDate) {
-
-            alert(
-                "To Date must be greater than or equal to From Date"
+            console.log(
+                "Station ID:",
+                building.stationId
             );
 
-            return;
+            console.log(
+                "From:",
+                fromDate
+            );
 
+            console.log(
+                "To:",
+                toDate
+            );
+
+            res = await axios.get(
+                `${API_BASE}/report/${building.stationId}`,
+                {
+                    params: {
+                        from: fromDate,
+                        to: toDate
+                    }
+                }
+            );
+
+            console.log(
+                "Individual Building Response:",
+                res.data
+            );
+
+            const data =
+                Array.isArray(res.data)
+                    ? res.data
+                    : res.data?.data || [];
+
+            setReportData(data);
+
+            // ---------------------------------------------
+            // EXISTING INDIVIDUAL TOTAL
+            // ---------------------------------------------
+
+            const total =
+                data.reduce(
+                    (sum, item) =>
+                        sum +
+                        Number(
+                            item?.generation || 0
+                        ),
+                    0
+                );
+
+            setTotalGeneration(total);
         }
 
+        clearInterval(progressTimer);
 
-       const building =
-    selectedBuilding === "ALL"
-        ? null
-        : buildings.find(
-            item =>
-                String(item.stationId) ===
-                String(selectedBuilding)
+        setProgress(100);
+
+        setTimeout(() => {
+            setLoadingReport(false);
+        }, 300);
+
+    }
+    catch (err) {
+
+        console.error(
+            "Report Error:",
+            err
         );
 
-if (
-    selectedBuilding !== "ALL" &&
-    !building
-) {
-    alert("Selected Building Not Found");
-    return;
-}
-
-console.log(
-    "Selected Building:",
-    building
-);
-
-        // -------------------------------------------------
-        // START LOADING
-        // -------------------------------------------------
-
-        setLoadingReport(true);
-
-        setProgress(10);
-
-        setReportData([]);
-
-        setTotalGeneration(0);
-
-
-        try {
-
-            // -------------------------------------------------
-            // PROGRESS
-            // -------------------------------------------------
-
-            const progressTimer =
-                setInterval(() => {
-
-                    setProgress(prev => {
-
-                        if (prev >= 90) {
-
-                            return prev;
-
-                        }
-
-                        return prev + 10;
-
-                    });
-
-                }, 200);
-
-
-           console.log(
-    "Calling Report API"
-);
-
-console.log(
-    "Selected Building:",
-    selectedBuilding
-);
-
-console.log(
-    "Station ID:",
-    building?.stationId || "ALL BUILDINGS"
-);
-
-console.log(
-    "Campus:",
-    campus
-);
-
-console.log(
-    "From:",
-    fromDate
-);
-
-console.log(
-    "To:",
-    toDate
-);
-           let res;
-
-if (selectedBuilding === "ALL") {
-
-    console.log(
-        "Calling Campus Report API"
-    );
-
-    console.log(
-        "Campus:",
-        campus
-    );
-
-    console.log(
-        "From:",
-        fromDate
-    );
-
-    console.log(
-        "To:",
-        toDate
-    );
-
-    res = await axios.get(
-        `${API_BASE}/report/campus/${campus}`,
-        {
-            params: {
-                from: fromDate,
-                to: toDate
-            }
-        }
-    );
-
-} else {
-
-  
-
-    res = await axios.get(
-        `${API_BASE}/report/${building.stationId}`,
-        {
-            params: {
-                from: fromDate,
-                to: toDate
-            }
-        }
-    );
-}
-
-
-           
-
-
-            clearInterval(
-                progressTimer
-            );
-
-
-           let data;
-
-if (selectedBuilding === "ALL") {
-
-    console.log("Campus Report Response:", res.data);
-
-    data = res.data?.buildings || [];
-
-    // backend campus total directly
-    setTotalGeneration(
-        Number(res.data?.totalGeneration || 0)
-    );
-
-} else {
-
-    data = Array.isArray(res.data)
-        ? res.data
-        : res.data?.data || [];
-
-}
-
-setReportData(data);
-
-
-            // -------------------------------------------------
-            // CALCULATE TOTAL GENERATION
-            // -------------------------------------------------
-
-           let total = 0;
-
-if (selectedBuilding === "ALL") {
-
-    total = data.reduce(
-        (sum, item) => {
-
-            return (
-                sum +
-                Number(item?.generation || 0)
-            );
-
-        },
-        0
-    );
-
-} else {
-
-    total = data.reduce(
-        (sum, item) => {
-
-            return (
-                sum +
-                Number(item?.generation || 0)
-            );
-
-        },
-        0
-    );
-
-}
-
-console.log(
-    "Total Generation:",
-    total
-);
-
-setTotalGeneration(
-    total
-);
-
-           
-
-
-            setProgress(100);
-
-
-            setTimeout(() => {
-
-                setLoadingReport(false);
-
-            }, 300);
-
-        }
-        catch (err) {
-
-            console.error(
-                "Building Report Error:",
-                err
-            );
-
-            setLoadingReport(false);
-
-            setProgress(0);
-
-            alert(
-                err?.response?.data?.error ||
-                "Building Report Load Failed"
-            );
-
-        }
-
-    };
+        setLoadingReport(false);
+        setProgress(0);
+
+        alert(
+            err?.response?.data?.error ||
+            "Report Load Failed"
+        );
+    }
+};
 
 
     // =====================================================
@@ -756,101 +716,60 @@ const downloadPDF = () => {
     // =================================================
     // ALL BUILDINGS
     // =================================================
+if (selectedBuilding === "ALL") {
 
-    if (selectedBuilding === "ALL") {
+    tableHead = [
+        [
+            "S.No",
+            "Building Name",
+            "Generation",
+            "Performance Ratio",
+            "Building Status"
+        ]
+    ];
 
-        tableHead = [
-            [
-                "S.No",
-                "Building Name",
-                "Generation"
-            ]
-        ];
+    tableBody =
+        reportData.map(
+            (item, index) => [
 
+                index + 1,
 
-        /*
-         * Campus API response:
-         *
-         * {
-         *   totalGeneration: 50002.9,
-         *   buildings: [
-         *      {
-         *        buildingName: "...",
-         *        stationId: "...",
-         *        generation: 3826.7
-         *      }
-         *   ]
-         * }
-         *
-         * reportData contains this response
-         */
+                item?.buildingName ||
+                item?.name ||
+                "-",
 
-        let buildingsData = [];
-
-
-        // -------------------------------------------------
-        // GET BUILDINGS FROM CAMPUS RESPONSE
-        // -------------------------------------------------
-
-        if (
-            reportData.length === 1 &&
-            Array.isArray(
-                reportData[0]?.buildings
-            )
-        ) {
-
-            buildingsData =
-                reportData[0].buildings;
-
-        } else {
-
-            // fallback
-            buildingsData =
-                reportData;
-
-        }
-
-
-        tableBody =
-            buildingsData.map(
-                (
-                    item,
-                    index
-                ) => [
-
-                    index + 1,
-
-                    item?.buildingName ||
-                    item?.name ||
-                    "-",
-
-                    `${Number(
-                        item?.generation ||
-                        item?.totalGeneration ||
-                        0
-                    ).toFixed(2)} kWh`
-
-                ]
-            );
-
-
-        // -------------------------------------------------
-        // TOTAL ROW
-        // -------------------------------------------------
-
-        tableBody.push(
-            [
-                "",
-                "TOTAL GENERATION",
                 `${Number(
-                    totalGeneration || 0
-                ).toFixed(2)} kWh`
+                    item?.generation || 0
+                ).toFixed(2)} kWh`,
+
+                item?.performanceRatio !== null &&
+                item?.performanceRatio !== undefined
+                    ? `${Number(
+                        item.performanceRatio
+                    ).toFixed(2)}%`
+                    : "-",
+
+                String(
+                    item?.status ||
+                    "UNKNOWN"
+                ).toUpperCase()
+
             ]
         );
 
-
-    }
-
+    // TOTAL ROW
+    tableBody.push(
+        [
+            "",
+            "TOTAL GENERATION",
+            `${Number(
+                totalGeneration || 0
+            ).toFixed(2)} kWh`,
+            "",
+            ""
+        ]
+    );
+}
     // =================================================
     // INDIVIDUAL BUILDING
     // =================================================
@@ -996,33 +915,34 @@ const downloadPDF = () => {
             // COLUMN WIDTH
             // -------------------------------------------------
 
-            columnStyles: {
+          columnStyles: {
 
-                0: {
+    0: {
+        cellWidth: 20,
+        halign: "center"
+    },
 
-                    cellWidth: 30,
+    1: {
+        cellWidth: 105,
+        halign: "center"
+    },
 
-                    halign: "center"
+    2: {
+        cellWidth: 55,
+        halign: "center"
+    },
 
-                },
+    3: {
+        cellWidth: 50,
+        halign: "center"
+    },
 
-                1: {
+    4: {
+        cellWidth: 50,
+        halign: "center"
+    }
 
-                    cellWidth: 140,
-
-                    halign: "center"
-
-                },
-
-                2: {
-
-                    cellWidth: 80,
-
-                    halign: "center"
-
-                }
-
-            },
+},
 
 
             // -------------------------------------------------
@@ -1781,10 +1701,6 @@ const isAllBuildings =
 </h3>
 
 
-{/* =================================================
-    REPORT TABLE
-================================================= */}
-
 <table className="reportTable">
 
     <thead>
@@ -1796,18 +1712,38 @@ const isAllBuildings =
             </th>
 
             {selectedBuilding === "ALL" ? (
-                <th>
-                    Building Name
-                </th>
-            ) : (
-                <th>
-                    Date
-                </th>
-            )}
 
-            <th>
-                Generation
-            </th>
+                <>
+                    <th>
+                        Building Name
+                    </th>
+
+                    <th>
+                        Generation
+                    </th>
+
+                    <th>
+                        Performance Ratio
+                    </th>
+
+                    <th>
+                        Building Status
+                    </th>
+                </>
+
+            ) : (
+
+                <>
+                    <th>
+                        Date
+                    </th>
+
+                    <th>
+                        Generation
+                    </th>
+                </>
+
+            )}
 
         </tr>
 
@@ -1816,68 +1752,142 @@ const isAllBuildings =
 
     <tbody>
 
-        {reportData.map((item, index) => (
+        {reportData.map(
+            (item, index) => (
 
-            <tr key={index}>
+                <tr key={index}>
 
-                {/* S.NO */}
-                <td>
-                    {index + 1}
-                </td>
-
-
-                {/* =================================================
-                    ALL BUILDINGS
-                ================================================= */}
-
-                {selectedBuilding === "ALL" ? (
+                    {/* S.NO */}
 
                     <td>
-                        {item?.buildingName ||
-                            item?.name ||
-                            "-"}
+                        {index + 1}
                     </td>
 
-                ) : (
 
-                    /* =================================================
-                       SINGLE BUILDING
-                    ================================================= */
+                    {/* =================================
+                        ALL BUILDINGS
+                    ================================= */}
 
-                    <td>
-                        {item?.date || "-"}
-                    </td>
+                    {selectedBuilding === "ALL" ? (
 
-                )}
+                        <>
 
+                            {/* BUILDING NAME */}
 
-                {/* =================================================
-                    GENERATION
-                ================================================= */}
-
-                <td>
-
-                    <b>
-
-                        {item?.generation !== undefined &&
-                        item?.generation !== null
-                            ? `${Number(
-                                item.generation
-                            ).toFixed(2)} kWh`
-                            : "0.00 kWh"}
-
-                    </b>
-
-                </td>
-
-            </tr>
-
-        ))}
+                            <td>
+                                {item?.buildingName ||
+                                    item?.name ||
+                                    "-"}
+                            </td>
 
 
-        {/* =================================================
-            TOTAL ROW
-        ================================================= */}
+                            {/* GENERATION */}
+
+                            <td>
+                                <b>
+                                    {Number(
+                                        item?.generation || 0
+                                    ).toFixed(2)} kWh
+                                </b>
+                            </td>
+
+
+                            {/* PERFORMANCE RATIO */}
+
+                            <td>
+
+                                {item?.performanceRatio !== null &&
+                                item?.performanceRatio !== undefined
+                                    ? (
+                                        <>
+                                            {Number(
+                                                item.performanceRatio
+                                            ).toFixed(2)}
+                                            %
+                                        </>
+                                    )
+                                    : (
+                                        "-"
+                                    )}
+
+                            </td>
+
+
+                            {/* BUILDING STATUS */}
+
+                            <td>
+
+                                <span
+                                    style={{
+                                        display: "inline-block",
+                                        padding: "6px 14px",
+                                        borderRadius: "20px",
+                                        fontWeight: "700",
+                                        fontSize: "13px",
+
+                                        background:
+                                            String(
+                                                item?.status
+                                            ).toUpperCase() ===
+                                            "ONLINE"
+                                                ? "#e8fff1"
+                                                : "#ffeaea",
+
+                                        color:
+                                            String(
+                                                item?.status
+                                            ).toUpperCase() ===
+                                            "ONLINE"
+                                                ? "#159447"
+                                                : "#d32f2f"
+                                    }}
+                                >
+                                    {item?.status ||
+                                        "UNKNOWN"}
+                                </span>
+
+                            </td>
+
+                        </>
+
+                    ) : (
+
+                        /* =================================
+                           INDIVIDUAL BUILDING
+                        ================================= */
+
+                        <>
+
+                            <td>
+                                {item?.date || "-"}
+                            </td>
+
+                            <td>
+                                <b>
+                                    {item?.generation !==
+                                        undefined &&
+                                    item?.generation !==
+                                        null
+                                        ? `${Number(
+                                            item.generation
+                                        ).toFixed(2)} kWh`
+                                        : "0.00 kWh"}
+                                </b>
+                            </td>
+
+                        </>
+
+                    )}
+
+                </tr>
+
+            )
+        )}
+
+
+        {/* =============================================
+            TOTAL ROW - ALL BUILDINGS
+        ============================================= */}
 
         <tr
             style={{
@@ -1886,37 +1896,73 @@ const isAllBuildings =
             }}
         >
 
-            <td
-                colSpan="2"
-                style={{
-                    textAlign: "right"
-                }}
-            >
-                TOTAL GENERATION
-            </td>
+            {selectedBuilding === "ALL" ? (
 
+                <>
 
-            <td>
+                    <td
+                        colSpan="4"
+                        style={{
+                            textAlign: "right"
+                        }}
+                    >
+                        TOTAL GENERATION
+                    </td>
 
-                <b
-                    style={{
-                        color: "#159447",
-                        fontSize: "17px"
-                    }}
-                >
-                    {Number(
-                        totalGeneration || 0
-                    ).toFixed(2)} kWh
-                </b>
+                    <td>
 
-            </td>
+                        <b
+                            style={{
+                                color: "#159447",
+                                fontSize: "17px"
+                            }}
+                        >
+                            {Number(
+                                totalGeneration || 0
+                            ).toFixed(2)} kWh
+                        </b>
+
+                    </td>
+
+                </>
+
+            ) : (
+
+                <>
+
+                    <td
+                        colSpan="2"
+                        style={{
+                            textAlign: "right"
+                        }}
+                    >
+                        TOTAL GENERATION
+                    </td>
+
+                    <td>
+
+                        <b
+                            style={{
+                                color: "#159447",
+                                fontSize: "17px"
+                            }}
+                        >
+                            {Number(
+                                totalGeneration || 0
+                            ).toFixed(2)} kWh
+                        </b>
+
+                    </td>
+
+                </>
+
+            )}
 
         </tr>
 
     </tbody>
 
 </table>
-
                         </>
 
                     )

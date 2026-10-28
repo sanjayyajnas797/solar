@@ -7,6 +7,27 @@ const inverterState = new Map();
 const OFFLINE_THRESHOLD = 8 * 60; // 8 minutes
 const STUCK_THRESHOLD = 8 * 60;   // 8 minutes
 
+const GENERATION_START_HOUR = 6;
+const GENERATION_END_HOUR = 18;
+
+function isSolarGenerationTime() {
+
+    const now = new Date();
+
+    const indiaTime = new Date(
+        now.toLocaleString("en-US", {
+            timeZone: "Asia/Kolkata"
+        })
+    );
+
+    const hour = indiaTime.getHours();
+
+    return (
+        hour >= GENERATION_START_HOUR &&
+        hour < GENERATION_END_HOUR
+    );
+}
+
 // =====================================================
 // DAILY REMINDER TIME
 // =====================================================
@@ -132,13 +153,18 @@ async function sendDailyAlertReminders() {
         })
     );
 
-    const currentHour =
-        indiaTime.getHours();
+  const currentHour =
+    indiaTime.getHours();
 
-    // Reminder only during 9 AM hour
-    if (currentHour !== REMINDER_HOUR) {
-        return;
-    }
+// Reminder only during solar generation time
+// and only at 9:00 AM
+if (
+    currentHour < GENERATION_START_HOUR ||
+    currentHour >= GENERATION_END_HOUR ||
+    currentHour !== REMINDER_HOUR
+) {
+    return;
+}
 
     const today =
         indiaTime.toISOString().split("T")[0];
@@ -468,11 +494,14 @@ function checkInverter({
     // OFFLINE CHECK
     // =================================================
 
-    const isOffline =
+   const generationTime = isSolarGenerationTime();
 
+const isOffline =
+    generationTime &&
+    (
         collectionTime === 0 ||
-
-        dataAge > OFFLINE_THRESHOLD;
+        dataAge > OFFLINE_THRESHOLD
+    );
 
 // =================================================
 // DATA STUCK CHECK - COLLECTION TIME BASED
@@ -564,14 +593,10 @@ const stuckDuration =
 // =================================================
 
 if (
-
+    generationTime &&
     !isOffline &&
-
     collectionTime > 0 &&
-
-    stuckDuration >
-        STUCK_THRESHOLD
-
+    stuckDuration > STUCK_THRESHOLD
 ) {
 
     createAlert({
@@ -651,40 +676,7 @@ if (isOffline) {
     });
 
 }
-    // =================================================
-    // CREATE OFFLINE ALERT
-    // =================================================
-
-    if (isOffline) {
-
-
-        return createAlert({
-
-            type:
-                "INVERTER_OFFLINE",
-
-            severity:
-                "CRITICAL",
-
-            stationId,
-
-            buildingName,
-
-            campus,
-
-            inverterName,
-
-            deviceSn,
-
-            message:
-                `${inverterName} is offline at ${buildingName}`,
-
-            reason:
-                "No inverter data received for more than 8 minutes"
-
-        });
-
-    }
+    
 
 
     // =================================================

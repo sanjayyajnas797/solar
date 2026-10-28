@@ -19,7 +19,8 @@ const {
     getReportData,
 
     getCampusReport,
-
+     
+    getCampusPgtSummary,
     
    getPgtInverterEnergy,
 
@@ -1347,6 +1348,55 @@ router.get(
                 error:
                     err.message
 
+            });
+
+        }
+
+    }
+);
+
+// =====================================================
+// CAMPUS PGT SUMMARY WITH GENERATION + PR + STATUS
+// =====================================================
+
+router.get(
+    "/report/campus-pgt/:campus",
+    async (req, res) => {
+
+        try {
+
+            const { campus } = req.params;
+            const { date } = req.query;
+
+            if (!date) {
+
+                return res.status(400).json({
+                    error: "Date is required"
+                });
+
+            }
+
+           
+
+            const data =
+                await getCampusPgtSummary(
+                    campus,
+                    date,
+                  
+                );
+
+            res.json(data);
+
+        }
+        catch (err) {
+
+            console.error(
+                "Campus PGT Summary Error:",
+                err
+            );
+
+            res.status(500).json({
+                error: err.message
             });
 
         }
