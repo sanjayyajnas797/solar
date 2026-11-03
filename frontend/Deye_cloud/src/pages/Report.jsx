@@ -768,71 +768,45 @@ if (selectedBuilding === "ALL") {
         ]
     );
 }
-    // =================================================
-    // INDIVIDUAL BUILDING
-    // =================================================
+    // =====================================================
+// INDIVIDUAL BUILDING
+// SAME AS REPORT PREVIEW
+// =====================================================
 
-    else {
+else {
 
-       tableHead = [
-    [
-        "S.No",
-        "Building Name",
-        "Generation",
-        "Performance Ratio\n75%+ = PASS",
-        "Building Status"
-    ]
-];
+    tableHead = [
+        [
+            "S.No",
+            "Date",
+            "Generation"
+        ]
+    ];
 
-
-        tableBody =
-    buildingsData.map(
+    tableBody = reportData.map(
         (item, index) => [
+
             index + 1,
 
-            item?.buildingName ||
-            item?.name ||
-            "-",
+            item?.date || "-",
 
             `${Number(
-                item?.generation ||
-                item?.totalGeneration ||
-                0
-            ).toFixed(2)} kWh`,
+                item?.generation ?? 0
+            ).toFixed(2)} kWh`
 
-            item?.performanceRatio !== null &&
-            item?.performanceRatio !== undefined
-                ? `${Number(
-                    item.performanceRatio
-                ).toFixed(2)}%`
-                : "-",
-
-            item?.status
-                ? String(
-                    item.status
-                ).toUpperCase()
-                : "-"
         ]
     );
 
-
-        // -------------------------------------------------
-        // TOTAL ROW
-        // -------------------------------------------------
-
-       tableBody.push(
-    [
+    // TOTAL GENERATION ROW
+    tableBody.push([
         "",
         "TOTAL GENERATION",
         `${Number(
             totalGeneration || 0
-        ).toFixed(2)} kWh`,
-        "",
-        ""
-    ]
-);
+        ).toFixed(2)} kWh`
+    ]);
 
-    }
+}
 
 
     // =================================================

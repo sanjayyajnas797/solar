@@ -2816,45 +2816,22 @@ async function getAllNLCILPgtStations() {
       const deyeStations =
     await getNLCILPgtStations();
 
-const deyeBuildings =
-    deyeStations
-        .filter(station => {
-            const name =
-                String(
-                    station.buildingName || ""
-                )
-                .trim()
-                .toUpperCase();
 
-            // Exclude these 2 Deye buildings
-            if (
-                name.includes("SCREEN HOUSE A") ||
-                name.includes("SCREEN HOUSE B") ||
-                name.includes("SCREENHOUSEA") ||
-                name.includes("SCREENHOUSEB")
-            ) {
-                
+          const deyeBuildings =
+    deyeStations.map(station => ({
+        stationId:
+            Number(station.stationId),
 
-                return false;
-            }
+        buildingName:
+            station.buildingName,
 
-            return true;
-        })
-        .map(station => ({
-            stationId:
-                Number(station.stationId),
+        campus: "NLCIL",
 
-            buildingName:
-                station.buildingName,
+        source: "DEYE",
 
-            campus: "NLCIL",
-
-            source: "DEYE",
-
-            installedDcCapacity:
-                station.installedDcCapacity
-        }));
-
+        installedDcCapacity:
+            station.installedDcCapacity
+    }));
 
         
         // -----------------------------
@@ -9300,30 +9277,32 @@ performanceRatio =
                     // FINAL BUILDING OBJECT
                     // -------------------------------------
 
-                    return {
+                   return {
 
-                        buildingName:
-                            station.buildingName,
+    buildingName:
+        station.buildingName,
 
-                        generation:
-                            Number(
-                                generation.toFixed(2)
-                            ),
+    generation:
+        Number(
+            generation.toFixed(2)
+        ),
 
-                        performanceRatio:
-                            performanceRatio !== null
-                                ? Number(
-                                    Number(
-                                        performanceRatio
-                                    ).toFixed(2)
-                                )
-                                : null,
+    performanceRatio:
+        performanceRatio !== null
+            ? Number(
+                Number(
+                    performanceRatio
+                ).toFixed(2)
+            )
+            : null,
 
-                        status:
-                            status
+    status:
+        status,
 
-                    };
+    installedDcCapacity:
+        Number(station.installedDcCapacity || 0)
 
+};
                 }
             )
 
@@ -9334,27 +9313,170 @@ performanceRatio =
     // SORT
     // =================================================
 
-    buildings.sort(
-        (a, b) =>
-            String(
-                a.buildingName
-            ).localeCompare(
-                String(
-                    b.buildingName
-                )
-            )
+
+// =====================================================
+// GROUP INVERTERS INTO SAME BUILDING
+// ALL CAMPUSES
+// =====================================================
+
+const groupedBuildings = new Map();
+
+buildings.forEach(item => {
+
+    const originalName = String(
+        item.buildingName || ""
+    ).trim();
+
+    // 1. Remove inverter number
+    let baseName = originalName.replace(
+        /\(\s*(?:INV|INVERTER)\s*[-_]?\s*\d+\s*\)/gi,
+        ""
     );
+
+    // 2. Remove inverter number without brackets
+    baseName = baseName.replace(
+        /\b(?:INV|INVERTER)\s*[-_]?\s*\d+\b/gi,
+        ""
+    );
+
+    // 3. Remove capacity (25kw, 50kw etc.)
+    baseName = baseName.replace(
+        /\b\d+(?:\.\d+)?\s*(?:KW|KWP|MW|WP)\b/gi,
+        ""
+    );
+
+    // 4. Clean spaces
+    baseName = baseName
+        .replace(/\s+/g, " ")
+        .trim();
+
+        // Fix common building name spelling
+baseName = baseName.replace(
+    /\bBuliding\b/gi,
+    "Building"
+);
+
+
+
+    // 5. Normalize key
+    // Ignore spaces, hyphens and special characters
+    const groupKey = baseName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+
+   
+
+    // 6. Create group
+    if (!groupedBuildings.has(groupKey)) {
+
+        groupedBuildings.set(groupKey, {
+            buildingName: baseName,
+            generation: 0,
+            weightedPR: 0,
+            totalCapacity: 0,
+            prSum: 0,
+            prCount: 0,
+            statuses: []
+        });
+
+    }
+
+    const group = groupedBuildings.get(groupKey);
+
+    // 7. Add generation
+    group.generation += Number(
+        item.generation || 0
+    );
+
+    // 8. Performance ratio
+    if (item.performanceRatio !== null &&
+        item.performanceRatio !== undefined) {
+
+        const capacity = Number(
+            item.installedDcCapacity || 0
+        );
+
+        group.weightedPR +=
+            Number(item.performanceRatio) * capacity;
+
+        group.totalCapacity += capacity;
+
+        group.prSum += Number(
+            item.performanceRatio
+        );
+
+        group.prCount++;
+    }
+
+    // 9. Status
+    group.statuses.push(item.status);
+
+});
+
+
+// =====================================================
+// FINAL GROUPED BUILDINGS
+// =====================================================
+
+const finalBuildings = Array.from(
+    groupedBuildings.values()
+).map(item => {
+
+    const performanceRatio =
+        item.totalCapacity > 0
+            ? item.weightedPR / item.totalCapacity
+            : item.prCount > 0
+                ? item.prSum / item.prCount
+                : null;
+
+    const status =
+        item.statuses.includes("ALERT")
+            ? "ALERT"
+            : item.statuses.includes("ONLINE")
+                ? "ONLINE"
+                : "OFFLINE";
+
+    return {
+
+        buildingName: item.buildingName,
+
+        generation: Number(
+            item.generation.toFixed(2)
+        ),
+
+        performanceRatio:
+            performanceRatio !== null
+                ? Number(performanceRatio.toFixed(2))
+                : null,
+
+        status
+
+    };
+
+});
+
+
+// =====================================================
+// SORT BUILDINGS
+// =====================================================
+
+finalBuildings.sort(
+    (a, b) =>
+        a.buildingName.localeCompare(
+            b.buildingName
+        )
+);
 
 
     // =================================================
     // RESPONSE
     // =================================================
 
-   return {
+  return {
     campus: selectedCampus,
     date,
-    totalBuildings: buildings.length,
-    buildings
+    totalBuildings: finalBuildings.length,
+    buildings: finalBuildings
 };
 
 }
