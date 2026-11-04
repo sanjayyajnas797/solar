@@ -1720,22 +1720,8 @@ async function getPgtReport(
                 date
             );
 
-
-        const filteredInverterData =
-            inverterData.filter(row => {
-
-                const time =
-                    String(
-                        row.time || ""
-                    ).substring(0, 5);
-
-                return (
-                    time >= fromTime &&
-                    time <= toTime
-                );
-
-            });
-
+const filteredInverterData =
+    inverterData;
             
 // =================================================
 // CHECK INVERTER DATA AVAILABLE
@@ -2224,51 +2210,27 @@ if (
                 ]
                 : null;
 
-
-   // =====================================================
+// =====================================================
 // 8. PGT END
-//
-// FINAL RULE:
-//
-// 1. Start from PGT START
-// 2. Continue checking until selected TO TIME
-// 3. If GHI/GII values are missing in between,
-//    DO NOT STOP the PGT
-// 4. Continue searching for the next actual GHI/GII values
-// 5. Low irradiance values like 40, 20, 10 are VALID
-// 6. If cumulative GII reaches 5000 Wh/m²:
-//       -> CURRENT VALID ROW = PGT END
-// 7. If 5000 is NOT reached:
-//       -> LAST ACTUAL VALID GHI/GII ROW
-//          within selected time range = PGT END
-//
-// IMPORTANT:
-// Missing irradiance in the middle must NOT become PGT END.
-// Example:
-// 10:00 valid
-// 10:15 valid
-// 12:00 missing
-// 12:15 valid
-// 17:45 valid
-// 18:00 missing
-//
-// If 5000 is not reached:
-// PGT END = 17:45
-//
+// PGT DURATION = 3 HOURS
 // =====================================================
 
 let pgtEndIndex = -1;
 
-let pgtCumulativeGii = 0;
-
-let pgtReached5000 = false;
-
-
-// =====================================================
-// START PGT END SEARCH
-// =====================================================
-
 if (pgtStartIndex >= 0) {
+
+    const [startHour, startMinute] =
+        String(pgtStartRow.time)
+            .split(":")
+            .map(Number);
+
+    const pgtStartMinutes =
+        startHour * 60 + startMinute;
+
+    const pgtEndTargetMinutes =
+        pgtStartMinutes + 180;
+
+    let closestDifference = Infinity;
 
     for (
         let i = pgtStartIndex;
@@ -2276,149 +2238,66 @@ if (pgtStartIndex >= 0) {
         i++
     ) {
 
-        const row =
-            report[i];
+        const [hour, minute] =
+            String(report[i].time)
+                .split(":")
+                .map(Number);
 
+        const rowMinutes =
+            hour * 60 + minute;
 
-        // =================================================
-        // CHECK GHI VALID
-        // =================================================
-
-        const ghiValid =
-            row.ghi !== null &&
-            row.ghi !== undefined &&
-            row.ghi !== "" &&
-            !isNaN(
-                Number(row.ghi)
-            );
-
-
-        // =================================================
-        // CHECK GII VALID
-        // =================================================
-
-        const giiValid =
-            row.gii !== null &&
-            row.gii !== undefined &&
-            row.gii !== "" &&
-            !isNaN(
-                Number(row.gii)
-            );
-
-
-        // =================================================
-        // INVALID / MISSING IRRADIANCE
-        //
-        // DO NOT STOP
-        //
-        // Simply skip this row and continue searching
-        // for the next actual GHI/GII values.
-        // =================================================
-
-        if (
-            !ghiValid ||
-            !giiValid
-        ) {
-
-            continue;
-        }
-
-
-        // =================================================
-        // VALID GHI + GII ROW
-        //
-        // This is the latest actual irradiance row.
-        // Therefore keep it as possible PGT END.
-        // =================================================
-
-        pgtEndIndex =
-            i;
-
-
-        // =================================================
-        // ADD GII IRRADIATION
-        // =================================================
-
-        const interval =
-            Number(
-                row.giiIrradiationInterval || 0
-            );
-
-
-        pgtCumulativeGii +=
-            interval;
-
-
-        // =================================================
-        // 5000 Wh/m² REACHED
-        //
-        // FIRST CONDITION WINS
-        // CURRENT ROW = PGT END
-        // =================================================
-
-        if (
-            pgtCumulativeGii >= 5000
-        ) {
-
-            pgtEndIndex =
-                i;
-
-            pgtReached5000 =
-                true;
-
+        if (rowMinutes > pgtEndTargetMinutes) {
             break;
         }
+
+        const difference =
+            pgtEndTargetMinutes - rowMinutes;
+
+        if (difference < closestDifference) {
+
+            closestDifference = difference;
+
+            pgtEndIndex = i;
+        }
+    }
+
+    // Allow maximum 15 minutes difference
+    if (closestDifference > 15) {
+        pgtEndIndex = -1;
     }
 }
-
-
-// =====================================================
-// FINAL PGT END ROW
-//
-// If 5000 was reached:
-//     -> row where 5000 was reached
-//
-// Otherwise:
-//     -> last actual valid GHI/GII row
-//        before selected TO TIME
-// =====================================================
 
 const pgtEndRow =
     pgtEndIndex >= 0
         ? report[pgtEndIndex]
         : null;
 
+        // =====================================================
+// 9. TOTAL GII IRRADIATION
+// ONLY WITHIN PGT 3-HOUR PERIOD
+// =====================================================
 
+const pgtIrradiationRows =
+    pgtEndIndex > pgtStartIndex
+        ? report.slice(
+            pgtStartIndex,
+            pgtEndIndex
+        )
+        : [];
 
-        // =================================================
-        // 9. TOTAL GII IRRADIATION
-        // =================================================
-
-        const totalPoaIrradiation =
-            (
-                pgtStartIndex >= 0 &&
-                pgtEndIndex >=
-                    pgtStartIndex
+const totalPoaIrradiation =
+    Number(
+        pgtIrradiationRows
+            .reduce(
+                (sum, row) =>
+                    sum +
+                    Number(
+                        row.giiIrradiationInterval || 0
+                    ),
+                0
             )
-                ? Number(
-                    report
-                        .slice(
-                            pgtStartIndex,
-                            pgtEndIndex + 1
-                        )
-                        .reduce(
-                            (sum, row) =>
-                                sum +
-                                Number(
-                                    row.giiIrradiationInterval ||
-                                    0
-                                ),
-                            0
-                        )
-                        .toFixed(2)
-                )
-                : null;
-
+            .toFixed(2)
+    );
 
         // =================================================
         // 10. INITIAL INVERTER ENERGY
@@ -3805,206 +3684,82 @@ const totalNUPPLInstalledDcCapacity =
                     pgtStartIndex
                 ]
                 : null;
-
 // =====================================================
 // 11. PGT END
 //
-// FINAL NUPPL PGT END RULE:
-//
-// 1. Start from PGT START
-// 2. Continue until selected TO TIME
-// 3. Missing GHI/GII in the middle
-//    must NOT stop the PGT
-// 4. Continue searching for next valid GHI/GII row
-// 5. Low irradiance values like 40, 20, 10
-//    are VALID
-// 6. If cumulative GII reaches 5000 Wh/m²:
-//       -> CURRENT VALID ROW = PGT END
-// 7. If 5000 is NOT reached:
-//       -> LAST VALID GHI/GII ROW = PGT END
-//
-// Example:
-//
-// 11:30  valid
-// 11:45  valid
-// 12:00  missing
-// 12:15  valid
-// 12:30  valid
-// ...
-// 17:45  valid
-// 18:00  missing
-//
-// If 5000 is not reached:
-//
-// PGT END = 17:45
-//
+// PGT END = PGT START + 3 HOURS
 // =====================================================
 
-let pgtEndIndex =
-    -1;
+let pgtEndIndex = -1;
 
-let pgtCumulativeGii =
-    0;
+if (pgtStartIndex >= 0) {
 
-let pgtReached5000 =
-    false;
+    // PGT START TIME
+    const startTime =
+        String(pgtStartRow.time).substring(0, 5);
 
+    const startParts =
+        startTime.split(":");
 
-// =====================================================
-// START PGT END SEARCH
-// =====================================================
+    const startMinutes =
+        Number(startParts[0]) * 60 +
+        Number(startParts[1]);
 
-if (
-    pgtStartIndex >= 0
-) {
+    // ADD 3 HOURS
+    const targetEndMinutes =
+        startMinutes + (3 * 60);
 
-    for (
-        let i =
-            pgtStartIndex;
+    // FIND FIRST ROW AT OR AFTER 3 HOURS
+    pgtEndIndex =
+        report.findIndex((row, index) => {
 
-        i < report.length;
+            if (index < pgtStartIndex) {
+                return false;
+            }
 
-        i++
-    ) {
+            const rowTime =
+                String(row.time).substring(0, 5);
 
-        const row =
-            report[i];
+            const parts =
+                rowTime.split(":");
 
+            const rowMinutes =
+                Number(parts[0]) * 60 +
+                Number(parts[1]);
 
-        // =================================================
-        // CHECK GHI VALID
-        // =================================================
+            return rowMinutes >= targetEndMinutes;
 
-        const ghiValid =
-            row.ghi !== null &&
-            row.ghi !== undefined &&
-            row.ghi !== "" &&
-            !isNaN(
-                Number(
-                    row.ghi
-                )
-            );
-
-
-        // =================================================
-        // CHECK GII VALID
-        // =================================================
-
-        const giiValid =
-            row.gii !== null &&
-            row.gii !== undefined &&
-            row.gii !== "" &&
-            !isNaN(
-                Number(
-                    row.gii
-                )
-            );
-
-
-        // =================================================
-        // MISSING GHI / GII
-        //
-        // DO NOT STOP
-        //
-        // Just skip this row and continue.
-        // =================================================
-
-        if (
-            !ghiValid ||
-            !giiValid
-        ) {
-
-            continue;
-
-        }
-
-
-        // =================================================
-        // VALID GHI + GII
-        //
-        // Keep this as latest possible PGT END.
-        // =================================================
-
-        pgtEndIndex =
-            i;
-
-
-        // =================================================
-        // ADD GII IRRADIATION
-        // =================================================
-
-        const interval =
-            Number(
-                row.giiIrradiationInterval || 0
-            );
-
-
-        pgtCumulativeGii +=
-            interval;
-
-
-        // =================================================
-        // 5000 Wh/m² REACHED
-        //
-        // CURRENT VALID ROW = PGT END
-        // =================================================
-
-        if (
-            pgtCumulativeGii >= 5000
-        ) {
-
-            pgtEndIndex =
-                i;
-
-            pgtReached5000 =
-                true;
-
-            break;
-        }
-
-    }
+        });
 
 }
 
 
 // =====================================================
 // FINAL PGT END ROW
-//
-// 5000 reached:
-//     -> row where cumulative GII reaches 5000
-//
-// 5000 NOT reached:
-//     -> last actual valid GHI/GII row
-//        within selected TO TIME
 // =====================================================
 
 const pgtEndRow =
     pgtEndIndex >= 0
-        ? report[
-            pgtEndIndex
-        ]
+        ? report[pgtEndIndex]
         : null;
+
         // =================================================
-        // 12. LIMIT REPORT CALCULATION TO PGT RANGE
-        // =================================================
+// 12. LIMIT REPORT CALCULATION TO PGT RANGE
+// =================================================
 
-        let pgtReport =
-            report;
+let pgtReport = report;
 
+if (
+    pgtStartIndex >= 0 &&
+    pgtEndIndex >= pgtStartIndex
+) {
 
-        if (
-            pgtStartIndex >= 0 &&
-            pgtEndIndex >= pgtStartIndex
-        ) {
+    pgtReport = report.slice(
+        pgtStartIndex,
+        pgtEndIndex + 1
+    );
 
-            pgtReport =
-                report.slice(
-                    pgtStartIndex,
-                    pgtEndIndex + 1
-                );
-
-        }
-
+}
 
         // =================================================
         // 13. TOTAL GII IRRADIATION
@@ -6115,9 +5870,9 @@ const btpsCapacityMap = {
 
     "NLCBTPSTAOFFICE25KW": 23.73,
 
-    "NLCBTPSNEWSCHOOLBUILDINGINV2": 149.16,
+    "NLCBTPSNEWSCHOOLBUILDINGINV2": 25,
 
-    "NLCBTPSNEWSCHOOLBUILDINGINV1": 149.16,
+    "NLCBTPSNEWSCHOOLBUILDINGINV1": 125,
 
     "NLCBTPSEMPLOYEESCLUB": 28.82,
 
@@ -6386,13 +6141,7 @@ async function getBTPSPgtReport(
                         .substring(0, 5);
 
 
-                // Selected time range
-                if (
-                    time < fromTime ||
-                    time > toTime
-                ) {
-                    continue;
-                }
+               
 
 
                 const energy =
@@ -6912,190 +6661,137 @@ async function getBTPSPgtReport(
                     .toFixed(2)
             );
 
+// =====================================================
+// 10. PGT START
+// FIRST GHI > 750
+// =====================================================
 
-        // =================================================
-        // 10. PGT START
-        //
-        // FIRST GHI > 750
-        // =================================================
+const pgtStartIndex =
+    report.findIndex(
+        row =>
+            row.ghi !== null &&
+            row.ghi !== undefined &&
+            Number(row.ghi) > 750
+    );
 
-        const pgtStartIndex =
-            report.findIndex(
-                row =>
-                    row.ghi !== null &&
-                    row.ghi !== undefined &&
-                    Number(row.ghi) > 750
-            );
-
-
-        const pgtStartRow =
-            pgtStartIndex >= 0
-                ? report[
-                    pgtStartIndex
-                ]
-                : null;
+const pgtStartRow =
+    pgtStartIndex >= 0
+        ? report[pgtStartIndex]
+        : null;
 
 
-        // =================================================
-        // 11. PGT END
-        //
-        // FIRST:
-        // GII cumulative >= 5000
-        //
-        // OTHERWISE:
-        // LAST VALID GHI + GII ROW
-        //
-        // Missing middle row does NOT stop PGT.
-        // =================================================
+// =====================================================
+// 11. PGT END
+// PGT DURATION = 3 HOURS
+// =====================================================
 
-        let pgtEndIndex =
-            -1;
+let pgtEndIndex = -1;
 
-        let pgtCumulativeGii =
-            0;
+if (pgtStartIndex >= 0) {
 
-        let pgtReached5000 =
-            false;
+    const [startHour, startMinute] =
+        String(pgtStartRow.time)
+            .split(":")
+            .map(Number);
 
+    const pgtStartMinutes =
+        startHour * 60 + startMinute;
 
-        if (
-            pgtStartIndex >= 0
-        ) {
+    const pgtEndTargetMinutes =
+        pgtStartMinutes + 180;
 
-            for (
-                let i =
-                    pgtStartIndex;
+    let closestDifference = Infinity;
 
-                i < report.length;
+    for (
+        let i = pgtStartIndex;
+        i < report.length;
+        i++
+    ) {
 
-                i++
-            ) {
+        const [hour, minute] =
+            String(report[i].time)
+                .split(":")
+                .map(Number);
 
-                const row =
-                    report[i];
+        const rowMinutes =
+            hour * 60 + minute;
 
+        // Do not go beyond the 3-hour target
+        if (rowMinutes > pgtEndTargetMinutes) {
+            break;
+        }
 
-                const ghiValid =
-                    row.ghi !== null &&
-                    row.ghi !== undefined &&
-                    row.ghi !== "" &&
-                    !isNaN(
-                        Number(
-                            row.ghi
-                        )
-                    );
+        const difference =
+            pgtEndTargetMinutes - rowMinutes;
 
+        if (difference < closestDifference) {
 
-                const giiValid =
-                    row.gii !== null &&
-                    row.gii !== undefined &&
-                    row.gii !== "" &&
-                    !isNaN(
-                        Number(
-                            row.gii
-                        )
-                    );
+            closestDifference = difference;
 
+            pgtEndIndex = i;
+        }
+    }
 
-                // Missing row -> continue
-                if (
-                    !ghiValid ||
-                    !giiValid
-                ) {
+    // If the last available row is more than
+    // 15 minutes before the 3-hour target,
+    // treat the PGT as incomplete.
+    if (closestDifference > 15) {
+        pgtEndIndex = -1;
+    }
+}
 
-                    continue;
-
-                }
+const pgtEndRow =
+    pgtEndIndex >= 0
+        ? report[pgtEndIndex]
+        : null;
 
 
-                // Latest valid row
-                pgtEndIndex =
-                    i;
+// =====================================================
+// 12. PGT REPORT RANGE
+// =====================================================
+
+let pgtReport = [];
+
+if (
+    pgtStartIndex >= 0 &&
+    pgtEndIndex >= pgtStartIndex
+) {
+
+    pgtReport =
+        report.slice(
+            pgtStartIndex,
+            pgtEndIndex + 1
+        );
+
+}
 
 
-                const interval =
+// =====================================================
+// 13. TOTAL GII IRRADIATION
+// Sum intervals only inside the 3-hour period
+// =====================================================
+
+const pgtIrradiationRows =
+    pgtEndIndex > pgtStartIndex
+        ? report.slice(
+            pgtStartIndex,
+            pgtEndIndex
+        )
+        : [];
+
+const totalPoaIrradiation =
+    Number(
+        pgtIrradiationRows
+            .reduce(
+                (sum, row) =>
+                    sum +
                     Number(
-                        row.giiIrradiationInterval ||
-                        0
-                    );
-
-
-                pgtCumulativeGii +=
-                    interval;
-
-
-                // 5000 reached -> stop
-                if (
-                    pgtCumulativeGii >= 5000
-                ) {
-
-                    pgtEndIndex =
-                        i;
-
-                    pgtReached5000 =
-                        true;
-
-                    break;
-
-                }
-
-            }
-
-        }
-
-
-        const pgtEndRow =
-            pgtEndIndex >= 0
-                ? report[
-                    pgtEndIndex
-                ]
-                : null;
-
-
-        // =================================================
-        // 12. PGT REPORT RANGE
-        // =================================================
-
-        let pgtReport =
-            report;
-
-
-        if (
-            pgtStartIndex >= 0 &&
-            pgtEndIndex >= pgtStartIndex
-        ) {
-
-            pgtReport =
-                report.slice(
-                    pgtStartIndex,
-                    pgtEndIndex + 1
-                );
-
-        }
-
-
-        // =================================================
-        // 13. TOTAL GII IRRADIATION
-        // =================================================
-
-        const totalPoaIrradiation =
-            Number(
-                pgtReport
-                    .reduce(
-                        (
-                            sum,
-                            row
-                        ) =>
-                            sum +
-                            Number(
-                                row.giiIrradiationInterval ||
-                                0
-                            ),
-                        0
-                    )
-                    .toFixed(2)
-            );
-
+                        row.giiIrradiationInterval || 0
+                    ),
+                0
+            )
+            .toFixed(2)
+    );
 
         // =================================================
         // 14. INITIAL INVERTER ENERGY
@@ -8581,104 +8277,53 @@ for (const station of ntplStationDetails) {
 
         // =================================================
         // 15. PGT END
-        //
-        // GII CUMULATIVE >= 5000
-        //
-        // Otherwise LAST VALID GHI/GII
+        // PGT START + 3 HOURS
         // =================================================
 
-        let pgtEndIndex =
-            -1;
+        let pgtEndIndex = -1;
 
-        let pgtCumulativeGii =
-            0;
+        if (pgtStartIndex >= 0) {
 
+            const startTime =
+                String(pgtStartRow.time).substring(0, 5);
 
-        if (
-            pgtStartIndex >= 0
-        ) {
+            const startParts =
+                startTime.split(":");
 
-            for (
-                let i =
-                    pgtStartIndex;
+            const startMinutes =
+                Number(startParts[0]) * 60 +
+                Number(startParts[1]);
 
-                i < report.length;
+            const targetEndMinutes =
+                startMinutes + (3 * 60);
 
-                i++
-            ) {
+            pgtEndIndex = report.findIndex((row, index) => {
 
-                const row =
-                    report[i];
-
-
-                const ghiValid =
-                    row.ghi !== null &&
-                    row.ghi !== undefined &&
-                    row.ghi !== "" &&
-                    !isNaN(
-                        Number(
-                            row.ghi
-                        )
-                    );
-
-
-                const giiValid =
-                    row.gii !== null &&
-                    row.gii !== undefined &&
-                    row.gii !== "" &&
-                    !isNaN(
-                        Number(
-                            row.gii
-                        )
-                    );
-
-
-                // Missing weather → continue
-
-                if (
-                    !ghiValid ||
-                    !giiValid
-                ) {
-
-                    continue;
-
+                if (index < pgtStartIndex) {
+                    return false;
                 }
 
+                const rowTime =
+                    String(row.time).substring(0, 5);
 
-                // Latest valid row
+                const parts =
+                    rowTime.split(":");
 
-                pgtEndIndex =
-                    i;
+                const rowMinutes =
+                    Number(parts[0]) * 60 +
+                    Number(parts[1]);
 
+                return rowMinutes >= targetEndMinutes;
 
-                pgtCumulativeGii +=
-                    Number(
-                        row.giiIrradiationInterval ||
-                        0
-                    );
-
-
-                // 5000 reached
-
-                if (
-                    pgtCumulativeGii >= 5000
-                ) {
-
-                    break;
-
-                }
-
-            }
+            });
 
         }
 
-
         const pgtEndRow =
             pgtEndIndex >= 0
-                ? report[
-                    pgtEndIndex
-                ]
+                ? report[pgtEndIndex]
                 : null;
+
 
 
         // =================================================

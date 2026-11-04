@@ -24,20 +24,18 @@
 
 
 .pgt-filter-grid {
-
     display: grid;
 
     grid-template-columns:
         1fr
-        1fr
+        1.25fr
         1fr
         1fr
         1.15fr;
 
-    gap: 20px;
-
+    gap: 18px;
     align-items: end;
-
+    width: 100%;
 }
 
 
@@ -1594,4 +1592,83 @@
     color: rgba(255,255,255,0.55);
 
     letter-spacing: 0.5px;
+}
+
+
+/* =====================================================
+   PGT FILTER - FINAL OVERRIDE
+   Campus | Building | From Date | To Date | Generate
+===================================================== */
+
+.pgt-page-content .pgt-filter-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 28px 30px !important;
+}
+
+.pgt-page-content .pgt-filter-card .pgt-filter-grid {
+    display: grid !important;
+
+    grid-template-columns:
+        0.9fr
+        1.2fr
+        0.9fr
+        0.9fr
+        0.9fr !important;
+
+    gap: 16px !important;
+    align-items: end !important;
+    width: 100% !important;
+}
+
+.pgt-page-content .pgt-filter-grid > .pgt-filter-item {
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+.pgt-page-content .pgt-filter-grid .pgt-btn-box {
+    display: flex !important;
+    align-items: flex-end !important;
+    width: 100% !important;
+}
+
+.pgt-page-content .pgt-filter-grid .pgt-generate-btn {
+    width: 100% !important;
+    height: 54px !important;
+}
+
+/* Laptop */
+@media (max-width: 1400px) {
+    .pgt-page-content .pgt-filter-card .pgt-filter-grid {
+        grid-template-columns:
+            0.9fr
+            1.2fr
+            0.9fr
+            0.9fr
+            0.9fr !important;
+
+        gap: 12px !important;
+    }
+}
+
+/* Tablet */
+@media (max-width: 1100px) {
+    .pgt-page-content .pgt-filter-card .pgt-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .pgt-page-content .pgt-filter-grid .pgt-btn-box {
+        grid-column: span 2 !important;
+    }
+}
+
+/* Mobile */
+@media (max-width: 650px) {
+    .pgt-page-content .pgt-filter-card .pgt-filter-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .pgt-page-content .pgt-filter-grid .pgt-btn-box {
+        grid-column: span 1 !important;
+    }
 }

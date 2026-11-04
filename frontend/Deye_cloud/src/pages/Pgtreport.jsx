@@ -18,8 +18,7 @@ function PgtReport() {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
 
-   const [fromTime, setFromTime] = useState("10:00");
-const [toTime, setToTime] = useState("16:00");
+
 
     const [reportData, setReportData] = useState([]);
 
@@ -145,22 +144,7 @@ useEffect(() => {
 }
 
 
-if (!fromTime || !toTime) {
 
-    alert("Please select From Time and To Time.");
-
-    return;
-
-}
-
-
-if (fromTime >= toTime) {
-
-    alert("To Time must be greater than From Time.");
-
-    return;
-
-}
 
         if (fromDate !== toDate) {
 
@@ -243,54 +227,40 @@ if (selectedCampus === "NLCIL") {
         {
             params: {
                 date: fromDate,
-                fromTime: fromTime,
-                toTime: toTime,
                 source: stationSource
             }
         }
     );
 }
 else if (selectedCampus === "NUPPL") {
-
     res = await axios.get(
         `${API_BASE}/pgt/nuppl/report/${stationId}`,
         {
             params: {
-                date: fromDate,
-                fromTime: fromTime,
-                toTime: toTime
+                date: fromDate
             }
         }
     );
-
 }
 else if (selectedCampus === "BTPS") {
-
     res = await axios.get(
         `${API_BASE}/pgt/btps/report/${stationId}`,
         {
             params: {
-                date: fromDate,
-                fromTime: fromTime,
-                toTime: toTime
+                date: fromDate
             }
         }
     );
-
 }
 else if (selectedCampus === "NTPL") {
-
     res = await axios.get(
         `${API_BASE}/pgt/ntpl/report/${stationId}`,
         {
             params: {
-                date: fromDate,
-                fromTime: fromTime,
-                toTime: toTime
+                date: fromDate
             }
         }
     );
-
 }
 
 
@@ -3154,42 +3124,7 @@ link.download =
                         </div>
 
 
-                       {/* FROM TIME */}
-
-<div className="pgt-filter-item">
-
-    <label>
-        From Time
-    </label>
-
-    <input
-        type="time"
-        value={fromTime}
-        onChange={(e) =>
-            setFromTime(e.target.value)
-        }
-    />
-
-</div>
-
-
-{/* TO TIME */}
-
-<div className="pgt-filter-item">
-
-    <label>
-        To Time
-    </label>
-
-    <input
-        type="time"
-        value={toTime}
-        onChange={(e) =>
-            setToTime(e.target.value)
-        }
-    />
-
-</div>
+                  
 
 
                         {/* BUTTON */}

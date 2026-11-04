@@ -361,6 +361,29 @@ const generateReport = async () => {
 };
 
 
+// =====================================================
+// PGT PASS / FAIL RESULT
+// =====================================================
+
+const getPgtResult = (performanceRatio) => {
+
+    if (
+        performanceRatio === null ||
+        performanceRatio === undefined ||
+        performanceRatio === ""
+    ) {
+        return "-";
+    }
+
+    const ratio = Number(performanceRatio);
+
+    if (!Number.isFinite(ratio)) {
+        return "-";
+    }
+
+    return ratio >= 75 ? "PASS" : "FAIL";
+};
+
     // =====================================================
 // DOWNLOAD PDF
 // =====================================================
@@ -741,12 +764,7 @@ if (selectedBuilding === "ALL") {
                     item?.generation || 0
                 ).toFixed(2)} kWh`,
 
-                item?.performanceRatio !== null &&
-                item?.performanceRatio !== undefined
-                    ? `${Number(
-                        item.performanceRatio
-                    ).toFixed(2)}%`
-                    : "-",
+              "",
 
                 String(
                     item?.status ||
@@ -926,49 +944,147 @@ columnStyles: {
 },
 
 
-            // -------------------------------------------------
+                      // =================================================
             // TOTAL ROW STYLE
-            // -------------------------------------------------
+            // =================================================
 
             didParseCell: function (data) {
 
                 if (
-                    data.row.index ===
-                    tableBody.length - 1
+                    data.row.index === tableBody.length - 1
                 ) {
 
-                    data.cell.styles.fontStyle =
-                        "bold";
+                    data.cell.styles.fontStyle = "bold";
 
+                    data.cell.styles.fillColor = [
+                        235,
+                        248,
+                        240
+                    ];
 
-                    data.cell.styles.fillColor =
-                        [
-                            235,
-                            248,
-                            240
+                    if (data.column.index === 2) {
+
+                        data.cell.styles.textColor = [
+                            20,
+                            130,
+                            70
                         ];
-
-
-                    if (
-                        data.column.index === 2
-                    ) {
-
-                        data.cell.styles.textColor =
-                            [
-                                20,
-                                130,
-                                70
-                            ];
 
                     }
 
                 }
 
+            },
+
+            // =================================================
+            // PERFORMANCE RATIO + PASS / FAIL
+            // =================================================
+
+            didDrawCell: function (data) {
+
+                if (
+                    selectedBuilding !== "ALL" ||
+                    data.section !== "body" ||
+                    data.column.index !== 3 ||
+                    data.row.index >= reportData.length
+                ) {
+                    return;
+                }
+
+                const item = reportData[data.row.index];
+                const rawRatio = item?.performanceRatio;
+
+                if (
+                    rawRatio === null ||
+                    rawRatio === undefined ||
+                    rawRatio === ""
+                ) {
+
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(9);
+                    doc.setTextColor(0, 0, 0);
+
+                    doc.text(
+                        "-",
+                        data.cell.x + data.cell.width / 2,
+                        data.cell.y + data.cell.height / 2 + 1,
+                        { align: "center" }
+                    );
+
+                    return;
+                }
+
+                const ratio = Number(rawRatio);
+
+                if (!Number.isFinite(ratio)) {
+                    return;
+                }
+
+                const result = ratio >= 75 ? "PASS" : "FAIL";
+                const ratioText = `${ratio.toFixed(2)}%`;
+
+                const badgeWidth = 18;
+                const badgeHeight = 5.5;
+                const gap = 3;
+
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+
+                const ratioWidth = doc.getTextWidth(ratioText);
+
+                const totalWidth =
+                    ratioWidth + gap + badgeWidth;
+
+                const startX =
+                    data.cell.x +
+                    (data.cell.width - totalWidth) / 2;
+
+                const centerY =
+                    data.cell.y + data.cell.height / 2;
+
+                // Performance Ratio
+                doc.setTextColor(0, 0, 0);
+
+                doc.text(
+                    ratioText,
+                    startX,
+                    centerY + 1.5
+                );
+
+                // Badge background
+                if (result === "PASS") {
+                    doc.setFillColor(232, 255, 241);
+                    doc.setTextColor(21, 148, 71);
+                } else {
+                    doc.setFillColor(255, 234, 234);
+                    doc.setTextColor(211, 47, 47);
+                }
+
+                doc.roundedRect(
+                    startX + ratioWidth + gap,
+                    centerY - badgeHeight / 2,
+                    badgeWidth,
+                    badgeHeight,
+                    2.5,
+                    2.5,
+                    "F"
+                );
+
+                // Badge text
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(7);
+
+                doc.text(
+                    result,
+                    startX + ratioWidth + gap + badgeWidth / 2,
+                    centerY + 1,
+                    { align: "center" }
+                );
+
             }
 
         }
     );
-
 
     // =================================================
     // FOOTER
@@ -1774,25 +1890,50 @@ const isAllBuildings =
                             </td>
 
 
-                            {/* PERFORMANCE RATIO */}
+                           {/* PERFORMANCE RATIO + PASS / FAIL */}
 
-                            <td>
+<td>
+    <div
+        style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "12px"
+        }}
+    >
+        <span>
+            {item?.performanceRatio !== null &&
+             item?.performanceRatio !== undefined &&
+             item?.performanceRatio !== ""
+                ? `${Number(item.performanceRatio).toFixed(2)}%`
+                : "-"}
+        </span>
 
-                                {item?.performanceRatio !== null &&
-                                item?.performanceRatio !== undefined
-                                    ? (
-                                        <>
-                                            {Number(
-                                                item.performanceRatio
-                                            ).toFixed(2)}
-                                            %
-                                        </>
-                                    )
-                                    : (
-                                        "-"
-                                    )}
-
-                            </td>
+        {Number.isFinite(Number(item?.performanceRatio)) &&
+         item?.performanceRatio !== null &&
+         item?.performanceRatio !== undefined &&
+         item?.performanceRatio !== "" && (
+            <span
+                style={{
+                    padding: "5px 14px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    background:
+                        Number(item.performanceRatio) >= 75
+                            ? "#e8fff1"
+                            : "#ffeaea",
+                    color:
+                        Number(item.performanceRatio) >= 75
+                            ? "#159447"
+                            : "#d32f2f"
+                }}
+            >
+                {getPgtResult(item.performanceRatio)}
+            </span>
+        )}
+    </div>
+</td>
 
 
                             {/* BUILDING STATUS */}

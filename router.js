@@ -428,36 +428,24 @@ router.get(
             }
 
 
-            // ================================
-            // VALIDATE TIME RANGE
-            // ================================
+          // ================================
+// VALIDATE OPTIONAL TIME RANGE
+// ================================
 
-            if (!fromTime || !toTime) {
+if (
+    fromTime &&
+    toTime &&
+    fromTime >= toTime
+) {
 
-                return res.status(400).json({
+    return res.status(400).json({
 
-                    error:
-                        "From Time and To Time are required"
+        error:
+            "To Time must be greater than From Time"
 
-                });
+    });
 
-            }
-
-
-            // ================================
-            // VALIDATE TIME ORDER
-            // ================================
-
-            if (fromTime >= toTime) {
-
-                return res.status(400).json({
-
-                    error:
-                        "To Time must be greater than From Time"
-
-                });
-
-            }
+}
 
 
             // ================================
@@ -689,42 +677,24 @@ router.get(
 
             }
 
+// =============================================
+// VALIDATE OPTIONAL TIME RANGE
+// =============================================
 
-            // =============================================
-            // VALIDATE TIME
-            // =============================================
+if (
+    fromTime &&
+    toTime &&
+    fromTime >= toTime
+) {
 
-            if (
-                !fromTime ||
-                !toTime
-            ) {
+    return res.status(400).json({
 
-                return res.status(400).json({
+        error:
+            "To Time must be greater than From Time"
 
-                    error:
-                        "From Time and To Time are required"
+    });
 
-                });
-
-            }
-
-
-            // =============================================
-            // VALIDATE TIME ORDER
-            // =============================================
-
-            if (
-                fromTime >= toTime
-            ) {
-
-                return res.status(400).json({
-
-                    error:
-                        "To Time must be greater than From Time"
-
-                });
-
-            }
+}
 
 
             // =============================================
@@ -801,43 +771,45 @@ router.get(
 
             }
 
+// =============================================
+// VALIDATE TIME RANGE
+// NLCIL AND BTPS TIME OPTIONAL
+// NUPPL TIME REQUIRED
+// =============================================
 
-            // =============================================
-            // VALIDATE TIME RANGE
-            // =============================================
+const selectedCampus =
+    String(campus || "NLCIL")
+        .trim()
+        .toUpperCase();
 
-            if (
-                !fromTime ||
-                !toTime
-            ) {
+if (
+    selectedCampus !== "BTPS" &&
+    selectedCampus !== "NLCIL" &&
+    (!fromTime || !toTime)
+) {
 
-                return res.status(400).json({
+    return res.status(400).json({
+        error: "From Time and To Time are required"
+    });
 
-                    error:
-                        "From Time and To Time are required"
-
-                });
-
-            }
+}
 
 
-            // =============================================
-            // VALIDATE TIME ORDER
-            // =============================================
+// =============================================
+// VALIDATE TIME ORDER
+// =============================================
 
-            if (
-                fromTime >= toTime
-            ) {
+if (
+    fromTime &&
+    toTime &&
+    fromTime >= toTime
+) {
 
-                return res.status(400).json({
+    return res.status(400).json({
+        error: "To Time must be greater than From Time"
+    });
 
-                    error:
-                        "To Time must be greater than From Time"
-
-                });
-
-            }
-
+}
 
             // =============================================
             // GET NLCIL SUMMARY
@@ -854,12 +826,7 @@ router.get(
 // GET PGT SUMMARY BY CAMPUS
 // =============================================
 
-const selectedCampus =
-    String(
-        campus || "NLCIL"
-    )
-    .trim()
-    .toUpperCase();
+
 
 
 // =============================================
@@ -1000,33 +967,23 @@ router.get(
 
 
             // =============================================
-            // VALIDATE TIME
-            // =============================================
+// VALIDATE OPTIONAL TIME RANGE
+// =============================================
 
-            if (!fromTime || !toTime) {
+if (
+    fromTime &&
+    toTime &&
+    fromTime >= toTime
+) {
 
-                return res.status(400).json({
-                    error:
-                        "From Time and To Time are required"
-                });
+    return res.status(400).json({
+        error:
+            "To Time must be greater than From Time"
+    });
 
-            }
+}
 
-
-            // =============================================
-            // VALIDATE TIME ORDER
-            // =============================================
-
-            if (fromTime >= toTime) {
-
-                return res.status(400).json({
-                    error:
-                        "To Time must be greater than From Time"
-                });
-
-            }
-
-
+          
             // =============================================
             // GET BTPS PGT
             // =============================================
@@ -1278,30 +1235,14 @@ router.get(
             }
 
 
+          
             // =============================================
-            // VALIDATE TIME
-            // =============================================
-
-            if (
-                !fromTime ||
-                !toTime
-            ) {
-
-                return res.status(400).json({
-
-                    error:
-                        "From Time and To Time are required"
-
-                });
-
-            }
-
-
-            // =============================================
-            // VALIDATE TIME ORDER
+            // VALIDATE OPTIONAL TIME RANGE
             // =============================================
 
             if (
+                fromTime &&
+                toTime &&
                 fromTime >= toTime
             ) {
 
