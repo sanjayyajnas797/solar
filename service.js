@@ -1174,14 +1174,16 @@ async function getCampusReport(campus, fromDate, toDate) {
 }
 // ================= PGT INVERTER ENERGY =================
 
+// ================= PGT INVERTER ENERGY =================
+
 async function getPgtInverterEnergy(stationId, date) {
 
     try {
 
-        // 1. Get devices for this building
+        // 1. GET DEVICES
         const devices = await getDevices(stationId);
 
-        // 2. Get inverter devices
+        // 2. FILTER INVERTERS
         const inverters = devices.filter(d =>
             d.deviceType === "INVERTER" ||
             d.deviceType === "INV" ||
@@ -1189,16 +1191,11 @@ async function getPgtInverterEnergy(stationId, date) {
         );
 
         if (!inverters.length) {
-
-            console.log(
-                "No inverter found for station:",
-                stationId
-            );
-
+            console.log("No inverter found:", stationId);
             return [];
         }
 
-        // 3. Get DailyActiveProduction history
+        // 3. GET BOTH ENERGY AND POWER HISTORY
         const historyResults = await Promise.all(
 
             inverters.map(inv =>
@@ -1214,7 +1211,8 @@ async function getPgtInverterEnergy(stationId, date) {
                         granularity: 1,
 
                         measurePoints: [
-                            "DailyActiveProduction"
+                            "DailyActiveProduction",
+                            "TotalActiveACOutputPower"
                         ]
                     }
                 )
@@ -1222,7 +1220,7 @@ async function getPgtInverterEnergy(stationId, date) {
             )
         );
 
-        // 4. Combine inverter data
+        // 4. COMBINE ALL INVERTERS
         const timeMap = {};
 
         for (const result of historyResults) {
@@ -1232,11 +1230,9 @@ async function getPgtInverterEnergy(stationId, date) {
             raw.forEach(item => {
 
                 const utcDate =
-                    new Date(
-                        Number(item.time) * 1000
-                    );
+                    new Date(Number(item.time) * 1000);
 
-                // Convert UTC → IST
+                // UTC TO IST
                 const istDate =
                     new Date(
                         utcDate.getTime() +
@@ -1244,18 +1240,13 @@ async function getPgtInverterEnergy(stationId, date) {
                     );
 
                 const datePart =
-                    istDate.toISOString()
-                        .split("T")[0];
+                    istDate.toISOString().split("T")[0];
 
                 const hours =
-                    String(
-                        istDate.getUTCHours()
-                    ).padStart(2, "0");
+                    String(istDate.getUTCHours()).padStart(2, "0");
 
                 const minutes =
-                    String(
-                        istDate.getUTCMinutes()
-                    ).padStart(2, "0");
+                    String(istDate.getUTCMinutes()).padStart(2, "0");
 
                 const time =
                     `${hours}:${minutes}:00`;
@@ -1263,168 +1254,176 @@ async function getPgtInverterEnergy(stationId, date) {
                 const fullTime =
                     `${datePart} ${time}`;
 
+                // ENERGY - kWh
                 const energy =
                     Number(
                         item.itemList?.find(
-                            i =>
-                                i.key ===
-                                "DailyActiveProduction"
+                            i => i.key === "DailyActiveProduction"
+                        )?.value || 0
+                    );
+
+                // POWER - W
+                const power =
+                    Number(
+                        item.itemList?.find(
+                            i => i.key === "TotalActiveACOutputPower"
                         )?.value || 0
                     );
 
                 if (!timeMap[fullTime]) {
-                    timeMap[fullTime] = 0;
+
+                    timeMap[fullTime] = {
+                        energy: 0,
+                        power: 0
+                    };
+
                 }
 
-                timeMap[fullTime] += energy;
+                // COMBINE ALL INVERTERS
+                timeMap[fullTime].energy += energy;
+
+                timeMap[fullTime].power += power;
 
             });
 
         }
 
-        // 5. Convert to array
-       // 5. Convert raw data to array
-const rawData =
-    Object.keys(timeMap)
-        .sort()
-        .map(time => ({
+        // 5. CONVERT RAW DATA
+        const rawData =
 
-            time,
+            Object.keys(timeMap)
+                .sort()
+                .map(time => ({
 
-            inverterEnergy:
-                Number(
-                    timeMap[time]
-                        .toFixed(2)
-                )
+                    time,
 
-        }));
+                    inverterEnergy:
+                        Number(
+                            timeMap[time].energy.toFixed(2)
+                        ),
 
+                    // W TO kW
+                    inverterPowerKw:
+                        Number(
+                            (timeMap[time].power / 1000).toFixed(2)
+                        )
 
-// 6. Create 15-minute PGT slots
-const pgtData = [];
-
-
-// Start from first available time
-if (rawData.length > 0) {
-
-    const firstDate =
-        new Date(
-            rawData[0].time
-                .replace(" ", "T")
-        );
-
-    // Round first time down to 15 minutes
-    firstDate.setMinutes(
-        Math.floor(
-            firstDate.getMinutes() / 15
-        ) * 15
-    );
-
-    firstDate.setSeconds(0);
-    firstDate.setMilliseconds(0);
+                }));
 
 
-    // Create slots until last available time
-    const lastDate =
-        new Date(
-            rawData[rawData.length - 1].time
-                .replace(" ", "T")
-        );
+        // 6. CREATE 15 MINUTE PGT SLOTS
+        const pgtData = [];
 
+        if (rawData.length > 0) {
 
-    for (
-        let slot = new Date(firstDate);
-        slot <= lastDate;
-        slot.setMinutes(
-            slot.getMinutes() + 15
-        )
-    ) {
-
-        const slotTime =
-            new Date(slot);
-
-
-        // Find nearest Cloud reading
-        let nearest = null;
-        let minDifference = Infinity;
-
-
-        for (const row of rawData) {
-
-            const rowTime =
+            const firstDate =
                 new Date(
-                    row.time.replace(" ", "T")
+                    rawData[0].time.replace(" ", "T")
                 );
 
+            firstDate.setMinutes(
+                Math.floor(firstDate.getMinutes() / 15) * 15
+            );
 
-            const difference =
-                Math.abs(
-                    rowTime.getTime() -
-                    slotTime.getTime()
+            firstDate.setSeconds(0);
+            firstDate.setMilliseconds(0);
+
+            const lastDate =
+                new Date(
+                    rawData[rawData.length - 1].time.replace(" ", "T")
                 );
 
+            for (
+                let slot = new Date(firstDate);
+                slot <= lastDate;
+                slot.setMinutes(slot.getMinutes() + 15)
+            ) {
 
-            if (difference < minDifference) {
+                const slotTime = new Date(slot);
 
-                minDifference = difference;
-                nearest = row;
+                let nearest = null;
+
+                let minDifference = Infinity;
+
+                // FIND NEAREST API READING
+                for (const row of rawData) {
+
+                    const rowTime =
+                        new Date(row.time.replace(" ", "T"));
+
+                    const difference =
+                        Math.abs(
+                            rowTime.getTime() -
+                            slotTime.getTime()
+                        );
+
+                    if (difference < minDifference) {
+
+                        minDifference = difference;
+
+                        nearest = row;
+
+                    }
+
+                }
+
+                // ACCEPT ONLY WITHIN 5 MINUTES
+                if (
+                    nearest &&
+                    minDifference <= 5 * 60 * 1000
+                ) {
+
+                    const hours =
+                        String(slotTime.getHours()).padStart(2, "0");
+
+                    const minutes =
+                        String(slotTime.getMinutes()).padStart(2, "0");
+
+                    pgtData.push({
+
+                        time:
+                            `${hours}:${minutes}:00`,
+
+                        // EXISTING kWh
+                        inverterEnergy:
+                            nearest.inverterEnergy,
+
+                        // NEW kW
+                        inverterPowerKw:
+                            nearest.inverterPowerKw
+
+                    });
+
+                }
 
             }
 
         }
 
+        console.log(
+            "PGT INVERTER ENERGY + POWER:",
+            {
+                stationId,
+                count: pgtData.length,
+                first: pgtData[0],
+                last: pgtData[pgtData.length - 1]
+            }
+        );
 
-        // Accept only if within 5 minutes
-        if (
-            nearest &&
-            minDifference <= 5 * 60 * 1000
-        ) {
-
-            const hours =
-                String(
-                    slotTime.getHours()
-                ).padStart(2, "0");
-
-
-            const minutes =
-                String(
-                    slotTime.getMinutes()
-                ).padStart(2, "0");
-
-
-            pgtData.push({
-
-                time:
-                    `${hours}:${minutes}:00`,
-
-                inverterEnergy:
-                    nearest.inverterEnergy
-
-            });
-
-        }
-
-    }
-
-}
-
-
-
-
-
-return pgtData;
+        return pgtData;
 
     }
     catch (err) {
 
         console.log(
             "PGT Inverter History Error:",
-            err.message
+            err.response?.data || err.message
         );
 
         return [];
 
     }
+
 }
 
 // =====================================================
@@ -1578,35 +1577,54 @@ function getNetMeterDifferential(buildingName) {
 // =====================================================
 // GET CAPACITY
 // =====================================================
+// =====================================================
+// GET CAPACITY
+// =====================================================
 
 function getInstalledDcCapacity(buildingName) {
 
-    const key =
-        normalizeBuildingName(buildingName);
+    const key = normalizeBuildingName(buildingName);
 
-    const capacity =
-        capacityMap[key];
-
+    // Exact capacity match
     if (
-        capacity === undefined ||
-        capacity === null
+        capacityMap[key] !== undefined &&
+        capacityMap[key] !== null
     ) {
-
-        console.warn(
-            "⚠️ PGT CAPACITY NOT FOUND",
-            {
-                buildingName,
-                normalizedKey: key
-            }
-        );
-
-        return null;
+        return Number(capacityMap[key]);
     }
 
-    return Number(capacity);
+    // NNTPS DM PLANT
+    if (key.includes("NLCILNNTPSDMPLANT")) {
+
+        // Individual inverter capacity
+        if (
+            key.includes("INVERTER1") ||
+            key.includes("INV1") ||
+            key.includes("INVERTER2") ||
+            key.includes("INV2")
+        ) {
+            return 100.57;
+        }
+
+        // Combined DM Plant: Inverter 1 + Inverter 2
+        return 201.14;
+    }
+
+    // TPS2 CWPH STAGE 2
+    if (key.includes("NLCILTPS2CWPHSTAGE2")) {
+        return 203.40;
+    }
+
+    console.warn(
+        "⚠️ PGT CAPACITY NOT FOUND",
+        {
+            buildingName,
+            normalizedKey: key
+        }
+    );
+
+    return null;
 }
-
-
 // =====================================================
 // GET NLCIL BUILDING FROM DEYE STATION LIST
 // =====================================================
@@ -2015,6 +2033,9 @@ if (
                     inverterEnergyInterval:
                         inverterEnergyInterval,
 
+                        inverterPowerKw:
+    inverterRow.inverterPowerKw,
+
                     netMeterReading:
                         null,
 
@@ -2051,6 +2072,8 @@ if (
 
                     inverterEnergyInterval:
                         inverterEnergyInterval,
+                        inverterPowerKw:
+    inverterRow.inverterPowerKw,
 
                     netMeterReading:
                         null,
@@ -2299,18 +2322,20 @@ const totalPoaIrradiation =
             .toFixed(2)
     );
 
+        
         // =================================================
         // 10. INITIAL INVERTER ENERGY
+        // GET kW VALUE
         // =================================================
 
         const initialInverterEnergy =
             pgtStartRow &&
-            pgtStartRow.inverterEnergy !== null &&
-            pgtStartRow.inverterEnergy !== undefined
+            pgtStartRow.inverterPowerKw !== null &&
+            pgtStartRow.inverterPowerKw !== undefined
 
                 ? Number(
                     Number(
-                        pgtStartRow.inverterEnergy
+                        pgtStartRow.inverterPowerKw
                     ).toFixed(2)
                 )
 
@@ -2319,18 +2344,17 @@ const totalPoaIrradiation =
 
         // =================================================
         // 11. FINAL INVERTER ENERGY
-        //
-        // LAST VALID GHI/GII ROW
+        // GET kW VALUE
         // =================================================
 
         const finalInverterEnergy =
             pgtEndRow &&
-            pgtEndRow.inverterEnergy !== null &&
-            pgtEndRow.inverterEnergy !== undefined
+            pgtEndRow.inverterPowerKw !== null &&
+            pgtEndRow.inverterPowerKw !== undefined
 
                 ? Number(
                     Number(
-                        pgtEndRow.inverterEnergy
+                        pgtEndRow.inverterPowerKw
                     ).toFixed(2)
                 )
 
@@ -2355,8 +2379,7 @@ const totalPoaIrradiation =
 
         // =================================================
         // 13. REFERENCE YIELD
-        //
-        // TOTAL GII / 1000
+        // EXISTING CALCULATION
         // =================================================
 
         const referenceYield =
@@ -2374,8 +2397,7 @@ const totalPoaIrradiation =
 
         // =================================================
         // 14. TOTAL AC ENERGY GENERATED
-        //
-        // FINAL - INITIAL
+        // FINAL kW - INITIAL kW
         // =================================================
 
         const totalAcEnergyGenerated =
@@ -2390,6 +2412,7 @@ const totalPoaIrradiation =
                 )
 
                 : null;
+
 
 
         // =================================================
