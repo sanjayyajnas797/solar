@@ -42,7 +42,7 @@ const nodemailer = require("nodemailer");
 
 const EMAIL_FROM = "sanjayyajnas797@gmail.com";
 const EMAIL_PASSWORD = "agaibchhidrqazar";
-const ALERT_EMAIL_TO = "nagarajan@sias.co.in";
+const ALERT_EMAIL_TO = "sowndharyaselvam7@gmail.com;
 
 
 // =====================================================
