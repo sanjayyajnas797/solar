@@ -352,7 +352,7 @@ await Promise.all([
 
 
 // Start scheduler
-start15MinuteDatabaseScheduler();
+// start15MinuteDatabaseScheduler();
 
 
 // =====================================================
@@ -655,9 +655,7 @@ async function saveWeather(
     inclinedCumulative = 0
 ) {
 
-    if (irradiance <= 15) {
-        return;
-    }
+  
 
     try {
 
@@ -706,6 +704,43 @@ async function saveWeather(
         );
     }
 }
+
+
+ // =====================================================
+ // WEATHER DATABASE SAVE - MAXIMUM EVERY 2 SECONDS
+ // SAME EXISTING weather_logs TABLE
+ // =====================================================
+
+const lastWeatherDbSave = new Map();
+
+async function saveWeatherEvery2Seconds(campus) {
+
+    const memory = weatherCalculation[campus];
+
+    if (!memory || !memory.hasData) return;
+
+    const now = Date.now();
+    const lastSave = lastWeatherDbSave.get(campus) || 0;
+
+    if (now - lastSave < 2000) return;
+
+    // Prevent simultaneous duplicate inserts
+    lastWeatherDbSave.set(campus, now);
+
+    const hasInclined =
+        ["NUPPL", "BTPS", "NTPL"].includes(campus);
+
+    await saveWeather(
+        campus,
+        memory.latestIrradiance,
+        memory.latestTemperature,
+        memory.latestTimestamp,
+        memory.cumulativeEnergy,
+        hasInclined ? memory.latestInclinedIrradiance : 0,
+        hasInclined ? memory.inclinedCumulative : 0
+    );
+}
+
 function processWeather(
     campus,
     irradiance,
@@ -934,17 +969,7 @@ async function saveGII(
     // IMPORTANT
     // Don't store low/noise readings
 
-    if (
-        horizontal <= 15 ||
-        inclined <= 15
-    ) {
-
-        console.log(
-            `⏭️ GII Skip | H:${horizontal} I:${inclined}`
-        );
-
-        return;
-    }
+  
 
     try {
 
@@ -997,6 +1022,38 @@ VALUES
         );
     }
 }
+
+
+ // =====================================================
+ // GII DATABASE SAVE - MAXIMUM EVERY 2 SECONDS
+ // SAME EXISTING gii_weather_logs TABLE
+ // =====================================================
+
+let lastGIIDbSave = 0;
+
+async function saveGIIEvery2Seconds(
+    horizontal,
+    inclined,
+    temperature,
+    mqttTimestamp
+) {
+
+    const now = Date.now();
+
+    if (now - lastGIIDbSave < 2000) return;
+
+    lastGIIDbSave = now;
+
+    await saveGII(
+        horizontal,
+        inclined,
+        temperature,
+        mqttTimestamp,
+        giiCalculation.horizontalCumulative,
+        giiCalculation.inclinedCumulative
+    );
+}
+
 
 
 // =====================================================
@@ -1480,7 +1537,11 @@ processWeather(
 );
 
 
-
+// SAVE NLCIL AND NLCIC EVERY 2 SECONDS
+await Promise.all([
+    saveWeatherEvery2Seconds("NLCIL"),
+    saveWeatherEvery2Seconds("NLCIC")
+]);
    
 }
 if (topic === "nuppl/rx") {
@@ -1522,6 +1583,8 @@ if (topic === "nuppl/rx") {
             latestWeather.NUPPL.mqttTimestamp,
             latestWeather.NUPPL.inclinedIrradiance
         );
+
+        await saveWeatherEvery2Seconds("NUPPL");
 
     }
 
@@ -1594,7 +1657,7 @@ if (topic === "ntpl/rx") {
         latestWeather.NTPL.inclinedIrradiance
     );
 
-
+await saveWeatherEvery2Seconds("NTPL");
   
 
 }
@@ -1708,6 +1771,13 @@ if (topic === "library/rx") {
             giiBuffer.mqttTimestamp
         );
 
+        await saveGIIEvery2Seconds(
+    giiBuffer.horizontal,
+    giiBuffer.inclined,
+    giiBuffer.temperature,
+    giiBuffer.mqttTimestamp
+);
+
 
         // Clear pair buffer
         giiBuffer.horizontal = null;
@@ -1763,6 +1833,7 @@ if (topic === "rajashthan/rx") {
             latestWeather.BTPS.mqttTimestamp,
             latestWeather.BTPS.inclinedIrradiance
         );
+         await saveWeatherEvery2Seconds("BTPS");
 
     }
 

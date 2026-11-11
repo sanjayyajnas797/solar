@@ -501,17 +501,13 @@ const pgtEndTime =
 // FIND START INDEX
 // ---------------------------------------------------------
 
+
 const pgtStartIndex =
     reportData.findIndex(
         row =>
             normalizePgtTime(row.time) ===
             pgtStartTime
     );
-
-
-// ---------------------------------------------------------
-// FIND END INDEX
-// ---------------------------------------------------------
 
 const pgtEndIndex =
     reportData.findIndex(
@@ -655,11 +651,12 @@ const downloadExcel = async () => {
     { width: 13 },  // D GHI
     { width: 14 },  // E GII
     { width: 15 },  // F Module Temp
-    { width: 16 },  // G Inverter Energy kWh
-    { width: 16 },  // H Inverter Power kW
-    { width: 21 },  // I POA GHI
-    { width: 21 },  // J POA GII
-    { width: 14 }   // K Remarks
+    { width: 16 },  // G Inverter Energy
+    { width: 16 },  // H Inverter Power
+    { width: 16 },  // I Calculated kWh
+    { width: 21 },  // J POA GHI
+    { width: 21 },  // K POA GII
+    { width: 14 }   // L Remarks
 ];
 
      // =========================================================
@@ -1085,7 +1082,7 @@ worksheet.addImage(
 
 for (let row = 1; row <= 2; row++) {
 
-    for (let col = 1; col <= 10; col++) {
+   for (let col = 1; col <= 12; col++) {
 
         const cell =
             worksheet.getCell(row, col);
@@ -1145,7 +1142,7 @@ worksheet.getCell("F2").border = {
 // HEADER BOTTOM LINE - A:J ONLY
 // =====================================================
 
-for (let col = 1; col <= 10; col++) {
+for (let col = 1; col <= 12; col++) {
 
     worksheet.getCell(2, col).border = {
         bottom: {
@@ -1300,6 +1297,7 @@ dateCell.border = thinBorder;
     "Module\nTemp (°C)",
     "Inverter\nEnergy\n(kWh)",
     "Inverter\nPower\n(kW)",
+    "Calculated\nkWh",
     "POA GHI\nfor Interval\n(Wh/m²)",
     "POA GII\nfor Interval\n(Wh/m²)",
     "Remarks"
@@ -1398,19 +1396,14 @@ const pgtEndTime =
 // ---------------------------------------------------------
 
 const pgtStartIndex =
-    reportData.findIndex(
+    excelReportData.findIndex(
         row =>
             normalizeTimeForPgt(row.time) ===
             pgtStartTime
     );
 
-
-// ---------------------------------------------------------
-// FIND END DATA INDEX
-// ---------------------------------------------------------
-
 const pgtEndIndex =
-    reportData.findIndex(
+    excelReportData.findIndex(
         row =>
             normalizeTimeForPgt(row.time) ===
             pgtEndTime
@@ -1431,7 +1424,7 @@ const pgtEndExcelRow =
         ? dataStartRow + pgtEndIndex
         : null;
 
-        reportData.forEach((row, index) => {
+        excelReportData.forEach((row, index) => {
 
             const excelRow =
                 dataStartRow + index;
@@ -1513,6 +1506,36 @@ current.getCell(8).value =
         ? Number(row.inverterPowerKw)
         : "-";
 
+
+ 
+// -----------------------------------------------------
+// CALCULATED kWh
+// EXCEL FORMULA
+// ((CURRENT INVERTER POWER + NEXT INVERTER POWER) / 2) * 0.25
+// -----------------------------------------------------
+
+if (
+    index < excelReportData.length - 1 &&
+    row.inverterPowerKw !== null &&
+    row.inverterPowerKw !== undefined &&
+    excelReportData[index + 1].inverterPowerKw !== null &&
+    excelReportData[index + 1].inverterPowerKw !== undefined
+) {
+    current.getCell(9).value = {
+        formula:
+            `((H${excelRow}+H${excelRow + 1})/2)*0.25`,
+        result:
+            row.calculatedKwh !== null &&
+            row.calculatedKwh !== undefined
+                ? Number(row.calculatedKwh)
+                : 0
+    };
+} else {
+    current.getCell(9).value = "-";
+}
+
+current.getCell(9).numFmt = "0.00";
+
             // -----------------------------------------------------
             // INVERTER INTERVAL
             //
@@ -1531,7 +1554,7 @@ if (
     row.ghiIrradiationInterval !== undefined
 ) {
 
-   current.getCell(9).value = {
+   current.getCell(10).value = {
         formula:
             `((D${excelRow}+D${excelRow + 1})/2)*0.25`,
         result:
@@ -1540,7 +1563,7 @@ if (
 
 } else {
 
-    current.getCell(9).value = "-";
+    current.getCell(10).value = "-";
 
 }
 
@@ -1556,7 +1579,7 @@ if (
     row.giiIrradiationInterval !== undefined
 ) {
 
-    current.getCell(10).value = {
+    current.getCell(11).value = {
         formula:
             `((E${excelRow}+E${excelRow + 1})/2)*0.25`,
         result:
@@ -1565,14 +1588,14 @@ if (
 
 } else {
 
-    current.getCell(10).value = "-";
+    current.getCell(11).value = "-";
 
 }
 // -----------------------------------------------------
 // REMARKS
 // -----------------------------------------------------
 
-current.getCell(11).value = "-";
+current.getCell(12).value = "-";
 
             // -----------------------------------------------------
             // STYLE
@@ -1758,8 +1781,8 @@ current.height = 22;
         // TOTAL ROW
         // =========================================================
 
-        const totalRow =
-            dataStartRow + reportData.length;
+     const totalRow =
+    dataStartRow + excelReportData.length;
 
         // Merge A:F for Total label
   worksheet.mergeCells(
@@ -1785,34 +1808,45 @@ current.height = 22;
             vertical: "middle"
         };
 
-      
-
- // TOTAL POA GHI - I COLUMN
-worksheet.getCell(totalRow, 9).value = {
-    formula:
-        pgtStartExcelRow !== null &&
-        pgtEndExcelRow !== null
-            ? `SUM(I${pgtStartExcelRow}:I${pgtEndExcelRow})`
-            : "0",
-    result: Number(totalPoaGhi)
+        worksheet.getCell(totalRow, 9).value = {
+    formula: `SUM(I${dataStartRow}:I${dataStartRow + excelReportData.length - 1})`,
+    result: excelReportData.reduce(
+        (sum, row) =>
+            sum + (
+                row.calculatedKwh != null
+                    ? Number(row.calculatedKwh)
+                    : 0
+            ),
+        0
+    )
 };
-
-// TOTAL POA GII - J COLUMN
+      
+// TOTAL POA GHI - J COLUMN
 worksheet.getCell(totalRow, 10).value = {
     formula:
         pgtStartExcelRow !== null &&
         pgtEndExcelRow !== null
             ? `SUM(J${pgtStartExcelRow}:J${pgtEndExcelRow})`
             : "0",
+    result: Number(totalPoaGhi)
+};
+
+// TOTAL POA GII - K COLUMN
+worksheet.getCell(totalRow, 11).value = {
+    formula:
+        pgtStartExcelRow !== null &&
+        pgtEndExcelRow !== null
+            ? `SUM(K${pgtStartExcelRow}:K${pgtEndExcelRow})`
+            : "0",
     result: Number(totalPoaGii)
 };
 
-// REMARKS - K COLUMN
-worksheet.getCell(totalRow, 11).value = "-";
+// REMARKS - L COLUMN
+worksheet.getCell(totalRow, 12).value = "-";
 
 
         // Style total row
-       for (let col = 1; col <= 10; col++) {
+      for (let col = 1; col <= 12; col++){
 
             const cell =
                 worksheet.getCell(
@@ -2511,23 +2545,37 @@ if (endExcelRow !== null) {
 }
 
 
-// -----------------------------------------------------
-// TOTAL AC ENERGY GENERATED
-// FINAL - INITIAL
-// -----------------------------------------------------
 
-worksheet.getCell(
+// TOTAL AC ENERGY GENERATED
+// EXCEL FORMULA - SUM OF PGT CALCULATED kWh
+// START ROW TO END ROW - 1
+
+const totalAcCell = worksheet.getCell(
     totalAcRow,
     10
-).value = {
-    formula:
-        `J${finalEnergyRow}-J${initialEnergyRow}`,
-    result:
-        totalAC !== null &&
-        totalAC !== undefined
-            ? Number(totalAC)
-            : 0
-};
+);
+
+if (
+    pgtStartExcelRow !== null &&
+    pgtEndExcelRow !== null &&
+    pgtEndExcelRow > pgtStartExcelRow
+) {
+    totalAcCell.value = {
+        formula:
+            `SUM(I${pgtStartExcelRow}:I${pgtEndExcelRow - 1})`,
+        result:
+            totalAC !== null &&
+            totalAC !== undefined
+                ? Number(totalAC)
+                : 0
+    };
+} else {
+    totalAcCell.value = 0;
+}
+
+totalAcCell.numFmt = "0.00";
+
+
 
 
 // -----------------------------------------------------
@@ -2638,7 +2686,7 @@ worksheet.getCell(
 
             for (
     let col = 1;
-    col <= 10;
+    col <= 12;
     col++
 ) {
 
@@ -3266,6 +3314,12 @@ link.download =
     Power (kW)
 </th>
 
+<th>
+    Calculated
+    <br />
+    kWh
+</th>
+
         <th>
             POA GHI
             <br />
@@ -3369,6 +3423,15 @@ link.download =
     {row.inverterPowerKw !== null &&
      row.inverterPowerKw !== undefined
         ? row.inverterPowerKw
+        : "-"
+    }
+</td>
+
+{/* CALCULATED KWH */}
+<td>
+    {row.calculatedKwh !== null &&
+     row.calculatedKwh !== undefined
+        ? Number(row.calculatedKwh).toFixed(2)
         : "-"
     }
 </td>

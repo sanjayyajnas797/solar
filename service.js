@@ -2198,6 +2198,62 @@ if (
         }
 
 
+
+// =====================================================
+// CALCULATED ENERGY (kWh)
+// EXCEL FORMULA:
+// ((CURRENT kW + NEXT kW) / 2) * 0.25
+// =====================================================
+
+for (let i = 0; i < report.length; i++) {
+
+    const currentPower =
+        report[i].inverterPowerKw;
+
+    const nextPower =
+        report[i + 1]?.inverterPowerKw;
+
+    // LAST ROW OR MISSING POWER DATA
+    if (
+        i === report.length - 1 ||
+        currentPower === null ||
+        currentPower === undefined ||
+        nextPower === null ||
+        nextPower === undefined
+    ) {
+
+        report[i].calculatedKwh = null;
+
+        continue;
+    }
+
+    const currentKw =
+        Number(currentPower);
+
+    const nextKw =
+        Number(nextPower);
+
+    if (
+        !Number.isFinite(currentKw) ||
+        !Number.isFinite(nextKw)
+    ) {
+
+        report[i].calculatedKwh = null;
+
+        continue;
+    }
+
+    // 15 MINUTE ENERGY CALCULATION
+    report[i].calculatedKwh =
+        Number(
+            (
+                ((currentKw + nextKw) / 2) * 0.25
+            ).toFixed(2)
+        );
+
+}
+
+
         // =================================================
         // 6. TOTAL INVERTER ENERGY INTERVAL
         // =================================================
@@ -2395,23 +2451,27 @@ const totalPoaIrradiation =
                 : null;
 
 
-        // =================================================
-        // 14. TOTAL AC ENERGY GENERATED
-        // FINAL kW - INITIAL kW
-        // =================================================
+        
+// =====================================================
+// TOTAL AC ENERGY GENERATED
+// SUM OF CALCULATED kWh
+// ONLY FROM GHI > 750 TO 3 HOURS
+// =====================================================
 
-        const totalAcEnergyGenerated =
-            initialInverterEnergy !== null &&
-            finalInverterEnergy !== null
+const totalAcEnergyGenerated =
+    pgtEndIndex > pgtStartIndex
+        ? Number(
+            pgtIrradiationRows.reduce(
+                (sum, row) => {
+                    const value = Number(row.calculatedKwh);
 
-                ? Number(
-                    (
-                        finalInverterEnergy -
-                        initialInverterEnergy
-                    ).toFixed(2)
-                )
-
-                : null;
+                    return sum +
+                        (Number.isFinite(value) ? value : 0);
+                },
+                0
+            ).toFixed(2)
+        )
+        : null;
 
 
 
