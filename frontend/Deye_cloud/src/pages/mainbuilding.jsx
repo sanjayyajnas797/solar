@@ -484,17 +484,8 @@ path:"/btps"
 
 
 
-const w = {};
-
-for(const c of list){
-  w[c.name] = await fetchWeather(c.name);
-}
-w.LIBRARY = await fetchWeather("LIBRARY");
-setWeatherData(w);
 setCampusList(list);
-
 localStorage.setItem("campusCache", JSON.stringify(list));
-localStorage.setItem("weatherCache", JSON.stringify(w));
 setUpdateTime(
   new Date().toLocaleTimeString("en-IN",{
     hour:"2-digit",
@@ -1044,7 +1035,8 @@ d="M0 20 Q 25 10 50 20 T 100 20 T 150 20 T 200 20 T 250 20 T 300 20 T 350 20 T 4
 </div>
 </div>
 </div>
-{(c.name === "NUPPL" ||
+{(c.name === "NLCIL" ||
+  c.name === "NUPPL" ||
   c.name === "BTPS" ||
   c.name === "NTPL") && (
     <div className="weather-row">

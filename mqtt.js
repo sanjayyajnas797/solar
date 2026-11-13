@@ -6,12 +6,13 @@ const db = require("./db");
 // =====================================================
 const latestWeather = {
 
-    NLCIL: {
-        irradiance: 0,
-        temperature: 0,
-        mqttTimestamp: null,
-        lastUpdate: 0
-    },
+  NLCIL: {
+    irradiance: 0,
+    inclinedIrradiance: 0,
+    temperature: 0,
+    mqttTimestamp: null,
+    lastUpdate: 0
+},
 
     NLCIC: {
         irradiance: 0,
@@ -59,6 +60,21 @@ let giiBuffer = {
     horizontal: null,
     inclined: null,
     temperature: null,
+    mqttTimestamp: null
+};
+
+// =====================================================
+// TEST/RX SENSOR PAIR BUFFER
+// =====================================================
+
+const testRxBuffer = {
+    horizontal: null,
+    temperature: null,
+    inclined: null,
+
+    horizontalReady: false,
+    inclinedReady: false,
+
     mqttTimestamp: null
 };
 
@@ -496,10 +512,11 @@ async function loadCumulativeFromDatabase() {
                 // =============================================
 
                 if (
-                    campus === "NUPPL" ||
-                    campus === "BTPS" ||
-                    campus === "NTPL"
-                ) {
+    campus === "NLCIL" ||
+    campus === "NUPPL" ||
+    campus === "BTPS" ||
+    campus === "NTPL"
+) {
 
                     memory.inclinedCumulative = 0;
                     memory.inclinedIntervalEnergy = 0;
@@ -580,12 +597,12 @@ async function loadCumulativeFromDatabase() {
             // INCLINED DATA
             // =====================================================
 
-            if (
-                campus === "NUPPL" ||
-                campus === "BTPS" ||
-                campus === "NTPL"
-            ) {
-
+           if (
+    campus === "NLCIL" ||
+    campus === "NUPPL" ||
+    campus === "BTPS" ||
+    campus === "NTPL"
+) {
                 // =============================================
                 // RESTORE MAX INCLINED CUMULATIVE
                 // =============================================
@@ -766,6 +783,7 @@ if (incomingDateKey !== todayDateKey) {
 
        // Inclined irradiance reset
 if (
+     campus === "NLCIL" ||
     campus === "NUPPL" ||
     campus === "BTPS" ||
     campus === "NTPL"
@@ -797,6 +815,7 @@ if (
         memory.previousIrradiance = irradiance;
 
        if (
+         campus === "NLCIL" ||
     campus === "NUPPL" ||
     campus === "BTPS" ||
     campus === "NTPL"
@@ -872,6 +891,7 @@ if (
     // SAME AS GII FORMULA
     // =========================================
 if (
+     campus === "NLCIL" ||
     campus === "NUPPL" ||
     campus === "BTPS" ||
     campus === "NTPL"
@@ -1316,21 +1336,17 @@ async function saveWeather15Minute(campus, saveTime) {
 
     const irradiance = memory.latestIrradiance;
     const temperature = memory.latestTemperature;
+const hasInclined =
+    campus === "NLCIL" ||
+    campus === "NUPPL" ||
+    campus === "BTPS" ||
+    campus === "NTPL";
 
 const inclinedIrradiance =
-    campus === "NUPPL" ||
-    campus === "BTPS" ||
-    campus === "NTPL"
-        ? memory.latestInclinedIrradiance
-        : 0;
+    hasInclined ? memory.latestInclinedIrradiance : 0;
 
 const inclinedCumulative =
-    campus === "NUPPL" ||
-    campus === "BTPS" ||
-    campus === "NTPL"
-        ? memory.inclinedCumulative
-        : 0;
-
+    hasInclined ? memory.inclinedCumulative : 0;
     try {
 
         await saveWeather(
@@ -1347,11 +1363,7 @@ const inclinedCumulative =
         memory.intervalEnergy = 0;
 
         // NUPPL inclined interval reset
-     if (
-    campus === "NUPPL" ||
-    campus === "BTPS" ||
-    campus === "NTPL"
-) {
+   if (hasInclined) {
     memory.inclinedIntervalEnergy = 0;
 }
 
@@ -1415,67 +1427,119 @@ client.on("message", async (topic, message) => {
             new Date();
 
 
-        if (topic === "test/rx") {
+// =====================================================
+// TEST/RX - NLCIL + NLCIC
+//
+// ttyCOM1_1:
+// Param_1 -> Horizontal Irradiance
+// Param_2 -> Temperature
+//
+// ttyCOM1_2:
+// Param_3 -> Inclined Irradiance
+// =====================================================
 
-    const weather = {
+if (topic === "test/rx") {
 
-        irradiance:
-            Number(status.Pyranometer) || 0,
+    const subDeviceId =
+        data.payload?.[0]?.subDeviceId;
 
-        temperature:
-            (
-                Number(
-                    status.Module_temperature ||
-                    status.Module_temp ||
-                    0
-                )
-            ) / 10,
+    // -----------------------------------------
+    // HORIZONTAL SENSOR
+    // -----------------------------------------
 
-        mqttTimestamp:
-            mqttTimestamp,
+    if (subDeviceId === "ttyCOM1_1") {
 
-        lastUpdate:
-            Date.now()
-    };
+        const horizontal = Number(status.Param_1);
+        const temperature = Number(status.Param_2) / 10;
 
+        if (
+            !Number.isFinite(horizontal) ||
+            !Number.isFinite(temperature)
+        ) {
+            console.log("TEST/RX INVALID HORIZONTAL DATA");
+            return;
+        }
 
-    // =========================================
-    // LIVE MEMORY
-    // =========================================
+        testRxBuffer.horizontal = horizontal;
+        testRxBuffer.temperature = temperature;
+        testRxBuffer.horizontalReady = true;
+        testRxBuffer.mqttTimestamp = mqttTimestamp;
+    }
 
-    latestWeather.NLCIL = {
-        ...weather
-    };
+    // -----------------------------------------
+    // INCLINED SENSOR
+    // -----------------------------------------
 
-    latestWeather.NLCIC = {
-        ...weather
-    };
+    if (subDeviceId === "ttyCOM1_2") {
 
-    latestWeather.NTPL = {
-        ...weather
-    };
+        const inclined = Number(status.Param_3);
 
-    // =========================================
-// 10-SEC MEMORY CALCULATION
-// =========================================
+        if (!Number.isFinite(inclined)) {
+            console.log("TEST/RX INVALID INCLINED DATA");
+            return;
+        }
 
-processWeather(
-    "NLCIL",
-    weather.irradiance,
-    weather.temperature,
-    weather.mqttTimestamp
-);
+        testRxBuffer.inclined = inclined;
+        testRxBuffer.inclinedReady = true;
+        testRxBuffer.mqttTimestamp = mqttTimestamp;
+    }
 
-processWeather(
-    "NLCIC",
-    weather.irradiance,
-    weather.temperature,
-    weather.mqttTimestamp
-);
+    // -----------------------------------------
+    // WAIT UNTIL BOTH SENSOR DATA ARE AVAILABLE
+    // -----------------------------------------
 
+    if (
+        testRxBuffer.horizontalReady &&
+        testRxBuffer.inclinedReady
+    ) {
 
+        const weather = {
+            irradiance: testRxBuffer.horizontal,
+            temperature: testRxBuffer.temperature,
+            inclinedIrradiance: testRxBuffer.inclined,
+            mqttTimestamp: testRxBuffer.mqttTimestamp,
+            lastUpdate: Date.now()
+        };
 
-   
+        // -------------------------------------
+        // LIVE WEATHER UPDATE
+        // -------------------------------------
+
+        latestWeather.NLCIL = { ...weather };
+        latestWeather.NLCIC = { ...weather };
+
+        // -------------------------------------
+        // NLCIL CALCULATION
+        // -------------------------------------
+
+        processWeather(
+            "NLCIL",
+            weather.irradiance,
+            weather.temperature,
+            weather.mqttTimestamp,
+            weather.inclinedIrradiance
+        );
+
+        // -------------------------------------
+        // NLCIC CALCULATION
+        // -------------------------------------
+
+        processWeather(
+            "NLCIC",
+            weather.irradiance,
+            weather.temperature,
+            weather.mqttTimestamp,
+            weather.inclinedIrradiance
+        );
+
+      
+        // -------------------------------------
+        // RESET PAIR FLAGS
+        // -------------------------------------
+
+        testRxBuffer.horizontalReady = false;
+        testRxBuffer.inclinedReady = false;
+    }
 }
 if (topic === "nuppl/rx") {
 
