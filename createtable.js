@@ -3,7 +3,7 @@ const db = require("./db");
 
 async function checkLibraryGII() {
     try {
-        const selectedDate = "2026-11-11";
+        const selectedDate = "2026-11-12";
 
         console.log("\n");
         console.log("==============================================================");
