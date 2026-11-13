@@ -9209,6 +9209,91 @@ finalBuildings.sort(
 
 }
 
+
+
+async function getInverterHistoryForDate(stationId, date) {
+
+    const devices = await getDevices(stationId);
+
+    const inverters = devices.filter(d =>
+        d.deviceType === "INVERTER" ||
+        d.deviceType === "INV" ||
+        d.deviceType === 1
+    );
+
+    const results = await Promise.all(
+        inverters.map(async (inv, index) => {
+
+            const response = await api(
+                "/v1.0/device/history",
+                {
+                    deviceSn: String(inv.deviceSn),
+                    startAt: date,
+                    endAt: date,
+                    granularity: 1,
+                    measurePoints: [
+                        "DailyActiveProduction",
+                        "TotalActiveACOutputPower"
+                    ]
+                }
+            );
+
+            return (response.dataList || []).map(item => {
+
+                const timestamp = Number(item.time);
+
+                // Deye history timestamp -> IST
+                const istDate = new Date(
+                    timestamp * 1000 + 5.5 * 60 * 60 * 1000
+                );
+
+                const datePart = istDate.toISOString().slice(0, 10);
+                const hours = String(istDate.getUTCHours()).padStart(2, "0");
+                const minutes = String(istDate.getUTCMinutes()).padStart(2, "0");
+                const seconds = String(istDate.getUTCSeconds()).padStart(2, "0");
+
+                const time = `${hours}:${minutes}:${seconds}`;
+
+                // Only selected date, 10 AM to 5 PM
+                if (
+                    datePart !== date ||
+                    time < "10:00:00" ||
+                    time > "17:00:00"
+                ) {
+                    return null;
+                }
+
+                const energy = Number(
+                    item.itemList?.find(
+                        x => x.key === "DailyActiveProduction"
+                    )?.value ?? 0
+                );
+
+                const powerW = Number(
+                    item.itemList?.find(
+                        x => x.key === "TotalActiveACOutputPower"
+                    )?.value ?? 0
+                );
+
+                return {
+                    date: datePart,
+                    time,
+                    inverterName: `INV-${index + 1}`,
+                    deviceSn: String(inv.deviceSn),
+                    inverterEnergyKwh: energy,
+                    inverterPowerKw: Number((powerW / 1000).toFixed(3))
+                };
+            });
+        })
+    );
+
+    return results.flat().filter(Boolean).sort(
+        (a, b) =>
+            a.time.localeCompare(b.time) ||
+            a.inverterName.localeCompare(b.inverterName)
+    );
+}
+
 // ================= EXPORT =================
 
 module.exports={
@@ -9234,6 +9319,7 @@ getGraph,
 getBTPSPgtStations,
 getBTPSPgtSummary,
 getAllNLCILPgtStations,
+getInverterHistoryForDate,
 
 getNTPLPgtStations,
 getNTPLPgtReport

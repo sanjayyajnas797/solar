@@ -2486,15 +2486,25 @@ if (
             10
         );
 
-    referenceYieldCell.value = {
-        formula:
-          `SUM(J${startExcelRow}:J${endExcelRow})/1000`,
-        result:
-            referenceYield !== null &&
-            referenceYield !== undefined
-                ? Number(referenceYield)
-                : 0
-    };
+
+referenceYieldCell.value = {
+    formula:
+        `SUM(K${pgtStartExcelRow}:K${pgtEndExcelRow})/1000`,
+
+    result:
+        excelReportData
+            .slice(pgtStartIndex, pgtEndIndex + 1)
+            .reduce(
+                (sum, row) =>
+                    sum + (
+                        row.giiIrradiationInterval != null
+                            ? Number(row.giiIrradiationInterval)
+                            : 0
+                    ),
+                0
+            ) / 1000
+};
+
 
     // Display only 2 decimal places
     referenceYieldCell.numFmt = "0.00";
@@ -2561,13 +2571,22 @@ if (
     pgtEndExcelRow > pgtStartExcelRow
 ) {
     totalAcCell.value = {
-        formula:
-            `SUM(I${pgtStartExcelRow}:I${pgtEndExcelRow - 1})`,
-        result:
-            totalAC !== null &&
-            totalAC !== undefined
-                ? Number(totalAC)
-                : 0
+      formula:
+    `SUM(I${pgtStartExcelRow}:I${pgtEndExcelRow})`,
+
+result:
+    excelReportData
+        .slice(pgtStartIndex, pgtEndIndex + 1)
+        .reduce(
+            (sum, row) =>
+                sum + (
+                    row.calculatedKwh !== null &&
+                    row.calculatedKwh !== undefined
+                        ? Number(row.calculatedKwh)
+                        : 0
+                ),
+            0
+        )
     };
 } else {
     totalAcCell.value = 0;
