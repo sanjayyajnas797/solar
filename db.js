@@ -11,7 +11,7 @@ const pool = new Pool({
   },
 });
 
-// 👇 இதை add பண்ணு
+
 pool.on("connect", async (client) => {
     await client.query("SET TIME ZONE 'Asia/Kolkata'");
     console.log("Timezone set to Asia/Kolkata");
