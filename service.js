@@ -1437,23 +1437,40 @@ function normalizeBuildingName(name = "") {
 }
 
 
+const testRxBuildingKeys = new Set([
+    "NLCILTPS2CWPHSTAGE2INV1",
+    "NLCILTPS2CWPHSTAGE2INV2",
+    "NLCILTPS2CANTEENBUILDING",
+    "NLCILTPS1EXPCANTEEN",
+    "NLCILTPS2AOBUILDING",
+    "NLCILTPS2SWITCHYARDBUILDINGINV1",
+    "NLCILTPS2SWITCHYARDBUILDINGINV2",
+    "NLCILTPS2EXPAOBUILDING",
+    "NLCILTPS2EXPSCREENHOUSEA",
+    "NLCILTPS2EXPSCREENHOUSEB",
+    "NLCILTPS2EXPSWITCHYARD40KW",
+    "NLCILTPS2EXPASHHANDLING"
+]);
+
+
+
 const capacityMap = {
 
     "NLCILLIBRARY50KWONGRID": 50.85,
 
     "NLCILEDUCATIONOFFICE": 23.73,
 
-    "NLCILLDCMAINBUILDINGINV225KW": 145.77,
+     "NLCILLDCMAINBUILDINGINV2":72.5,
 
-    "NLCILLDCMAINBULIDINGINV1": 145.77,
+    "NLCILLDCMAINBULIDINGINV1": 72.5,
 
-    "NLCILGIRLSHIGHSCHOOLINV1": 250.86,
+    "NLCILGIRLSHIGHSCHOOLINV1": 125.43,
 
-    "NLCILGIRLSHIGHSCHOOLINV2": 250.86,
+    "NLCILGIRLSHIGHSCHOOLINV2": 125.43,
 
-    "NLCILBOYSHIGHSCHOOLINV1": 250.86,
+    "NLCILBOYSHIGHSCHOOLINV1": 125.43,
 
-    "NLCILBOYSHIGHSCHOOLINV2": 250.86,
+    "NLCILBOYSHIGHSCHOOLINV2": 125.43,
 
     "NLCILTPS2EXPSWITCHYARD40KW": 36.13,
 
@@ -1484,7 +1501,12 @@ const capacityMap = {
    "NLCILNNTPSWCTPSTORE":10.17,
   "NLCILTPS2CANTEENBUILDING": 81.36,
    "NLCILTPS2AOBUILDING":76.84,
-   "NLCILTPS2CWPHSTAGE2":203.40,
+   "NLCILTPS2CWPHSTAGE2INV1":101.7,
+   "NLCILTPS2CWPHSTAGE2INV2":101.7,
+   "NLCILNNTPSDMPLANTINV1":96.05,
+   "NLCILNNTPSDMPLANTINV2":96.05,
+  
+   "NLCILTPS2EXPAOBUILDING":79.10,
 };
 
 // =====================================================
@@ -1789,36 +1811,73 @@ if (
         // SAME WEATHER DATA FOR ALL NLCIL BUILDINGS
         // =================================================
 
-        const { rows } =
-            await db.query(
-                `
-                SELECT
+       
+const useTestRx =
+    testRxBuildingKeys.has(
+        normalizeBuildingName(buildingName)
+    );
 
-                    to_char(
-                        created_at
-                            AT TIME ZONE 'Asia/Kolkata',
-                        'YYYY-MM-DD HH24:MI:SS'
-                    ) AS time,
+const weatherResult = useTestRx
+    ? await db.query(
+        `
+        SELECT
+            to_char(
+                to_timestamp(mqtt_timestamp / 1000.0)
+                    AT TIME ZONE 'Asia/Kolkata',
+                'YYYY-MM-DD HH24:MI:SS'
+            ) AS time,
 
-                    horizontal_irradiance,
+            irradiance AS horizontal_irradiance,
+            inclined_irradiance,
+            temperature,
+            inclined_cumulative
 
-                    inclined_irradiance,
+        FROM weather_logs
 
-                    temperature,
+        WHERE UPPER(TRIM(campus)) = 'NLCIL'
+          AND DATE(
+              to_timestamp(mqtt_timestamp / 1000.0)
+                  AT TIME ZONE 'Asia/Kolkata'
+          ) = $1::date
 
-                    inclined_cumulative
+        ORDER BY mqtt_timestamp ASC;
+        `,
+        [date]
+    )
+    : await db.query(
+        `
+        SELECT
+            to_char(
+                created_at
+                    AT TIME ZONE 'Asia/Kolkata',
+                'YYYY-MM-DD HH24:MI:SS'
+            ) AS time,
 
-                FROM gii_weather_logs
+            horizontal_irradiance,
+            inclined_irradiance,
+            temperature,
+            inclined_cumulative
 
-                WHERE DATE(
-                    created_at
-                        AT TIME ZONE 'Asia/Kolkata'
-                ) = $1::date
+        FROM gii_weather_logs
 
-                ORDER BY created_at ASC;
-                `,
-                [date]
-            );
+        WHERE DATE(
+            created_at
+                AT TIME ZONE 'Asia/Kolkata'
+        ) = $1::date
+
+        ORDER BY created_at ASC;
+        `,
+        [date]
+    );
+
+const { rows } = weatherResult;
+
+console.log(
+    "PGT WEATHER SOURCE:",
+    buildingName,
+    useTestRx ? "TEST/RX" : "LIBRARY/RX"
+);
+
 
 
         // =================================================
@@ -2378,44 +2437,36 @@ const totalPoaIrradiation =
             .toFixed(2)
     );
 
-        
-        // =================================================
-        // 10. INITIAL INVERTER ENERGY
-        // GET kW VALUE
-        // =================================================
+      // =================================================
+// INITIAL INVERTER ENERGY
+// GHI FIRST CROSSES 750
+// GET CUMULATIVE kWh
+// =================================================
 
-        const initialInverterEnergy =
-            pgtStartRow &&
-            pgtStartRow.inverterPowerKw !== null &&
-            pgtStartRow.inverterPowerKw !== undefined
-
-                ? Number(
-                    Number(
-                        pgtStartRow.inverterPowerKw
-                    ).toFixed(2)
-                )
-
-                : null;
+const initialInverterEnergy =
+    pgtStartRow &&
+    pgtStartRow.inverterEnergy !== null &&
+    pgtStartRow.inverterEnergy !== undefined
+        ? Number(
+            Number(pgtStartRow.inverterEnergy).toFixed(2)
+        )
+        : null;
 
 
-        // =================================================
-        // 11. FINAL INVERTER ENERGY
-        // GET kW VALUE
-        // =================================================
+// =================================================
+// FINAL INVERTER ENERGY
+// PGT TEST END TIME
+// GET CUMULATIVE kWh
+// =================================================
 
-        const finalInverterEnergy =
-            pgtEndRow &&
-            pgtEndRow.inverterPowerKw !== null &&
-            pgtEndRow.inverterPowerKw !== undefined
-
-                ? Number(
-                    Number(
-                        pgtEndRow.inverterPowerKw
-                    ).toFixed(2)
-                )
-
-                : null;
-
+const finalInverterEnergy =
+    pgtEndRow &&
+    pgtEndRow.inverterEnergy !== null &&
+    pgtEndRow.inverterEnergy !== undefined
+        ? Number(
+            Number(pgtEndRow.inverterEnergy).toFixed(2)
+        )
+        : null;
 
         // =================================================
         // 12. START / END DATETIME
@@ -2454,21 +2505,16 @@ const totalPoaIrradiation =
         
 // =====================================================
 // TOTAL AC ENERGY GENERATED
-// SUM OF CALCULATED kWh
-// ONLY FROM GHI > 750 TO 3 HOURS
+// FINAL INVERTER ENERGY - INITIAL INVERTER ENERGY
 // =====================================================
 
 const totalAcEnergyGenerated =
-    pgtEndIndex > pgtStartIndex
+    initialInverterEnergy !== null &&
+    finalInverterEnergy !== null
         ? Number(
-            pgtIrradiationRows.reduce(
-                (sum, row) => {
-                    const value = Number(row.calculatedKwh);
-
-                    return sum +
-                        (Number.isFinite(value) ? value : 0);
-                },
-                0
+            (
+                finalInverterEnergy -
+                initialInverterEnergy
             ).toFixed(2)
         )
         : null;
@@ -3165,113 +3211,44 @@ const totalNUPPLInstalledDcCapacity =
             );
 
 
-        // =================================================
-        // 3. COMBINE ALL NUPPL INVERTERS
-        // =================================================
-        //
-        // Same timestamp from all NUPPL buildings
-        // will be summed.
-        //
-        // Example:
-        //
-        // Block-1   10.25 kWh
-        // Block-2   11.10 kWh
-        // Block-3    9.80 kWh
-        // ...
-        //
-        // NUPPL TOTAL = sum
-        //
-        // =================================================
+const combinedTimeMap = {};
 
-        const combinedTimeMap = {};
+for (const stationReport of stationReports) {
+    for (const row of stationReport.data) {
+        if (!row || !row.time) continue;
 
+        const time = String(row.time).substring(0, 5);
 
-        for (
-            const stationReport
-            of stationReports
-        ) {
+        if (time < fromTime || time > toTime) continue;
 
-            for (
-                const row
-                of stationReport.data
-            ) {
+        const energy = Number(row.inverterEnergy);
+        const power = Number(row.inverterPowerKw);
 
-                if (
-                    !row ||
-                    !row.time
-                ) {
-                    continue;
-                }
+        if (!Number.isFinite(energy)) continue;
 
-
-                const time =
-                    String(row.time)
-                        .substring(0, 5);
-
-
-                // Only selected time range
-                if (
-                    time < fromTime ||
-                    time > toTime
-                ) {
-                    continue;
-                }
-
-
-                const energy =
-                    Number(
-                        row.inverterEnergy
-                    );
-
-
-                if (
-                    !Number.isFinite(
-                        energy
-                    )
-                ) {
-                    continue;
-                }
-
-
-                if (
-                    !combinedTimeMap[time]
-                ) {
-                    combinedTimeMap[time] = 0;
-                }
-
-
-                combinedTimeMap[time] +=
-                    energy;
-
-            }
-
+        if (!combinedTimeMap[time]) {
+            combinedTimeMap[time] = {
+                energy: 0,
+                power: 0
+            };
         }
 
+        combinedTimeMap[time].energy += energy;
 
-        // =================================================
-        // 4. SORT COMBINED INVERTER DATA
-        // =================================================
+        if (Number.isFinite(power)) {
+            combinedTimeMap[time].power += power;
+        }
+    }
+}
 
-        const combinedInverterData =
-            Object.keys(
-                combinedTimeMap
-            )
-                .sort()
-                .map(time => ({
+const combinedInverterData = Object.keys(combinedTimeMap)
+    .sort()
+    .map(time => ({
+        time: `${date} ${time}:00`,
+        inverterEnergy: Number(combinedTimeMap[time].energy.toFixed(2)),
+        inverterPowerKw: Number(combinedTimeMap[time].power.toFixed(2))
+    }));
 
-                    time:
-                        `${date} ${time}:00`,
-
-                    inverterEnergy:
-                        Number(
-                            combinedTimeMap[time]
-                        .toFixed(2)
-                        )
-
-                }));
-
-
-      
 
         // =================================================
         // 5. GET NUPPL WEATHER DATA
@@ -3504,6 +3481,8 @@ const totalNUPPLInstalledDcCapacity =
 
                     inverterEnergy:
                         inverterRow.inverterEnergy,
+                        inverterPowerKw:
+    inverterRow.inverterPowerKw,
 
                     inverterEnergyInterval:
                         null,
@@ -3721,6 +3700,50 @@ const totalNUPPLInstalledDcCapacity =
                 null;
 
         }
+
+// =====================================================
+// CALCULATED ENERGY (kWh)
+// SAME AS NLCIL
+// ((CURRENT kW + NEXT kW) / 2) * 0.25
+// =====================================================
+
+for (let i = 0; i < report.length; i++) {
+
+    const currentPower =
+        report[i].inverterPowerKw;
+
+    const nextPower =
+        report[i + 1]?.inverterPowerKw;
+
+    if (
+        i === report.length - 1 ||
+        currentPower === null ||
+        currentPower === undefined ||
+        nextPower === null ||
+        nextPower === undefined
+    ) {
+        report[i].calculatedKwh = null;
+        continue;
+    }
+
+    const currentKw = Number(currentPower);
+    const nextKw = Number(nextPower);
+
+    if (
+        !Number.isFinite(currentKw) ||
+        !Number.isFinite(nextKw)
+    ) {
+        report[i].calculatedKwh = null;
+        continue;
+    }
+
+    report[i].calculatedKwh =
+        Number(
+            (
+                ((currentKw + nextKw) / 2) * 0.25
+            ).toFixed(2)
+        );
+}
 
 
         // =================================================
@@ -6194,93 +6217,45 @@ async function getBTPSPgtReport(
             );
 
 
-        // =================================================
-        // 3. COMBINE INVERTER DATA
-        // =================================================
+     
+const combinedTimeMap = {};
 
-        const combinedTimeMap = {};
+for (const stationReport of stationReports) {
+    for (const row of stationReport.data) {
+        if (!row || !row.time) continue;
 
+        const time = String(row.time).substring(0, 5);
 
-        for (
-            const stationReport
-            of stationReports
-        ) {
+        if (time < fromTime || time > toTime) continue;
 
-            for (
-                const row
-                of stationReport.data
-            ) {
+        const energy = Number(row.inverterEnergy);
+        const power = Number(row.inverterPowerKw);
 
-                if (
-                    !row ||
-                    !row.time
-                ) {
-                    continue;
-                }
+        if (!Number.isFinite(energy)) continue;
 
-
-                const time =
-                    String(row.time)
-                        .substring(0, 5);
-
-
-               
-
-
-                const energy =
-                    Number(
-                        row.inverterEnergy
-                    );
-
-
-                if (
-                    !Number.isFinite(
-                        energy
-                    )
-                ) {
-                    continue;
-                }
-
-
-                if (
-                    !combinedTimeMap[time]
-                ) {
-
-                    combinedTimeMap[time] =
-                        0;
-
-                }
-
-
-                combinedTimeMap[time] +=
-                    energy;
-
-            }
-
+        if (!combinedTimeMap[time]) {
+            combinedTimeMap[time] = {
+                energy: 0,
+                power: 0
+            };
         }
 
+        combinedTimeMap[time].energy += energy;
 
-        // =================================================
-        // 4. SORT COMBINED INVERTER DATA
-        // =================================================
+        if (Number.isFinite(power)) {
+            combinedTimeMap[time].power += power;
+        }
+    }
+}
 
-        const combinedInverterData =
-            Object.keys(
-                combinedTimeMap
-            )
-            .sort()
-            .map(time => ({
+const combinedInverterData = Object.keys(combinedTimeMap)
+    .sort()
+    .map(time => ({
+        time: `${date} ${time}:00`,
+        inverterEnergy: Number(combinedTimeMap[time].energy.toFixed(2)),
+        inverterPowerKw: Number(combinedTimeMap[time].power.toFixed(2))
+    }));
 
-                time:
-                    `${date} ${time}:00`,
-
-                inverterEnergy:
-                    Number(
-                        combinedTimeMap[time]
-                            .toFixed(2)
-                    )
-
-            }));
 
 
         // =================================================
@@ -6506,6 +6481,9 @@ async function getBTPSPgtReport(
                     inverterEnergy:
                         inverterRow.inverterEnergy,
 
+                        inverterPowerKw:
+    inverterRow.inverterPowerKw,
+
                     inverterEnergyInterval:
                         null,
 
@@ -6720,6 +6698,52 @@ async function getBTPSPgtReport(
                 null;
 
         }
+
+
+// =====================================================
+// CALCULATED ENERGY (kWh)
+// SAME AS NLCIL
+// ((CURRENT kW + NEXT kW) / 2) * 0.25
+// =====================================================
+
+for (let i = 0; i < report.length; i++) {
+
+    const currentPower =
+        report[i].inverterPowerKw;
+
+    const nextPower =
+        report[i + 1]?.inverterPowerKw;
+
+    if (
+        i === report.length - 1 ||
+        currentPower === null ||
+        currentPower === undefined ||
+        nextPower === null ||
+        nextPower === undefined
+    ) {
+        report[i].calculatedKwh = null;
+        continue;
+    }
+
+    const currentKw = Number(currentPower);
+    const nextKw = Number(nextPower);
+
+    if (
+        !Number.isFinite(currentKw) ||
+        !Number.isFinite(nextKw)
+    ) {
+        report[i].calculatedKwh = null;
+        continue;
+    }
+
+    report[i].calculatedKwh =
+        Number(
+            (
+                ((currentKw + nextKw) / 2) * 0.25
+            ).toFixed(2)
+        );
+}
+
 
 
         // =================================================
@@ -7750,107 +7774,44 @@ for (const station of ntplStationDetails) {
             );
 
 
-        // =================================================
-        // 5. COMBINE INVERTER DATA
-        // =================================================
+       
+const combinedTimeMap = {};
 
-        const combinedTimeMap = {};
+for (const stationReport of stationReports) {
+    for (const row of stationReport.data) {
+        if (!row || !row.time) continue;
 
+        const time = String(row.time).substring(0, 5);
 
-        for (
-            const stationReport
-            of stationReports
-        ) {
+        if (time < fromTime || time > toTime) continue;
 
-            for (
-                const row
-                of stationReport.data
-            ) {
+        const energy = Number(row.inverterEnergy);
+        const power = Number(row.inverterPowerKw);
 
-                if (
-                    !row ||
-                    !row.time
-                ) {
-                    continue;
-                }
+        if (!Number.isFinite(energy)) continue;
 
-
-                const time =
-                    String(
-                        row.time
-                    )
-                    .substring(
-                        0,
-                        5
-                    );
-
-
-                // Selected time range
-
-                if (
-                    time < fromTime ||
-                    time > toTime
-                ) {
-                    continue;
-                }
-
-
-                const energy =
-                    Number(
-                        row.inverterEnergy
-                    );
-
-
-                if (
-                    !Number.isFinite(
-                        energy
-                    )
-                ) {
-                    continue;
-                }
-
-
-                if (
-                    !combinedTimeMap[time]
-                ) {
-
-                    combinedTimeMap[time] =
-                        0;
-
-                }
-
-
-                combinedTimeMap[time] +=
-                    energy;
-
-            }
-
+        if (!combinedTimeMap[time]) {
+            combinedTimeMap[time] = {
+                energy: 0,
+                power: 0
+            };
         }
 
+        combinedTimeMap[time].energy += energy;
 
-        // =================================================
-        // 6. SORT INVERTER DATA
-        // =================================================
+        if (Number.isFinite(power)) {
+            combinedTimeMap[time].power += power;
+        }
+    }
+}
 
-        const combinedInverterData =
-            Object.keys(
-                combinedTimeMap
-            )
-            .sort()
-            .map(
-                time => ({
-
-                    time:
-                        `${date} ${time}:00`,
-
-                    inverterEnergy:
-                        Number(
-                            combinedTimeMap[time]
-                        .toFixed(2)
-                    )
-
-                })
-            );
+const combinedInverterData = Object.keys(combinedTimeMap)
+    .sort()
+    .map(time => ({
+        time: `${date} ${time}:00`,
+        inverterEnergy: Number(combinedTimeMap[time].energy.toFixed(2)),
+        inverterPowerKw: Number(combinedTimeMap[time].power.toFixed(2))
+    }));
 
 
         // =================================================
@@ -8088,6 +8049,9 @@ for (const station of ntplStationDetails) {
                     inverterEnergy:
                         inverterRow.inverterEnergy,
 
+                        inverterPowerKw:
+    inverterRow.inverterPowerKw,
+
                     inverterEnergyInterval:
                         null,
 
@@ -8310,6 +8274,50 @@ for (const station of ntplStationDetails) {
                 null;
 
         }
+        
+// =====================================================
+// CALCULATED ENERGY (kWh)
+// SAME AS NLCIL
+// ((CURRENT kW + NEXT kW) / 2) * 0.25
+// =====================================================
+
+for (let i = 0; i < report.length; i++) {
+
+    const currentPower =
+        report[i].inverterPowerKw;
+
+    const nextPower =
+        report[i + 1]?.inverterPowerKw;
+
+    if (
+        i === report.length - 1 ||
+        currentPower === null ||
+        currentPower === undefined ||
+        nextPower === null ||
+        nextPower === undefined
+    ) {
+        report[i].calculatedKwh = null;
+        continue;
+    }
+
+    const currentKw = Number(currentPower);
+    const nextKw = Number(nextPower);
+
+    if (
+        !Number.isFinite(currentKw) ||
+        !Number.isFinite(nextKw)
+    ) {
+        report[i].calculatedKwh = null;
+        continue;
+    }
+
+    report[i].calculatedKwh =
+        Number(
+            (
+                ((currentKw + nextKw) / 2) * 0.25
+            ).toFixed(2)
+        );
+}
 
 
         // =================================================

@@ -516,48 +516,74 @@ const pgtEndIndex =
             pgtEndTime
     );
 
-   // =========================================================
-// TOTAL POA
-// ONLY PGT START → PGT END
+  
+// =========================================================
+// PGT ROWS - START TO END
 // =========================================================
 
 const pgtCalculationRows =
-    pgtStartIndex >= 0
-        ? reportData.slice(
-            pgtStartIndex,
-            pgtEndIndex >= pgtStartIndex
-                ? pgtEndIndex + 1
-                : reportData.length
-        )
+    pgtStartIndex >= 0 && pgtEndIndex >= pgtStartIndex
+        ? reportData.slice(pgtStartIndex, pgtEndIndex + 1)
         : [];
 
+// =========================================================
+// TOTAL POA GHI
+// SAME FORMULA AS EXCEL
+// ((CURRENT GHI + NEXT GHI) / 2) * 0.25
+// =========================================================
 
-const totalPoaGhi =
-    pgtCalculationRows.reduce(
-        (sum, row) =>
-            sum +
-            (
-                row.ghiIrradiationInterval !== null &&
-                row.ghiIrradiationInterval !== undefined
-                    ? Number(row.ghiIrradiationInterval)
-                    : 0
-            ),
-        0
-    );
+const totalPoaGhi = pgtCalculationRows.reduce(
+    (sum, row, index) => {
 
+        const nextRow = pgtCalculationRows[index + 1];
 
-const totalPoaGii =
-    pgtCalculationRows.reduce(
-        (sum, row) =>
-            sum +
-            (
-                row.giiIrradiationInterval !== null &&
-                row.giiIrradiationInterval !== undefined
-                    ? Number(row.giiIrradiationInterval)
-                    : 0
-            ),
-        0
-    );
+        if (
+            !nextRow ||
+            row.ghi === null ||
+            row.ghi === undefined ||
+            nextRow.ghi === null ||
+            nextRow.ghi === undefined
+        ) {
+            return sum;
+        }
+
+        return sum + (
+            (Number(row.ghi) + Number(nextRow.ghi)) / 2
+        ) * 0.25;
+
+    },
+    0
+);
+
+// =========================================================
+// TOTAL POA GII
+// SAME FORMULA AS EXCEL
+// ((CURRENT GII + NEXT GII) / 2) * 0.25
+// =========================================================
+
+const totalPoaGii = pgtCalculationRows.reduce(
+    (sum, row, index) => {
+
+        const nextRow = pgtCalculationRows[index + 1];
+
+        if (
+            !nextRow ||
+            row.gii === null ||
+            row.gii === undefined ||
+            nextRow.gii === null ||
+            nextRow.gii === undefined
+        ) {
+            return sum;
+        }
+
+        return sum + (
+            (Number(row.gii) + Number(nextRow.gii)) / 2
+        ) * 0.25;
+
+    },
+    0
+);
+
    
 
 
@@ -571,17 +597,20 @@ const downloadExcel = async () => {
     // FILTER EXCEL DATA - 08:00 TO 18:00
     // =====================================================
 
-    const excelReportData = reportData.filter(row => {
+  const excelReportData = reportData.filter(row => {
 
-        const time = normalizePgtTime(row.time);
+    const time = normalizePgtTime(row.time);
 
-        return (
-            time !== null &&
-            time >= "08:00" &&
-            time <= "18:00"
-        );
+    return (
+        time !== null &&
+        (
+            (time >= "08:00" && time <= "18:00") ||
+            time === pgtStartTime ||
+            time === pgtEndTime
+        )
+    );
 
-    });
+});
 
     if (!excelReportData || excelReportData.length === 0) {
         alert("No PGT records available between 08:00 and 18:00.");
@@ -1248,7 +1277,7 @@ dateLabel.border = thinBorder;
 // REPORT DATE VALUE
 // ---------------------------------------------------------
 
-worksheet.mergeCells("I4:J4");
+worksheet.mergeCells("I4:L4");
 
 const reportDate =
     reportData[0]?.date
@@ -1549,7 +1578,7 @@ current.getCell(9).numFmt = "0.00";
 // ((CURRENT GHI + NEXT GHI) / 2) * 0.25
 // -----------------------------------------------------
 if (
-    index < reportData.length - 1 &&
+    index < excelReportData.length - 1 &&
     row.ghiIrradiationInterval !== null &&
     row.ghiIrradiationInterval !== undefined
 ) {
@@ -1601,7 +1630,7 @@ current.getCell(12).value = "-";
             // STYLE
             // -----------------------------------------------------
 
-           for (let col = 1; col <= 10; col++) {
+          for (let col = 1; col <= 12; col++) {
 
                 const cell =
                     current.getCell(col);
@@ -1746,7 +1775,7 @@ const isPgtEndRow =
 
 if (isPgtStartRow || isPgtEndRow) {
 
-    for (let col = 1; col <= 10; col++) {
+    for (let col = 1; col <= 12; col++) {
 
         const cell =
             current.getCell(col);
@@ -2476,8 +2505,8 @@ if (index === 1 || index === 2) {
 // -----------------------------------------------------
 
 if (
-    startExcelRow !== null &&
-    endExcelRow !== null
+    pgtStartExcelRow !== null &&
+    pgtEndExcelRow !== null
 ) {
 
     const referenceYieldCell =
@@ -2513,16 +2542,19 @@ referenceYieldCell.value = {
 
 // -----------------------------------------------------
 // INITIAL INVERTER ENERGY
+// G COLUMN = INVERTER ENERGY (kWh)
+// PGT START ROW = GHI FIRST CROSSES 750
 // -----------------------------------------------------
 
-if (startExcelRow !== null) {
+if (pgtStartExcelRow !== null) {
 
     worksheet.getCell(
         initialEnergyRow,
         10
     ).value = {
         formula:
-            `G${startExcelRow}`,
+            `G${pgtStartExcelRow}`,
+
         result:
             initialInverterEnergy !== null &&
             initialInverterEnergy !== undefined
@@ -2532,19 +2564,27 @@ if (startExcelRow !== null) {
 
 }
 
+worksheet.getCell(
+    initialEnergyRow,
+    10
+).numFmt = "0.00";
+
 
 // -----------------------------------------------------
 // FINAL INVERTER ENERGY
+// G COLUMN = INVERTER ENERGY (kWh)
+// PGT END ROW = TEST END
 // -----------------------------------------------------
 
-if (endExcelRow !== null) {
+if (pgtEndExcelRow !== null) {
 
     worksheet.getCell(
         finalEnergyRow,
         10
     ).value = {
         formula:
-            `H${startExcelRow}`,
+            `G${pgtEndExcelRow}`,
+
         result:
             finalInverterEnergy !== null &&
             finalInverterEnergy !== undefined
@@ -2554,11 +2594,16 @@ if (endExcelRow !== null) {
 
 }
 
+worksheet.getCell(
+    finalEnergyRow,
+    10
+).numFmt = "0.00";
 
 
+// -----------------------------------------------------
 // TOTAL AC ENERGY GENERATED
-// EXCEL FORMULA - SUM OF PGT CALCULATED kWh
-// START ROW TO END ROW - 1
+// FINAL INVERTER ENERGY - INITIAL INVERTER ENERGY
+// -----------------------------------------------------
 
 const totalAcCell = worksheet.getCell(
     totalAcRow,
@@ -2570,26 +2615,29 @@ if (
     pgtEndExcelRow !== null &&
     pgtEndExcelRow > pgtStartExcelRow
 ) {
-    totalAcCell.value = {
-      formula:
-    `SUM(I${pgtStartExcelRow}:I${pgtEndExcelRow})`,
 
-result:
-    excelReportData
-        .slice(pgtStartIndex, pgtEndIndex + 1)
-        .reduce(
-            (sum, row) =>
-                sum + (
-                    row.calculatedKwh !== null &&
-                    row.calculatedKwh !== undefined
-                        ? Number(row.calculatedKwh)
-                        : 0
-                ),
-            0
-        )
+    totalAcCell.value = {
+        formula:
+            `J${finalEnergyRow}-J${initialEnergyRow}`,
+
+        result:
+            initialInverterEnergy !== null &&
+            initialInverterEnergy !== undefined &&
+            finalInverterEnergy !== null &&
+            finalInverterEnergy !== undefined
+                ? Number(
+                    (
+                        Number(finalInverterEnergy) -
+                        Number(initialInverterEnergy)
+                    ).toFixed(2)
+                )
+                : 0
     };
+
 } else {
-    totalAcCell.value = 0;
+
+    totalAcCell.value = null;
+
 }
 
 totalAcCell.numFmt = "0.00";
@@ -2773,8 +2821,8 @@ worksheet.getCell(
         // PRINT AREA
         // =========================================================
 
-      worksheet.printArea =
-    `A1:J${finalCalcRow}`;
+ worksheet.printArea =
+    `A1:L${finalCalcRow}`;
 
         // =========================================================
         // FOOTER
@@ -3494,7 +3542,7 @@ link.download =
                                     ================================================= */}
 <tr className="pgt-total-row">
 
-    <td colSpan="7">
+    <td colSpan="9">
         Total
     </td>
 

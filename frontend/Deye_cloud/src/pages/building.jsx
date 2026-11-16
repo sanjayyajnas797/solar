@@ -40,7 +40,7 @@ const capacityMap = {
   "NLCILGIRLSHIGHSCHOOLINV2":125.43,
   "NLCILBOYSHIGHSCHOOLINV1":125.43,
   "NLCILBOYSHIGHSCHOOLINV2":125.43,
-  "NLCILLDCMAINBUILDINGINV225KW":72.5,
+  
    "NLCILLDCMAINBULIDINGINV1":72.5,
    "NLCILTPS2SWITCHYARDBUILDINGINV1":71.19,
    "NLCILTPS2SWITCHYARDBUILDINGINV2":71.19,
@@ -56,7 +56,12 @@ const capacityMap = {
    "NLCILNNTPSWCTPSTORE":10.17,
    "NLCILTPS2CANTEENBUILDING":81.36,
    "NLCILTPS2AOBUILDING":76.84,
-   "NLCILTPS2CWPHSTAGE2":203.40,
+   "NLCILTPS2CWPHSTAGE2INV1":101.7,
+   "NLCILTPS2CWPHSTAGE2INV2":101.7,
+   "NLCILNNTPSDMPLANTINV1":96.05,
+   "NLCILNNTPSDMPLANTINV2":96.05,
+   "NLCILLDCMAINBUILDINGINV2":72.5,
+   "NLCILTPS2EXPAOBUILDING":79.10,
    
 
 
@@ -331,8 +336,8 @@ const animate = () => {
 start += 16
 const progress = Math.min(start/duration,1)
 
-setDisplayToday((totalToday * progress).toFixed(1))
-setDisplayYesterday((totalYesterday * progress).toFixed(1))
+setDisplayToday((totalToday * progress).toFixed(0))
+setDisplayYesterday((totalYesterday * progress).toFixed(0))
 setDisplayLive((totalCurrent * progress).toFixed(1))
 
 if(progress < 1){
@@ -699,21 +704,21 @@ Plant Capacity {capacity} kW
 <div>
 <div className="energy-label">TODAY</div>
 <div className="energy-value green">
-{today.toFixed(1)} kWh
+{today.toFixed(0)} kWh
 </div>
 </div>
 
 <div>
 <div className="energy-label">YESTERDAY</div>
 <div className="energy-value blue">
-{yesterday.toFixed(1)} kWh
+{yesterday.toFixed(0)} kWh
 </div>
 </div>
 
 <div>
 <div className="energy-label">CUMULATIVE</div>
 <div className="energy-value cumulative">
-{total.toFixed(1)} kWh
+{total.toFixed(0)} kWh
 </div>
 </div>
 

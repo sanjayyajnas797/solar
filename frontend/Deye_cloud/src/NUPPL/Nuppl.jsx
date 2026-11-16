@@ -259,11 +259,11 @@ const progress =
 Math.min(start/duration,1);
 
 setDisplayToday(
-(totalToday*progress).toFixed(1)
+(totalToday*progress).toFixed(0)
 );
 
 setDisplayYesterday(
-(totalYesterday*progress).toFixed(1)
+(totalYesterday*progress).toFixed(0)
 );
 
 setDisplayLive(
@@ -586,17 +586,17 @@ valueLabel:{formatTextValue:()=>""}
         <div className="energy-row">
           <div>
             <div className="energy-label">TODAY</div>
-            <div className="energy-value green">{today.toFixed(1)} kWh</div>
+            <div className="energy-value green">{today.toFixed(0)} kWh</div>
           </div>
 
           <div>
             <div className="energy-label">YESTERDAY</div>
-            <div className="energy-value blue">{yesterday.toFixed(1)} kWh</div>
+            <div className="energy-value blue">{yesterday.toFixed(0)} kWh</div>
           </div>
 
           <div>
             <div className="energy-label">CUMULATIVE</div>
-            <div className="energy-value cumulative">{total.toFixed(1)} kWh</div>
+            <div className="energy-value cumulative">{total.toFixed(0)} kWh</div>
           </div>
         </div>
 
@@ -688,17 +688,17 @@ valueLabel:{formatTextValue:()=>""}
         <div className="energy-row">
           <div>
             <div className="energy-label">TODAY</div>
-            <div className="energy-value green">{today.toFixed(1)} kWh</div>
+            <div className="energy-value green">{today.toFixed(0)} kWh</div>
           </div>
 
           <div>
             <div className="energy-label">YESTERDAY</div>
-            <div className="energy-value blue">{yesterday.toFixed(1)} kWh</div>
+            <div className="energy-value blue">{yesterday.toFixed(0)} kWh</div>
           </div>
 
           <div>
             <div className="energy-label">CUMULATIVE</div>
-            <div className="energy-value cumulative">{total.toFixed(1)} kWh</div>
+            <div className="energy-value cumulative">{total.toFixed(0)} kWh</div>
           </div>
         </div>
 

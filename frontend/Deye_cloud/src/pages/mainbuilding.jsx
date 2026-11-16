@@ -849,11 +849,11 @@ style={{ "--wave-speed": getWaveSpeed(c.today) }}
 <div className="label icon-label">
   <WiDaySunny className="data-icon today-icon" /> TODAY
 </div>
-<div className="value green">{c.today.toFixed(1)} kWh</div>
+<div className="value green">{c.today.toFixed(0)} kWh</div>
 <div className="label icon-label">
   <FaHistory className="data-icon yesterday-icon" /> YESTERDAY
 </div>
-<div className="value blue">{c.yesterday.toFixed(1)} kWh</div>
+<div className="value blue">{c.yesterday.toFixed(0)} kWh</div>
 
 </div>
 
@@ -894,7 +894,9 @@ style={{ "--wave-speed": getWaveSpeed(c.today) }}
 </div>
 
 <div className="value cyan cumulative-value">
-{c.total.toLocaleString()} kWh
+{Number(c.total || 0).toLocaleString("en-IN", {
+  maximumFractionDigits: 0
+})} kWh
 </div>
 
 </div>

@@ -105,8 +105,8 @@ start+=16;
 
 const progress=Math.min(start/duration,1);
 
-setDisplayToday((totalToday*progress).toFixed(1));
-setDisplayYesterday((totalYesterday*progress).toFixed(1));
+setDisplayToday((totalToday*progress).toFixed(0));
+setDisplayYesterday((totalYesterday*progress).toFixed(0));
 setDisplayLive((totalCurrent*progress).toFixed(1));
 
 if(progress<1){
@@ -482,7 +482,7 @@ Plant Capacity {capacity} kW
 <div className="energy-label">TODAY</div>
 
 <div className="energy-value green">
-{Number(b.today||0).toFixed(1)} kWh
+{Number(b.today||0).toFixed(0)} kWh
 </div>
 
 </div>
@@ -493,7 +493,7 @@ Plant Capacity {capacity} kW
 <div className="energy-label">YESTERDAY</div>
 
 <div className="energy-value blue">
-{Number(b.yesterday||0).toFixed(1)} kWh
+{Number(b.yesterday||0).toFixed(0)} kWh
 </div>
 
 </div>
@@ -504,7 +504,7 @@ Plant Capacity {capacity} kW
 <div className="energy-label">CUMULATIVE</div>
 
 <div className="energy-value cumulative">
-{Number(b.total||0).toFixed(1)} kWh
+{Number(b.total||0).toFixed(0)} kWh
 </div>
 
 </div>
