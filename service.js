@@ -220,22 +220,49 @@ async function getLatest(deviceSn) {
 }
 
 
+function getISTDate(daysOffset = 0) {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).formatToParts(new Date());
+
+    const year = Number(parts.find(p => p.type === "year").value);
+    const month = Number(parts.find(p => p.type === "month").value);
+    const day = Number(parts.find(p => p.type === "day").value);
+
+    const date = new Date(Date.UTC(year, month - 1, day));
+    date.setUTCDate(date.getUTCDate() + daysOffset);
+
+    return date.toISOString().split("T")[0];
+}
+
+
+
 // ================= GET YESTERDAY =================
 
 async function getYesterday(stationId) {
 
-    // ✅ CACHE
+    // Always calculate yesterday using IST date
+    const date = getISTDate(-1);
+
+    // Cache is valid only for the same yesterday date
+    const cached = YESTERDAY_CACHE[stationId];
+
     if (
-        YESTERDAY_CACHE[stationId] &&
-        Date.now() - YESTERDAY_CACHE[stationId].time < YESTERDAY_CACHE_DURATION
+        cached &&
+        cached.date === date &&
+        Date.now() - cached.time < YESTERDAY_CACHE_DURATION
     ) {
-        return YESTERDAY_CACHE[stationId].value;
+        return cached.value;
     }
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const date = yesterday.toISOString().split("T")[0];
+    console.log(
+        "DEYE YESTERDAY REQUEST:",
+        stationId,
+        date
+    );
 
     const data = await api(
         "/v1.0/station/history",
@@ -247,18 +274,40 @@ async function getYesterday(stationId) {
         }
     );
 
+    const items = Array.isArray(data?.stationDataItems)
+        ? data.stationDataItems
+        : [];
+
+    // Match the exact requested date
+    const [year, month, day] = date.split("-").map(Number);
+
+    const matchedItem = items.find(item =>
+        Number(item.year) === year &&
+        Number(item.month) === month &&
+        Number(item.day) === day
+    ) || items[0];
+
     const value = Number(
-        data?.stationDataItems?.[0]?.generationValue || 0
+        matchedItem?.generationValue || 0
     );
 
-    // ✅ SAVE CACHE
+    // Save cache with date
     YESTERDAY_CACHE[stationId] = {
+        date,
         value,
         time: Date.now()
     };
 
+    console.log(
+        "DEYE YESTERDAY RESULT:",
+        stationId,
+        date,
+        value
+    );
+
     return value;
 }
+
 
 // ================= BUILDING =================
 async function getBuilding(station) {
@@ -8777,11 +8826,7 @@ async function getStationDailyGeneration(
     // use the SAME value already used by Dashboard
     // -------------------------------------------------
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const yesterdayDate =
-        yesterday.toISOString().split("T")[0];
+  const yesterdayDate = getISTDate(-1);
 
     if (String(date) === yesterdayDate) {
 
