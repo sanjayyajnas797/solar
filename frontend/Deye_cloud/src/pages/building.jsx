@@ -612,10 +612,7 @@ const isOffline =
   const isAlert =
   b.status === "ALERT";
 
-const today =
-    isOffline
-        ? 0
-        : Number(b.today || 0);
+const today = Number(b.today || 0);
 
 const live =
     isOffline

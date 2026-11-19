@@ -317,16 +317,12 @@ function start15MinuteDatabaseScheduler() {
         const delay =
             next.getTime() - now.getTime();
 
-        console.log(
-            `⏰ NEXT 15-MIN DATABASE SAVE: ${next.toLocaleTimeString()}`
-        );
+     
 
         giiDbSaveTimer = setTimeout(
             async () => {
 
-                console.log(
-                    "⏱️ CLOCK-ALIGNED 15-MIN SAVE"
-                );
+               
 
                 try {
 
@@ -428,7 +424,7 @@ function getISTDateKey(date) {
 
 async function loadCumulativeFromDatabase() {
 
-    console.log("🔄 Loading TODAY cumulative values...");
+  
 
     const campuses = [
         "NLCIL",
@@ -528,10 +524,7 @@ async function loadCumulativeFromDatabase() {
                 }
 
 
-                console.log(
-                    `🆕 ${campus} | NO TODAY DATA | ` +
-                    `Cumulative START = 0`
-                );
+               
 
                 continue;
             }
@@ -630,13 +623,7 @@ async function loadCumulativeFromDatabase() {
                 memory.inclinedIntervalEnergy = 0;
 
 
-                console.log(
-                    `♻️ ${campus} TODAY RESTORED | ` +
-                    `Normal:${memory.cumulativeEnergy.toFixed(3)} | ` +
-                    `Inclined:${memory.inclinedCumulative.toFixed(3)} | ` +
-                    `Previous I:${memory.previousIrradiance} | ` +
-                    `Previous GII:${memory.previousInclined}`
-                );
+              
 
             } else {
 
@@ -657,9 +644,7 @@ async function loadCumulativeFromDatabase() {
     }
 
 
-    console.log(
-        "✅ TODAY CUMULATIVE RESTORE COMPLETED"
-    );
+   
 }
 
 async function saveWeather(
@@ -705,13 +690,7 @@ async function saveWeather(
             ]
         );
 
-        console.log(
-            `✅ WEATHER SAVED | ${campus} | ` +
-            `I:${irradiance} | ` +
-            `Inclined:${inclinedIrradiance} | ` +
-            `Cum:${Number(cumulativeEnergy).toFixed(3)} | ` +
-            `Inclined Cum:${Number(inclinedCumulative).toFixed(3)}`
-        );
+       
 
     } catch (err) {
 
@@ -770,11 +749,7 @@ if (incomingDateKey !== todayDateKey) {
         memory.calculationDate !== currentDate
     ) {
 
-        console.log(
-            `🌅 NEW DAY | ${campus} | ` +
-            `Previous: ${memory.calculationDate} | ` +
-            `New: ${currentDate}`
-        );
+       
 
         // Existing irradiance reset
         memory.cumulativeEnergy = 0;
@@ -836,16 +811,7 @@ if (
 
         memory.hasData = true;
 
-        console.log(
-            `🟢 ${campus} MEMORY START | ` +
-            `I:${irradiance} | ` +
-            `T:${temperature}` +
-            (
-                campus === "NUPPL"
-                    ? ` | Inclined:${Number(inclinedIrradiance) || 0}`
-                    : ""
-            )
-        );
+       
 
         return;
     }
@@ -994,12 +960,7 @@ VALUES
 ]
         );
 
-        console.log(
-            `✅ GII 15-MIN SAVED | ` +
-            `H:${horizontal} | ` +
-            `I:${inclined} | ` +
-            `T:${temperature}`
-        );
+      
 
     }
     catch (err) {
@@ -1039,11 +1000,7 @@ if (
     giiCalculation.calculationDate !== currentDate
 ) {
 
-    console.log(
-        `🌅 NEW DAY | GII | ` +
-        `Previous: ${giiCalculation.calculationDate} | ` +
-        `New: ${currentDate}`
-    );
+  
 
     // Reset daily cumulative
     giiCalculation.horizontalCumulative = 0;
@@ -1105,9 +1062,7 @@ giiCalculation.calculationDate =
 
         giiHasData = true;
 
-        console.log(
-            `🟢 GII MEMORY START | H:${horizontal} | I:${inclined}`
-        );
+      
 
         return;
     }
@@ -1234,9 +1189,7 @@ async function saveGII15Minute(saveTime) {
     // No MQTT data
     if (!giiHasData) {
 
-        console.log(
-            "⏭️ GII 15-MIN SKIPPED | No MQTT data"
-        );
+       
 
         return;
     }
@@ -1263,10 +1216,7 @@ async function saveGII15Minute(saveTime) {
         inclined <= 15
     ) {
 
-        console.log(
-            `⏭️ GII 15-MIN DB SKIPPED | ` +
-            `H:${horizontal} | I:${inclined}`
-        );
+      
 
         resetGIIMemory();
 
@@ -1286,12 +1236,7 @@ giiCalculation.inclinedCumulative
 );
 
 
-        console.log(
-            `✅ GII 15-MIN DATABASE SAVED | ` +
-            `H:${horizontal} | ` +
-            `I:${inclined} | ` +
-            `T:${temperature}`
-        );
+      
 
 
     }
@@ -1327,9 +1272,7 @@ async function saveWeather15Minute(campus, saveTime) {
 
     if (!memory.hasData) {
 
-        console.log(
-            `⏭️ ${campus} SKIPPED | No MQTT data`
-        );
+       
 
         return;
     }
@@ -1367,15 +1310,7 @@ const inclinedCumulative =
     memory.inclinedIntervalEnergy = 0;
 }
 
-        console.log(
-            `🔄 ${campus} NEW 15-MIN INTERVAL | ` +
-            `Cumulative continues:${memory.cumulativeEnergy.toFixed(3)}` +
-            (
-                campus === "NUPPL"
-                    ? ` | Inclined:${memory.inclinedCumulative.toFixed(3)}`
-                    : ""
-            )
-        );
+       
 
     } catch (err) {
 
@@ -1396,10 +1331,7 @@ function resetGIIMemory() {
 
     giiHasData = false;
 
-    console.log(
-        `🔄 GII NEW 15-MIN INTERVAL | ` +
-        `Cumulative continues`
-    );
+    
 }
 
 // =====================================================
@@ -1456,7 +1388,7 @@ if (topic === "test/rx") {
             !Number.isFinite(horizontal) ||
             !Number.isFinite(temperature)
         ) {
-            console.log("TEST/RX INVALID HORIZONTAL DATA");
+            
             return;
         }
 
@@ -1475,7 +1407,7 @@ if (topic === "test/rx") {
         const inclined = Number(status.Param_3);
 
         if (!Number.isFinite(inclined)) {
-            console.log("TEST/RX INVALID INCLINED DATA");
+           
             return;
         }
 

@@ -32,204 +32,11 @@ function isSolarGenerationTime() {
 // DAILY REMINDER TIME
 // =====================================================
 
-const REMINDER_HOUR = 9; // 9:00 AM IST
-
-// =====================================================
-// EMAIL CONFIGURATION
-// =====================================================
-
-const nodemailer = require("nodemailer");
-
-const EMAIL_FROM = "sanjayyajnas797@gmail.com";
-const EMAIL_PASSWORD = "agaibchhidrqazar";
-const ALERT_EMAIL_TO = "sombudevil1234@gmail.com";
 
 
-// =====================================================
-// EMAIL TRANSPORTER
-// =====================================================
-
-const emailTransporter = nodemailer.createTransport({
-    service: "gmail",
-
-    auth: {
-        user: EMAIL_FROM,
-        pass: EMAIL_PASSWORD
-    }
-});
-
-// =====================================================
-// SEND ALERT EMAIL
-// =====================================================
-
-async function sendAlertEmail(alert) {
-
-    try {
-
-        const problem =
-            alert.type === "INVERTER_OFFLINE"
-                ? "INVERTER OFFLINE"
-                : "INVERTER DATA STUCK";
-
-        const reminderText =
-            alert.isReminder
-                ? "DAILY REMINDER - Problem is still active"
-                : "NEW ALERT";
-
-        const subject =
-            `🚨 Solar Alert - ${problem} - ${alert.buildingName}`;
-
-        const message = `
-SOLAR MONITORING ALERT
-
-${reminderText}
-
-Campus      : ${alert.campus}
-Building    : ${alert.buildingName}
-Inverter    : ${alert.inverterName}
-Device      : ${alert.deviceSn}
-
-Problem     : ${problem}
-
-Reason:
-${alert.reason}
-
-Detected At:
-${alert.detectedAt}
-
-Reminder:
-This problem is still active.
-Please check the inverter/network status.
-        `;
-
-        const info = await emailTransporter.sendMail({
-
-            from: EMAIL_FROM,
-
-            to: ALERT_EMAIL_TO,
-
-            subject: subject,
-
-            text: message
-
-        });
-
-        console.log(
-            "📧 ALERT EMAIL SENT:",
-            info.messageId,
-            alert.buildingName,
-            alert.inverterName,
-            problem,
-            alert.isReminder
-                ? "(DAILY REMINDER)"
-                : "(NEW ALERT)"
-        );
-
-        return info;
-
-    } catch (error) {
-
-        console.error(
-            "❌ EMAIL SEND ERROR:",
-            error.message
-        );
-
-        return null;
-    }
-}
-
-// =====================================================
-// SEND DAILY REMINDER FOR ACTIVE ALERTS
-// =====================================================
-
-async function sendDailyAlertReminders() {
-
-    const now = new Date();
-
-    // India time
-    const indiaTime = new Date(
-        now.toLocaleString("en-US", {
-            timeZone: "Asia/Kolkata"
-        })
-    );
-
-  const currentHour =
-    indiaTime.getHours();
-
-// Reminder only during solar generation time
-// and only at 9:00 AM
-if (
-    currentHour < GENERATION_START_HOUR ||
-    currentHour >= GENERATION_END_HOUR ||
-    currentHour !== REMINDER_HOUR
-) {
-    return;
-}
-
-    const today =
-        indiaTime.toISOString().split("T")[0];
 
 
-    // ---------------------------------------------
-    // CHECK ALL ACTIVE ALERTS
-    // ---------------------------------------------
 
-    for (const alert of alertStore.values()) {
-
-        if (alert.status !== "ACTIVE") {
-            continue;
-        }
-
-
-        // -----------------------------------------
-        // ALREADY SENT TODAY?
-        // -----------------------------------------
-
-        if (
-            alert.lastReminderDate ===
-            today
-        ) {
-            continue;
-        }
-
-
-        // -----------------------------------------
-        // SEND DAILY REMINDER
-        // -----------------------------------------
-
-        console.log(
-            "📧 DAILY ALERT REMINDER:",
-            alert.buildingName,
-            alert.inverterName,
-            alert.type
-        );
-
-        await sendAlertEmail({
-
-            ...alert,
-
-            isReminder: true
-
-        });
-
-
-        // -----------------------------------------
-        // MARK REMINDER AS SENT
-        // -----------------------------------------
-
-        alert.lastReminderDate =
-            today;
-    }
-}
-
-// =====================================================
-// DAILY REMINDER SCHEDULER
-// =====================================================
-
-setInterval(
-    sendDailyAlertReminders,
-    60 * 1000
-);
 // =====================================================
 // GET CURRENT ACTIVE ALERTS
 // =====================================================
@@ -358,18 +165,6 @@ function createAlert({
     );
 
 
-    // ---------------------------------------------
-    // SEND SMS ONLY ON NEW ALERT
-    // ---------------------------------------------
-sendAlertEmail(alert)
-    .catch(error => {
-
-        console.error(
-            "EMAIL ALERT ERROR:",
-            error.message
-        );
-
-    });
 
 
     return alert;
@@ -420,17 +215,7 @@ function resolveAlert(
         new Date().toISOString();
 
 
-    console.log(
-
-        "✅ ALERT RESOLVED:",
-
-        existing.buildingName,
-
-        existing.inverterName,
-
-        type
-
-    );
+   
 
 
     return existing;

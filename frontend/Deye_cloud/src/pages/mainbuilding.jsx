@@ -191,9 +191,6 @@ const fetchWeather = async (campus) => {
 
 const liveRequestRef = useRef(false);
 
-// =====================================================
-// LIVE WEATHER + GII
-// =====================================================
 
 const fetchLiveWeather = async () => {
 
@@ -206,7 +203,6 @@ const fetchLiveWeather = async () => {
     const [
       giiRes,
       nlcilRes,
-      nlcicRes,
       ntplRes,
       nupplRes,
       btpsRes
@@ -214,7 +210,6 @@ const fetchLiveWeather = async () => {
 
       fetch(`${API_BASE}/gii/latest`),
       fetch(`${API_BASE}/weather/NLCIL`),
-      fetch(`${API_BASE}/weather/NLCIC`),
       fetch(`${API_BASE}/weather/NTPL`),
       fetch(`${API_BASE}/weather/NUPPL`),
       fetch(`${API_BASE}/weather/BTPS`)
@@ -224,7 +219,6 @@ const fetchLiveWeather = async () => {
     const [
       gii,
       nlcil,
-      nlcic,
       ntpl,
       nuppl,
       btps
@@ -232,7 +226,6 @@ const fetchLiveWeather = async () => {
 
       giiRes.json(),
       nlcilRes.json(),
-      nlcicRes.json(),
       ntplRes.json(),
       nupplRes.json(),
       btpsRes.json()
@@ -246,14 +239,27 @@ const fetchLiveWeather = async () => {
     });
 
     const liveWeather = {
+
       NLCIL: nlcil || {},
-      NLCIC: nlcic || {},
+
+      // NLCIL FTS - WMS not configured
+      NLCIC: {
+        online: false
+      },
+
       NTPL: ntpl || {},
       NUPPL: nuppl || {},
       BTPS: btps || {}
+
     };
 
     setWeatherData(liveWeather);
+
+    // Remove old cached TEST/RX weather data
+    localStorage.setItem(
+      "weatherCache",
+      JSON.stringify(liveWeather)
+    );
 
     setUpdateTime(
       new Date().toLocaleTimeString("en-IN", {
@@ -263,7 +269,7 @@ const fetchLiveWeather = async () => {
       })
     );
 
-    } catch (err) {
+  } catch (err) {
 
     console.log("LIVE WEATHER ERROR:", err);
 

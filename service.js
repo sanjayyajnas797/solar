@@ -51,6 +51,11 @@ const CACHE_DURATION = 60000;
 // ✅ ADD CACHE LOCK
 let CACHE_PROMISE = null;
 
+// ================= TODAY GENERATION CACHE =================
+// Preserve last valid daily generation while inverter is offline
+
+let TODAY_GENERATION_CACHE = {};
+
 
 // ================= TOKEN CACHE =================
 
@@ -117,7 +122,7 @@ async function api(url, data) {
       err.response.data &&
       err.response.data.code === 2101017
     ) {
-      console.log("🔄 Token expired, refreshing...");
+     
 
       TOKEN = null;
 
@@ -258,11 +263,7 @@ async function getYesterday(stationId) {
         return cached.value;
     }
 
-    console.log(
-        "DEYE YESTERDAY REQUEST:",
-        stationId,
-        date
-    );
+  
 
     const data = await api(
         "/v1.0/station/history",
@@ -298,12 +299,7 @@ async function getYesterday(stationId) {
         time: Date.now()
     };
 
-    console.log(
-        "DEYE YESTERDAY RESULT:",
-        stationId,
-        date,
-        value
-    );
+   
 
     return value;
 }
@@ -436,6 +432,45 @@ checkInverter({
 
 
 // =====================================================
+// TODAY GENERATION - PRESERVE LAST VALID VALUE
+// =====================================================
+
+const todayDate = getISTDate(0);
+
+const dailyProductionItem = latest?.dataList?.find(
+    d => d.key === "DailyActiveProduction"
+);
+
+const dailyProductionValue = Number(
+    dailyProductionItem?.value
+);
+
+const todayCacheKey =
+    `${todayDate}_${station.id}_${inverters[i].deviceSn}`;
+
+// Update cache only when data is fresh.
+// If stale, preserve the previously stored value.
+
+if (
+    dailyProductionItem?.value !== undefined &&
+    dailyProductionItem?.value !== null &&
+    Number.isFinite(dailyProductionValue) &&
+    (!isStale || !TODAY_GENERATION_CACHE[todayCacheKey])
+) {
+    TODAY_GENERATION_CACHE[todayCacheKey] = {
+        date: todayDate,
+        value: dailyProductionValue
+    };
+}
+
+// Always add last available generation
+today += Number(
+    TODAY_GENERATION_CACHE[todayCacheKey]?.value || 0
+);
+
+
+
+// =====================================================
 // CUMULATIVE
 // OFFLINE-ஆ இருந்தாலும் LAST AVAILABLE VALUE காட்ட வேண்டும்
 // =====================================================
@@ -518,16 +553,7 @@ total += Number(
   }
 
 
-  // =====================================================
-  // TODAY PRODUCTION
-  // =====================================================
-
-  today += Number(
-    latest?.dataList?.find(
-      d => d.key === "DailyActiveProduction"
-    )?.value || 0
-  );
-
+ 
 
  
 
@@ -1081,18 +1107,9 @@ async function getCampusReport(campus, fromDate, toDate) {
                 String(campus).trim().toUpperCase()
         );
 
-        console.log(
-            `Campus: ${campus} | Buildings: ${campusBuildings.length}`
-        );
+       
 
-        console.log(
-            "Campus Buildings:",
-            campusBuildings.map(b => ({
-                name: b.name,
-                stationId: b.stationId,
-                campus: b.campus
-            }))
-        );
+    
 
         // 3. Load all buildings
         const buildingReports = await Promise.all(
@@ -1101,9 +1118,7 @@ async function getCampusReport(campus, fromDate, toDate) {
 
                 try {
 
-                    console.log(
-                        `Loading Building: ${building.name} | Station: ${building.stationId}`
-                    );
+                    
 
                     const report = await getReportData(
                         building.stationId,
@@ -1449,15 +1464,7 @@ async function getPgtInverterEnergy(stationId, date) {
 
         }
 
-        console.log(
-            "PGT INVERTER ENERGY + POWER:",
-            {
-                stationId,
-                count: pgtData.length,
-                first: pgtData[0],
-                last: pgtData[pgtData.length - 1]
-            }
-        );
+      
 
         return pgtData;
 
@@ -1789,15 +1796,7 @@ async function getPgtReport(
         }
 
 
-        console.log(
-            "PGT SELECTED BUILDING:",
-            {
-                stationId,
-                buildingName,
-                installedDcCapacity
-            }
-        );
-
+      
 
         // =================================================
         // 1. GET SELECTED BUILDING INVERTER DATA
@@ -1820,16 +1819,8 @@ if (
     !Array.isArray(filteredInverterData) ||
     filteredInverterData.length === 0
 ) {
-    console.log(
-        "NO INVERTER DATA:",
-        {
-            stationId,
-            buildingName,
-            date,
-            fromTime,
-            toTime
-        }
-    );
+    
+   
 
     return {
         station: {
@@ -2671,34 +2662,7 @@ const totalAcEnergyGenerated =
                 : null;
 
 
-        // =================================================
-        // LOG
-        // =================================================
-
-        console.log(
-            "PGT CALCULATION:",
-            {
-                stationId,
-                buildingName,
-                installedDcCapacity,
-                pgtStartIndex,
-                pgtEndIndex,
-                testStartDateTime,
-                testEndDateTime,
-                totalPoaIrradiation,
-                totalPoaKwh,
-                initialInverterEnergy,
-                finalInverterEnergy,
-                totalAcEnergyGenerated,
-                differentialEnergy,
-                referenceYield,
-                finalYield,
-                performanceRatio,
-                guaranteedPr,
-                pgtResult
-            }
-        );
-
+       
 
         // =================================================
         // FINAL RESPONSE
@@ -2901,18 +2865,7 @@ async function getAllNLCILPgtStations() {
         ];
 
 
-        console.log(
-            "NLCIL Deye Buildings:",
-            deyeBuildings.length
-        );
-
        
-
-        console.log(
-            "NLCIL TOTAL PGT Buildings:",
-            combined.length
-        );
-
 
         return combined;
 
@@ -3094,13 +3047,7 @@ async function getNUPPLPgtReport(
 
     try {
 
-        console.log(
-            "========================================"
-        );
-
-        console.log(
-            "NUPPL PGT REPORT START"
-        );
+       
 
       
 
@@ -7637,13 +7584,7 @@ async function getNTPLPgtReport(
 
     try {
 
-        console.log(
-            "========================================"
-        );
-
-        console.log(
-            "NTPL PGT REPORT START"
-        );
+        
 
 
         // =================================================
@@ -7758,11 +7699,7 @@ for (const station of ntplStationDetails) {
 
     }
 
-    console.log(
-        `✅ NTPL CAPACITY | ` +
-        `${station.buildingName} = ` +
-        `${station.installedDcCapacity} kWp`
-    );
+   
 }
 
        
