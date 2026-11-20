@@ -245,14 +245,10 @@ function getISTDate(daysOffset = 0) {
 
 
 
-// ================= GET YESTERDAY =================
-
 async function getYesterday(stationId) {
 
-    // Always calculate yesterday using IST date
     const date = getISTDate(-1);
 
-    // Cache is valid only for the same yesterday date
     const cached = YESTERDAY_CACHE[stationId];
 
     if (
@@ -263,45 +259,76 @@ async function getYesterday(stationId) {
         return cached.value;
     }
 
-  
+    try {
 
-    const data = await api(
-        "/v1.0/station/history",
-        {
-            stationId: Number(stationId),
-            startAt: date,
-            endAt: date,
-            granularity: 2
+        const devices = await getDevices(stationId);
+
+        const inverters = devices.filter(d =>
+            d.deviceType === "INVERTER" ||
+            d.deviceType === "INV" ||
+            d.deviceType === 1
+        );
+
+        if (!inverters.length) return 0;
+
+        const results = await Promise.all(
+            inverters.map(inv =>
+                api("/v1.0/device/history", {
+                    deviceSn: String(inv.deviceSn),
+                    startAt: date,
+                    endAt: date,
+                    granularity: 1,
+                    measurePoints: ["DailyActiveProduction"]
+                })
+            )
+        );
+
+        let totalYesterday = 0;
+
+        for (const result of results) {
+
+            const dataList = (result.dataList || [])
+                .sort((a, b) => Number(a.time) - Number(b.time));
+
+            const lastReading = [...dataList].reverse().find(item =>
+                item.itemList?.some(
+                    d => d.key === "DailyActiveProduction"
+                )
+            );
+
+            if (!lastReading) {
+                throw new Error("Yesterday inverter history missing");
+            }
+
+            const value = Number(
+                lastReading.itemList.find(
+                    d => d.key === "DailyActiveProduction"
+                ).value
+            );
+
+            if (!Number.isFinite(value)) {
+                throw new Error("Invalid yesterday production value");
+            }
+
+            totalYesterday += value;
         }
-    );
 
-    const items = Array.isArray(data?.stationDataItems)
-        ? data.stationDataItems
-        : [];
+        totalYesterday = Number(totalYesterday.toFixed(1));
 
-    // Match the exact requested date
-    const [year, month, day] = date.split("-").map(Number);
+        YESTERDAY_CACHE[stationId] = {
+            date,
+            value: totalYesterday,
+            time: Date.now()
+        };
 
-    const matchedItem = items.find(item =>
-        Number(item.year) === year &&
-        Number(item.month) === month &&
-        Number(item.day) === day
-    ) || items[0];
+        return totalYesterday;
 
-    const value = Number(
-        matchedItem?.generationValue || 0
-    );
+    } catch (err) {
 
-    // Save cache with date
-    YESTERDAY_CACHE[stationId] = {
-        date,
-        value,
-        time: Date.now()
-    };
+        console.error("Yesterday production error:", stationId, err.message);
 
-   
-
-    return value;
+        return cached?.value ?? 0;
+    }
 }
 
 
